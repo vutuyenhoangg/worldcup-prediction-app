@@ -634,9 +634,9 @@ def render_app_hero():
                         {APP_TAGLINE}
                     </div>
                     <div class="wc-hero-actions">
-                        <div class="wc-pill">🏆 Leaderboard</div>
-                        <div class="wc-pill">🎯 Exact score challenge</div>
-                        <div class="wc-pill">🌎 North America 2026</div>
+                        <div class="wc-pill">Leaderboard</div>
+                        <div class="wc-pill">Exact score challenge</div>
+                        <div class="wc-pill">North America 2026</div>
                     </div>
                 </div>
                 <div>
@@ -1928,7 +1928,7 @@ def page_matches():
     render_app_hero()
 
     render_page_title(
-        "📅 Lịch thi đấu & dự đoán",
+        "Lịch thi đấu & dự đoán",
         "Chọn ngày, vòng đấu và trạng thái để nhập dự đoán cho từng trận."
     )
 
@@ -2059,7 +2059,7 @@ def page_matches():
 
 def page_my_predictions():
     render_page_title(
-        "📝 Dự đoán của tôi",
+        "Dự đoán của tôi",
         "Theo dõi toàn bộ dự đoán đã lưu và điểm số từng trận."
     )
 
@@ -2276,7 +2276,7 @@ def build_leaderboard_df():
 
 def page_leaderboard():
     render_page_title(
-        "🏆 Bảng xếp hạng",
+        "Bảng xếp hạng",
         "Xem ai đang dẫn đầu cuộc đua dự đoán."
     )
 
@@ -2343,7 +2343,7 @@ def page_leaderboard():
 
 def page_dashboard():
     render_page_title(
-        "📊 Dashboard phân tích",
+        "Dashboard phân tích",
         "Tổng quan hiệu suất dự đoán, điểm số và độ chính xác."
     )
 
@@ -2426,7 +2426,7 @@ def page_dashboard():
 
 def page_admin():
     render_page_title(
-        "🛠️ Admin",
+        "Admin",
         "Cập nhật kết quả trận đấu và chấm điểm lại toàn bộ dự đoán."
     )
 
