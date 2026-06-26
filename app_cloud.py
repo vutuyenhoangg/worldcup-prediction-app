@@ -2701,7 +2701,7 @@ def page_leaderboard():
 
             if col == "Điểm":
                 style += (
-                    "font-weight: 950 !important; "
+                    "font-weight: 1390 !important; "
                     "color: #07111F !important; "
                 )
 
@@ -2740,7 +2740,7 @@ def page_leaderboard():
         .set_properties(
             subset=["Điểm"],
             **{
-                "font-weight": "950 !important",
+                "font-weight": "1390 !important",
                 "color": "#07111F !important"
             }
         )
