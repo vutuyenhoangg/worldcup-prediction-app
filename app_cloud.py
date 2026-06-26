@@ -1943,37 +1943,39 @@ def render_match_card(row, user_id: int):
             if venue or city:
                 st.caption(f"🏟️ {venue or ''} {city or ''}")
 
-		with top_right:
-		    actual_home = to_optional_int(row.get("home_score_for_prediction"))
-		    actual_away = to_optional_int(row.get("away_score_for_prediction"))
-		
-		    if is_finished and actual_home is not None and actual_away is not None:
-		        st.metric("Kết quả", f"{actual_home} - {actual_away}")
-		
-		        winner_name = row.get("winner_team_name")
-		        winner_name_is_valid = (
-		            winner_name is not None
-		            and not pd.isna(winner_name)
-		            and str(winner_name).strip().lower() not in ["", "nan", "none"]
-		        )
-		
-		        if winner_name_is_valid:
-		            st.caption(f"Đi tiếp/thắng: {str(winner_name).strip()}")
-		
-		        elif not is_knockout and actual_home == actual_away:
-		            st.caption("Đi tiếp/thắng: 2 đội hòa nhau")
-		
-		        elif is_knockout and actual_home == actual_away:
-		            st.caption("Đi tiếp/thắng: Chưa xác định đội đi tiếp")
-		
-		        elif actual_home > actual_away:
-		            st.caption(f"Đi tiếp/thắng: {home_name}")
-		
-		        elif actual_away > actual_home:
-		            st.caption(f"Đi tiếp/thắng: {away_name}")
-		
-		    else:
-		        render_match_status_box(status_info)
+        with top_right:
+            actual_home = to_optional_int(row.get("home_score_for_prediction"))
+            actual_away = to_optional_int(row.get("away_score_for_prediction"))
+
+            if is_finished and actual_home is not None and actual_away is not None:
+                st.metric("Kết quả", f"{actual_home} - {actual_away}")
+
+                winner_name = row.get("winner_team_name")
+
+                winner_name_is_valid = (
+                    winner_name is not None
+                    and not pd.isna(winner_name)
+                    and str(winner_name).strip().lower() not in ["", "nan", "none"]
+                )
+
+                if winner_name_is_valid:
+                    st.caption(f"Đi tiếp/thắng: {str(winner_name).strip()}")
+
+                elif not is_knockout and actual_home == actual_away:
+                    st.caption("Đi tiếp/thắng: 2 đội hòa nhau")
+
+                elif is_knockout and actual_home == actual_away:
+                    st.caption("Đi tiếp/thắng: Chưa xác định đội đi tiếp")
+
+                elif actual_home > actual_away:
+                    st.caption(f"Đi tiếp/thắng: {home_name}")
+
+                elif actual_away > actual_home:
+                    st.caption(f"Đi tiếp/thắng: {away_name}")
+
+            else:
+                render_match_status_box(status_info)
+
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
             render_inline_prediction_confirmation(match_id)
