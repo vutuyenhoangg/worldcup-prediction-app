@@ -2469,6 +2469,21 @@ def page_my_predictions():
         )
     })
 
+    leaderboard = build_leaderboard_df()
+
+    current_user_summary = leaderboard[
+        leaderboard["user_id"] == user_id
+    ]
+
+    if current_user_summary.empty:
+        total_points = int(
+            pd.to_numeric(df["points"], errors="coerce").fillna(0).sum()
+        )
+        current_rank = "-"
+    else:
+        total_points = int(current_user_summary.iloc[0]["total_points"])
+        current_rank = int(current_user_summary.iloc[0]["rank"])
+
     with stylable_container(
         key="my_predictions_table",
         css_styles="""
@@ -2482,6 +2497,73 @@ def page_my_predictions():
         """
     ):
         st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+        st.markdown(
+            f"""
+            <div style="
+                margin-top: 14px;
+                padding: 14px 18px;
+                border-radius: 16px;
+                background:
+                    linear-gradient(90deg, rgba(7,17,31,0.96), rgba(11,31,58,0.92));
+                color: #F8FAFC;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 18px;
+                flex-wrap: wrap;
+                border: 1px solid rgba(245,197,66,0.35);
+                box-shadow: 0 10px 24px rgba(15,23,42,0.10);
+            ">
+                <div style="
+                    font-weight: 900;
+                    letter-spacing: -0.01em;
+                ">
+                    Tổng kết dự đoán của bạn
+                </div>
+
+                <div style="
+                    display: flex;
+                    gap: 12px;
+                    flex-wrap: wrap;
+                    align-items: center;
+                ">
+                    <div style="
+                        padding: 8px 13px;
+                        border-radius: 999px;
+                        background: rgba(245,197,66,0.16);
+                        border: 1px solid rgba(245,197,66,0.45);
+                    ">
+                        Tổng điểm:
+                        <span style="
+                            color: #F5C542;
+                            font-weight: 950;
+                            font-size: 16px;
+                        ">
+                            {total_points}
+                        </span>
+                    </div>
+
+                    <div style="
+                        padding: 8px 13px;
+                        border-radius: 999px;
+                        background: rgba(0,180,216,0.14);
+                        border: 1px solid rgba(0,180,216,0.35);
+                    ">
+                        Hạng:
+                        <span style="
+                            color: #F5C542;
+                            font-weight: 950;
+                            font-size: 16px;
+                        ">
+                            #{current_rank}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 def build_leaderboard_df():
