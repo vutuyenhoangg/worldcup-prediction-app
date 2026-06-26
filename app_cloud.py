@@ -3066,7 +3066,7 @@ def page_dashboard():
     custom_score_scale = [
         [0.00, "#DC2626"],   # đỏ
         [0.45, "#2563EB"],   # xanh dương
-        [1.00, "#07111F"]    # xanh đậm sidebar
+        [1.00, "#07111F"]    # xanh đậm giống sidebar
     ]
 
     top_points = leaderboard.sort_values("total_points", ascending=False)
@@ -3090,9 +3090,11 @@ def page_dashboard():
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#07111F"),
         coloraxis_colorbar=dict(
-            title="Điểm",
-            tickfont=dict(color="#64748B"),
-            titlefont=dict(color="#64748B")
+            title=dict(
+                text="Điểm",
+                font=dict(color="#64748B")
+            ),
+            tickfont=dict(color="#64748B")
         )
     )
 
@@ -3111,8 +3113,8 @@ def page_dashboard():
         hover_name="display_name",
         title="Độ chính xác kết quả vs độ chính xác tỉ số",
         labels={
-            "result_prediction_rate": "Đúng kết quả",
-            "exact_score_rate": "Đúng hoàn toàn tỉ số",
+            "result_prediction_rate": "% Đoán đúng kết quả",
+            "exact_score_rate": "% Đoán đúng hoàn toàn tỉ số",
             "total_points": "Điểm"
         },
         color="total_points",
@@ -3128,9 +3130,11 @@ def page_dashboard():
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#07111F"),
         coloraxis_colorbar=dict(
-            title="Điểm",
-            tickfont=dict(color="#64748B"),
-            titlefont=dict(color="#64748B")
+            title=dict(
+                text="Điểm",
+                font=dict(color="#64748B")
+            ),
+            tickfont=dict(color="#64748B")
         )
     )
 
