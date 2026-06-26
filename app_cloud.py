@@ -2682,7 +2682,7 @@ def page_my_predictions():
         with summary_col_1:
             st.markdown(
                 (
-                    '<div style="text-align:center;padding:8px 0 4px 0;">'
+                    '<div style="text-align:center;padding:8px 0 2px 0;">'
                     '<div style="color:#07111F;font-weight:900;font-size:15px;margin-bottom:8px;">'
                     'Tổng điểm'
                     '</div>'
@@ -2695,7 +2695,7 @@ def page_my_predictions():
         with summary_col_2:
             st.markdown(
                 (
-                    '<div style="text-align:center;padding:8px 0 4px 0;">'
+                    '<div style="text-align:center;padding:8px 0 2px 0;">'
                     '<div style="color:#07111F;font-weight:900;font-size:15px;margin-bottom:8px;">'
                     'Hạng'
                     '</div>'
@@ -2704,7 +2704,7 @@ def page_my_predictions():
                 ),
                 unsafe_allow_html=True
             )
-        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
 def build_leaderboard_df():
     users = load_users()
