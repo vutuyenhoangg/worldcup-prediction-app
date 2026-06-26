@@ -2657,6 +2657,16 @@ def page_my_predictions():
 
     rank_display = "-" if current_rank == "-" else f"#{current_rank}"
 
+    scored_points = pd.to_numeric(df["points"], errors="coerce")
+    scored_match_count = int(scored_points.notna().sum())
+
+    if scored_match_count == 0:
+        avg_points_per_scored_match = 0.0
+    else:
+        avg_points_per_scored_match = total_points / scored_match_count
+
+    avg_points_display = f"{avg_points_per_scored_match:.1f}"
+
     with stylable_container(
         key="my_predictions_table",
         css_styles="""
@@ -2677,12 +2687,25 @@ def page_my_predictions():
 
         st.markdown("---")
 
-        summary_col_1, summary_col_2 = st.columns(2)
+        summary_col_1, summary_col_2, summary_col_3 = st.columns(3)
 
         with summary_col_1:
             st.markdown(
                 (
-                    '<div style="text-align:center;padding:8px 0 2px 0;">'
+                    '<div style="text-align:center;padding:0 0 2px 0;">'
+                    '<div style="color:#07111F;font-weight:900;font-size:15px;margin-bottom:8px;">'
+                    'Điểm TB/trận'
+                    '</div>'
+                    f'<div style="color:#F5C542;font-weight:950;font-size:34px;line-height:1;">{avg_points_display}</div>'
+                    '</div>'
+                ),
+                unsafe_allow_html=True
+            )
+
+        with summary_col_2:
+            st.markdown(
+                (
+                    '<div style="text-align:center;padding:0 0 2px 0;">'
                     '<div style="color:#07111F;font-weight:900;font-size:15px;margin-bottom:8px;">'
                     'Tổng điểm'
                     '</div>'
@@ -2692,10 +2715,10 @@ def page_my_predictions():
                 unsafe_allow_html=True
             )
 
-        with summary_col_2:
+        with summary_col_3:
             st.markdown(
                 (
-                    '<div style="text-align:center;padding:8px 0 2px 0;">'
+                    '<div style="text-align:center;padding:0 0 2px 0;">'
                     '<div style="color:#07111F;font-weight:900;font-size:15px;margin-bottom:8px;">'
                     'Hạng'
                     '</div>'
@@ -2704,7 +2727,8 @@ def page_my_predictions():
                 ),
                 unsafe_allow_html=True
             )
-        st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
+
+        st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 
 def build_leaderboard_df():
     users = load_users()
