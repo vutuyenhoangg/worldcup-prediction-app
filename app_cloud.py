@@ -1,7 +1,7 @@
 # ============================================================
 # WORLD CUP 2026 PREDICTION APP
-# Stack: Streamlit + SQLite
-# Database input: worldcup_prediction.db
+# Stack: Streamlit + Supabase/PostgreSQL
+# Database input: Supabase via DATABASE_URL
 # ============================================================
 
 import os
@@ -708,22 +708,18 @@ def render_kpi_tiles(matches: pd.DataFrame):
             <div class="wc-kpi-tile">
                 <div class="wc-kpi-label">Tổng số trận</div>
                 <div class="wc-kpi-value">{total_matches}</div>
-                <div class="wc-kpi-note">Lịch thi đấu trong database</div>
             </div>
             <div class="wc-kpi-tile">
                 <div class="wc-kpi-label">Đang mở dự đoán</div>
                 <div class="wc-kpi-value" style="color:#2563EB;">{open_matches}</div>
-                <div class="wc-kpi-note">Có thể nhập hoặc chỉnh sửa</div>
             </div>
             <div class="wc-kpi-tile">
                 <div class="wc-kpi-label">Đã có kết quả</div>
                 <div class="wc-kpi-value" style="color:#16A34A;">{finished_matches}</div>
-                <div class="wc-kpi-note">Đã sẵn sàng chấm điểm</div>
             </div>
             <div class="wc-kpi-tile">
                 <div class="wc-kpi-label">Chưa xác định đội</div>
                 <div class="wc-kpi-value" style="color:#64748B;">{unknown_matches}</div>
-                <div class="wc-kpi-note">Thường là vòng knock-out</div>
             </div>
         </div>
         """,
@@ -932,6 +928,96 @@ def calculate_total_points(row) -> int:
             points += 1
 
     return points
+
+
+def get_prediction_result_info(
+    pred_home,
+    pred_away,
+    actual_home,
+    actual_away,
+    is_finished
+):
+    """
+    Trả về thông tin hiển thị kết quả dự đoán:
+    - Đúng hoàn toàn tỉ số
+    - Đúng kết quả
+    - Sai
+
+    Logic:
+    - Đúng hoàn toàn tỉ số: dự đoán đúng chính xác tỉ số.
+    - Đúng kết quả: không đúng tỉ số, nhưng đúng kết quả thắng/hòa/thua.
+    - Sai: sai kết quả thắng/hòa/thua.
+    """
+    if not is_finished:
+        return None
+
+    if (
+        pred_home is None
+        or pred_away is None
+        or actual_home is None
+        or actual_away is None
+    ):
+        return None
+
+    pred_home = int(pred_home)
+    pred_away = int(pred_away)
+    actual_home = int(actual_home)
+    actual_away = int(actual_away)
+
+    if pred_home == actual_home and pred_away == actual_away:
+        return {
+            "label": "Đúng hoàn toàn tỉ số",
+            "text_color": "#166534",
+            "bg_color": "#DCFCE7",
+            "border_color": "#86EFAC"
+        }
+
+    if get_outcome(pred_home, pred_away) == get_outcome(actual_home, actual_away):
+        return {
+            "label": "Đúng kết quả",
+            "text_color": "#0369A1",
+            "bg_color": "#E0F2FE",
+            "border_color": "#7DD3FC"
+        }
+
+    return {
+        "label": "Sai",
+        "text_color": "#B91C1C",
+        "bg_color": "#FEE2E2",
+        "border_color": "#FCA5A5"
+    }
+
+
+def render_prediction_result_line(result_info):
+    if result_info is None:
+        return
+
+    st.markdown(
+        f"""
+        <div style="
+            margin-top: 8px;
+            margin-bottom: 8px;
+            font-size: 15px;
+            color: #07111F;
+        ">
+            Kết quả dự đoán:
+            <span style="
+                display: inline-block;
+                margin-left: 6px;
+                padding: 5px 11px;
+                border-radius: 999px;
+                background: {result_info["bg_color"]};
+                color: {result_info["text_color"]};
+                border: 1px solid {result_info["border_color"]};
+                font-weight: 850;
+                font-size: 14px;
+            ">
+                {result_info["label"]}
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 def hash_password(password: str, salt: str | None = None):
@@ -1159,6 +1245,33 @@ def init_app_tables():
         """
     )
 
+    # Tạo unique index cho tên hiển thị nếu dữ liệu hiện tại chưa bị trùng.
+    # Index này giúp chặn các biến thể như "Hoang", " hoang ", "HOANG".
+    try:
+        duplicate_display_names = read_sql(
+            """
+            SELECT LOWER(TRIM(display_name)) AS normalized_display_name,
+                   COUNT(*) AS n
+            FROM users
+            GROUP BY LOWER(TRIM(display_name))
+            HAVING COUNT(*) > 1
+            LIMIT 1
+            """
+        )
+
+        if duplicate_display_names.empty:
+            execute_sql(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_users_display_name_unique_ci
+                ON users (LOWER(TRIM(display_name)))
+                """
+            )
+
+    except Exception:
+        # Không chặn app khởi động nếu database đã có dữ liệu trùng hoặc index lỗi.
+        # create_user() vẫn có kiểm tra app-level để ngăn tên hiển thị trùng về sau.
+        pass
+
 
 def count_users() -> int:
     row = fetch_one(
@@ -1185,8 +1298,36 @@ def create_user(username: str, display_name: str, password: str):
     if not display_name:
         raise ValueError("Tên hiển thị không được để trống.")
 
-    if len(password) < 6:
-        raise ValueError("Mật khẩu nên có ít nhất 6 ký tự.")
+    if len(password) < 8:
+        raise ValueError("Mật khẩu nên có ít nhất 8 ký tự.")
+
+    existing_username = fetch_one(
+        """
+        SELECT user_id
+        FROM users
+        WHERE username = :username
+        """,
+        {
+            "username": username
+        }
+    )
+
+    if existing_username is not None:
+        raise ValueError("Username này đã tồn tại.")
+
+    existing_display_name = fetch_one(
+        """
+        SELECT user_id
+        FROM users
+        WHERE LOWER(TRIM(display_name)) = LOWER(TRIM(:display_name))
+        """,
+        {
+            "display_name": display_name
+        }
+    )
+
+    if existing_display_name is not None:
+        raise ValueError("Tên hiển thị này đã được sử dụng. Hãy chọn tên khác.")
 
     salt, password_hash = hash_password(password)
 
@@ -1223,7 +1364,7 @@ def create_user(username: str, display_name: str, password: str):
         )
 
     except IntegrityError:
-        raise ValueError("Username này đã tồn tại.")
+        raise ValueError("Username hoặc tên hiển thị đã tồn tại.")
 
     return role
 
@@ -1651,7 +1792,7 @@ def render_auth_page():
                         st.rerun()
 
         with tab_register:
-            st.info("Tài khoản đầu tiên trong database sẽ là admin. Các tài khoản sau là player.")
+            st.info("Mật khẩu phải có ít nhất 8 ký tự.")
 
             with st.form("register_form"):
                 username = st.text_input("Username", key="register_username")
@@ -1830,8 +1971,22 @@ def render_match_card(row, user_id: int):
                 f"**{home_name} {pred_home} - {pred_away} {away_name}**"
             )
 
+            actual_home_for_result = to_optional_int(row.get("home_score_for_prediction"))
+            actual_away_for_result = to_optional_int(row.get("away_score_for_prediction"))
+
+            prediction_result_info = get_prediction_result_info(
+                pred_home=pred_home,
+                pred_away=pred_away,
+                actual_home=actual_home_for_result,
+                actual_away=actual_away_for_result,
+                is_finished=is_finished
+            )
+
+            render_prediction_result_line(prediction_result_info)
+
             if existing.get("points") is not None:
                 st.markdown(f"Điểm: **{existing['points']}**")
+
         else:
             pred_home = 0
             pred_away = 0
@@ -1977,12 +2132,23 @@ def page_matches():
         key="match_filter_panel",
         css_styles="""
         {
-            background: rgba(255,255,255,0.92);
+            background: rgba(255,255,255,0.94);
             border: 1px solid rgba(15,23,42,0.08);
             border-radius: 22px;
-            padding: 18px;
+            padding: 12px 26px 10px 26px;
             box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
-            margin-bottom: 20px;
+            margin: 4px 0 24px 0;
+            width: 100%;
+	    min-height: 96px;	
+            box-sizing: border-box;
+        }
+
+        div[data-testid="stSelectbox"] {
+            margin-bottom: 0 !important;
+        }
+
+        div[data-testid="stSelectbox"] label {
+            margin-bottom: 4px !important;
         }
         """
     ):
@@ -2105,8 +2271,10 @@ def page_my_predictions():
             ),
             axis=1
         ),
-        "Điểm": df["points"].fillna("").astype(str)
-    })
+        "Điểm": df["points"].apply(
+            lambda x: "" if pd.isna(x) else str(int(round(float(x))))	
+    	)
+    })	
 
     with stylable_container(
         key="my_predictions_table",
@@ -2320,7 +2488,7 @@ def page_leaderboard():
     ]
 
     for col in percent_cols:
-        display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.1f}%")
+        display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.0f}%")
 
     with stylable_container(
         key="leaderboard_table_card",
