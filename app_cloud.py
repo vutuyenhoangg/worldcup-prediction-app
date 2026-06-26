@@ -2634,7 +2634,6 @@ def build_leaderboard_df():
 
     return summary
 
-
 def page_leaderboard():
     render_page_title(
         "Bảng xếp hạng",
@@ -2649,11 +2648,8 @@ def page_leaderboard():
         st.info("Chưa có dữ liệu người chơi.")
         return
 
-    current_user_id = int(st.session_state["user"]["user_id"])
-
     display_df = leaderboard[
         [
-            "user_id",
             "rank",
             "display_name",
             "total_points",
@@ -2686,213 +2682,23 @@ def page_leaderboard():
     for col in percent_cols:
         display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.0f}%")
 
-    def get_rank_class(rank_value):
-        if rank_value == 1:
-            return "rank-gold"
-
-        if rank_value == 2:
-            return "rank-silver"
-
-        if rank_value == 3:
-            return "rank-bronze"
-
-        return ""
-
-    def format_rank(rank_value):
-        if rank_value == 1:
-            return "1"
-
-        if rank_value == 2:
-            return "2"
-
-        if rank_value == 3:
-            return "3"
-
-        return str(rank_value)
-
-    visible_columns = [
-        "Hạng",
-        "Người chơi",
-        "Điểm",
-        "Số dự đoán",
-        "Số trận đã chấm",
-        "Đúng tỉ số",
-        "Đúng kết quả",
-        "% Đoán đúng hoàn toàn tỉ số",
-        "% Đoán đúng kết quả"
-    ]
-
-    header_html = "".join(
-        f"<th>{html.escape(col)}</th>"
-        for col in visible_columns
-    )
-
-    body_rows = []
-
-    for _, row in display_df.iterrows():
-        row_user_id = int(row["user_id"])
-        rank_value = int(row["Hạng"])
-
-        current_user_class = " current-user-row" if row_user_id == current_user_id else ""
-        rank_class = get_rank_class(rank_value)
-
-        cells = []
-
-        for col in visible_columns:
-            cell_value = row[col]
-
-            cell_classes = []
-
-            if col == "Hạng":
-                cell_classes.append("rank-cell")
-
-                if rank_class:
-                    cell_classes.append(rank_class)
-
-                cell_value = format_rank(rank_value)
-
-            if col == "Điểm":
-                cell_classes.append("score-cell")
-
-            class_attr = ""
-
-            if cell_classes:
-                class_attr = f' class="{" ".join(cell_classes)}"'
-
-            cells.append(
-                f"<td{class_attr}>{html.escape(str(cell_value))}</td>"
-            )
-
-        body_rows.append(
-            f"""
-            <tr class="leaderboard-row{current_user_class}">
-                {''.join(cells)}
-            </tr>
-            """
+    with stylable_container(
+        key="leaderboard_table_card",
+        css_styles="""
+        {
+            background: rgba(255,255,255,0.94);
+            border: 1px solid rgba(15,23,42,0.08);
+            border-radius: 22px;
+            padding: 18px;
+            box-shadow: 0 14px 34px rgba(15,23,42,0.08);
+        }
+        """
+    ):
+        st.dataframe(
+            display_df,
+            use_container_width=True,
+            hide_index=True
         )
-
-    table_html = f"""
-    <style>
-        .leaderboard-table-wrapper {{
-            width: 100%;
-            overflow-x: auto;
-            border-radius: 18px;
-            border: 1px solid rgba(15, 23, 42, 0.08);
-        }}
-
-        .leaderboard-table {{
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            color: #07111F;
-            background: rgba(255, 255, 255, 0.98);
-            overflow: hidden;
-        }}
-
-        .leaderboard-table thead tr {{
-            background:
-                radial-gradient(circle at 30% 15%, rgba(0, 180, 216, 0.22), transparent 28%),
-                linear-gradient(90deg, #07111F 0%, #0B1F3A 62%, #04101F 100%);
-        }}
-
-        .leaderboard-table th {{
-            color: #F8FAFC;
-            font-weight: 900;
-            text-align: left;
-            padding: 13px 14px;
-            white-space: nowrap;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-        }}
-
-        .leaderboard-table td {{
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.07);
-            white-space: nowrap;
-        }}
-
-        .leaderboard-table tbody tr:hover td {{
-            background: rgba(0, 180, 216, 0.08);
-        }}
-
-        .leaderboard-table tbody tr:last-child td {{
-            border-bottom: none;
-        }}
-
-        .current-user-row td {{
-            background: #E0F2FE !important;
-            color: #07111F;
-            font-weight: 850;
-        }}
-
-        .score-cell {{
-            font-weight: 950 !important;
-            color: #07111F;
-        }}
-
-        .rank-cell {{
-            text-align: center;
-            font-weight: 950;
-            border-radius: 999px;
-        }}
-
-        .rank-gold {{
-            background: linear-gradient(135deg, #FEF3C7, #F5C542) !important;
-            color: #78350F !important;
-            font-weight: 950 !important;
-        }}
-
-        .rank-silver {{
-            background: linear-gradient(135deg, #F8FAFC, #CBD5E1) !important;
-            color: #334155 !important;
-            font-weight: 950 !important;
-        }}
-
-        .rank-bronze {{
-            background: linear-gradient(135deg, #FED7AA, #CD7F32) !important;
-            color: #431407 !important;
-            font-weight: 950 !important;
-        }}
-    </style>
-
-    <div class="leaderboard-table-wrapper">
-        <table class="leaderboard-table">
-            <thead>
-                <tr>
-                    {header_html}
-                </tr>
-            </thead>
-            <tbody>
-                {''.join(body_rows)}
-            </tbody>
-        </table>
-    </div>
-    """
-
-table_height = min(
-    720,
-    max(
-        190,
-        82 + len(display_df) * 46
-    )
-)
-
-with stylable_container(
-    key="leaderboard_table_card",
-    css_styles="""
-    {
-        background: rgba(255,255,255,0.94);
-        border: 1px solid rgba(15,23,42,0.08);
-        border-radius: 22px;
-        padding: 18px;
-        box-shadow: 0 14px 34px rgba(15,23,42,0.08);
-    }
-    """
-):
-    components.html(
-        table_html,
-        height=table_height,
-        scrolling=True
-    )
 
 
 def page_dashboard():
