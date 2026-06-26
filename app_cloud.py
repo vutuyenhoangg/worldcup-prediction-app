@@ -2467,26 +2467,112 @@ def page_matches():
     if st.session_state["filter_status"] not in status_options:
         st.session_state["filter_status"] = "Tất cả"
 
-    col_filter_1, col_filter_2 = st.columns([1, 1])
+    with stylable_container(
+        key="match_filter_panel",
+        css_styles="""
+        {
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255,255,255,0.96) 0%,
+                    rgba(248,250,252,0.96) 68%,
+                    rgba(245,197,66,0.10) 100%
+                );
+            border: 1px solid rgba(15,23,42,0.08);
+            border-left: 5px solid #F5C542;
+            border-radius: 22px;
+            padding: 18px 24px 16px 24px;
+            box-shadow: 0 16px 40px rgba(15,23,42,0.10);
+            margin: 8px 0 28px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
 
-    with col_filter_1:
-        selected_date = st.selectbox(
-            "Ngày thi đấu",
-            options=date_options,
-            index=date_options.index(st.session_state["filter_date"]),
-            format_func=format_filter_date,
-            key="filter_date"
+        div[data-testid="stSelectbox"] {
+            margin-bottom: 0 !important;
+        }
+
+        div[data-testid="stSelectbox"] label {
+            color: #334155 !important;
+            font-weight: 850 !important;
+            font-size: 13px !important;
+            margin-bottom: 6px !important;
+        }
+
+        div[data-baseweb="select"] > div {
+            background: rgba(248,250,252,0.95) !important;
+            border: 1px solid rgba(15,23,42,0.10) !important;
+            border-radius: 14px !important;
+            min-height: 44px !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.70);
+        }
+
+        div[data-baseweb="select"] > div:hover {
+            border-color: rgba(245,197,66,0.75) !important;
+        }
+        """
+    ):
+        st.markdown(
+            """
+            <div style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 14px;
+            ">
+                <div style="
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 999px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(245,197,66,0.18);
+                    border: 1px solid rgba(245,197,66,0.45);
+                    font-size: 16px;
+                ">
+                    🎛️
+                </div>
+                <div>
+                    <div style="
+                        color: #07111F;
+                        font-weight: 950;
+                        font-size: 16px;
+                        line-height: 1.2;
+                    ">
+                        Bộ lọc trận đấu
+                    </div>
+                    <div style="
+                        color: #64748B;
+                        font-size: 13px;
+                        margin-top: 2px;
+                    ">
+                        Lọc nhanh theo ngày thi đấu và trạng thái trận.
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-    with col_filter_2:
-        status_filter = st.selectbox(
-            "Trạng thái",
-            options=status_options,
-            index=status_options.index(st.session_state["filter_status"]),
-            key="filter_status"
-        )
+        col_filter_1, col_filter_2 = st.columns([1, 1])
 
-    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        with col_filter_1:
+            selected_date = st.selectbox(
+                "Ngày thi đấu",
+                options=date_options,
+                index=date_options.index(st.session_state["filter_date"]),
+                format_func=format_filter_date,
+                key="filter_date"
+            )
+
+        with col_filter_2:
+            status_filter = st.selectbox(
+                "Trạng thái",
+                options=status_options,
+                index=status_options.index(st.session_state["filter_status"]),
+                key="filter_status"
+            )
 
     filtered = matches.copy()
 
