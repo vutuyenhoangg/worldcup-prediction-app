@@ -2498,72 +2498,59 @@ def page_my_predictions():
     ):
         st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-        st.markdown(
-            f"""
-            <div style="
-                margin-top: 14px;
-                padding: 14px 18px;
-                border-radius: 16px;
+        st.markdown("---")
+
+        with stylable_container(
+            key="my_predictions_summary",
+            css_styles="""
+            {
                 background:
-                    linear-gradient(90deg, rgba(7,17,31,0.96), rgba(11,31,58,0.92));
-                color: #F8FAFC;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 18px;
-                flex-wrap: wrap;
+                    linear-gradient(90deg, #07111F 0%, #0B1F3A 70%, #04101F 100%);
                 border: 1px solid rgba(245,197,66,0.35);
-                box-shadow: 0 10px 24px rgba(15,23,42,0.10);
-            ">
+                border-radius: 18px;
+                padding: 16px 18px;
+                box-shadow: 0 10px 24px rgba(15,23,42,0.12);
+            }
+
+            div[data-testid="stMetric"] {
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 16px;
+                padding: 14px 16px;
+            }
+
+            div[data-testid="stMetricLabel"] {
+                color: #CBD5E1;
+                font-weight: 850;
+            }
+
+            div[data-testid="stMetricValue"] {
+                color: #F5C542;
+                font-weight: 950;
+            }
+            """
+        ):
+            st.markdown(
+                """
                 <div style="
+                    color: #F8FAFC;
                     font-weight: 900;
-                    letter-spacing: -0.01em;
+                    margin-bottom: 12px;
+                    font-size: 16px;
                 ">
                     Tổng kết dự đoán của bạn
                 </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-                <div style="
-                    display: flex;
-                    gap: 12px;
-                    flex-wrap: wrap;
-                    align-items: center;
-                ">
-                    <div style="
-                        padding: 8px 13px;
-                        border-radius: 999px;
-                        background: rgba(245,197,66,0.16);
-                        border: 1px solid rgba(245,197,66,0.45);
-                    ">
-                        Tổng điểm:
-                        <span style="
-                            color: #F5C542;
-                            font-weight: 950;
-                            font-size: 16px;
-                        ">
-                            {total_points}
-                        </span>
-                    </div>
+            col_total, col_rank = st.columns(2)
 
-                    <div style="
-                        padding: 8px 13px;
-                        border-radius: 999px;
-                        background: rgba(0,180,216,0.14);
-                        border: 1px solid rgba(0,180,216,0.35);
-                    ">
-                        Hạng:
-                        <span style="
-                            color: #F5C542;
-                            font-weight: 950;
-                            font-size: 16px;
-                        ">
-                            #{current_rank}
-                        </span>
-                    </div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            with col_total:
+                st.metric("Tổng điểm", total_points)
+
+            with col_rank:
+                st.metric("Hạng", f"#{current_rank}" if current_rank != "-" else "-")
 
 
 def build_leaderboard_df():
