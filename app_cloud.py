@@ -2472,7 +2472,7 @@ def page_my_predictions():
     leaderboard = build_leaderboard_df()
 
     current_user_summary = leaderboard[
-        leaderboard["user_id"] == user_id
+        leaderboard["user_id"].astype(int) == int(user_id)
     ]
 
     if current_user_summary.empty:
@@ -2496,7 +2496,11 @@ def page_my_predictions():
         }
         """
     ):
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.dataframe(
+            display_df,
+            use_container_width=True,
+            hide_index=True
+        )
 
         st.markdown("---")
 
@@ -2508,25 +2512,29 @@ def page_my_predictions():
                     linear-gradient(90deg, #07111F 0%, #0B1F3A 70%, #04101F 100%);
                 border: 1px solid rgba(245,197,66,0.35);
                 border-radius: 18px;
-                padding: 16px 18px;
+                padding: 18px 20px;
                 box-shadow: 0 10px 24px rgba(15,23,42,0.12);
             }
 
             div[data-testid="stMetric"] {
-                background: rgba(255,255,255,0.08);
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 16px;
-                padding: 14px 16px;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                border-radius: 0 !important;
             }
 
-            div[data-testid="stMetricLabel"] {
-                color: #CBD5E1;
-                font-weight: 850;
+            div[data-testid="stMetricLabel"],
+            div[data-testid="stMetricLabel"] p,
+            div[data-testid="stMetricLabel"] div {
+                color: #F8FAFC !important;
+                font-weight: 850 !important;
             }
 
-            div[data-testid="stMetricValue"] {
-                color: #F5C542;
-                font-weight: 950;
+            div[data-testid="stMetricValue"],
+            div[data-testid="stMetricValue"] div {
+                color: #F5C542 !important;
+                font-weight: 950 !important;
             }
             """
         ):
@@ -2550,7 +2558,10 @@ def page_my_predictions():
                 st.metric("Tổng điểm", total_points)
 
             with col_rank:
-                st.metric("Hạng", f"#{current_rank}" if current_rank != "-" else "-")
+                if current_rank == "-":
+                    st.metric("Hạng", "-")
+                else:
+                    st.metric("Hạng", f"#{current_rank}")
 
 
 def build_leaderboard_df():
