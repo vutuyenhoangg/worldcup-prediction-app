@@ -4,6 +4,7 @@
 # Database input: Supabase via DATABASE_URL
 # ============================================================
 
+import streamlit.components.v1 as components
 import html
 import os
 import hmac
@@ -2867,19 +2868,31 @@ def page_leaderboard():
     </div>
     """
 
-    with stylable_container(
-        key="leaderboard_table_card",
-        css_styles="""
-        {
-            background: rgba(255,255,255,0.94);
-            border: 1px solid rgba(15,23,42,0.08);
-            border-radius: 22px;
-            padding: 18px;
-            box-shadow: 0 14px 34px rgba(15,23,42,0.08);
-        }
-        """
-    ):
-        st.markdown(table_html, unsafe_allow_html=True)
+table_height = min(
+    720,
+    max(
+        190,
+        82 + len(display_df) * 46
+    )
+)
+
+with stylable_container(
+    key="leaderboard_table_card",
+    css_styles="""
+    {
+        background: rgba(255,255,255,0.94);
+        border: 1px solid rgba(15,23,42,0.08);
+        border-radius: 22px;
+        padding: 18px;
+        box-shadow: 0 14px 34px rgba(15,23,42,0.08);
+    }
+    """
+):
+    components.html(
+        table_html,
+        height=table_height,
+        scrolling=True
+    )
 
 
 def page_dashboard():
