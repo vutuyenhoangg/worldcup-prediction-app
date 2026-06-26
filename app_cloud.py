@@ -2515,7 +2515,7 @@ def page_my_predictions():
                 border: 1px solid rgba(245,197,66,0.35);
                 border-radius: 18px;
                 padding: 0 24px;
-                min-height: 125px;
+                min-height: 100px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
