@@ -2484,6 +2484,8 @@ def page_my_predictions():
         total_points = int(current_user_summary.iloc[0]["total_points"])
         current_rank = int(current_user_summary.iloc[0]["rank"])
 
+    rank_display = "-" if current_rank == "-" else f"#{current_rank}"
+
     with stylable_container(
         key="my_predictions_table",
         css_styles="""
@@ -2515,27 +2517,6 @@ def page_my_predictions():
                 padding: 18px 20px;
                 box-shadow: 0 10px 24px rgba(15,23,42,0.12);
             }
-
-            div[data-testid="stMetric"] {
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                padding: 0 !important;
-                border-radius: 0 !important;
-            }
-
-            div[data-testid="stMetricLabel"],
-            div[data-testid="stMetricLabel"] p,
-            div[data-testid="stMetricLabel"] div {
-                color: #F8FAFC !important;
-                font-weight: 850 !important;
-            }
-
-            div[data-testid="stMetricValue"],
-            div[data-testid="stMetricValue"] div {
-                color: #F5C542 !important;
-                font-weight: 950 !important;
-            }
             """
         ):
             st.markdown(
@@ -2543,7 +2524,7 @@ def page_my_predictions():
                 <div style="
                     color: #F8FAFC;
                     font-weight: 900;
-                    margin-bottom: 12px;
+                    margin-bottom: 16px;
                     font-size: 16px;
                 ">
                     Tổng kết dự đoán của bạn
@@ -2555,13 +2536,50 @@ def page_my_predictions():
             col_total, col_rank = st.columns(2)
 
             with col_total:
-                st.metric("Tổng điểm", total_points)
+                st.markdown(
+                    f"""
+                    <div style="
+                        color: #F8FAFC;
+                        font-weight: 850;
+                        font-size: 14px;
+                        margin-bottom: 6px;
+                    ">
+                        Tổng điểm
+                    </div>
+                    <div style="
+                        color: #F5C542;
+                        font-weight: 950;
+                        font-size: 30px;
+                        line-height: 1.1;
+                    ">
+                        {total_points}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
             with col_rank:
-                if current_rank == "-":
-                    st.metric("Hạng", "-")
-                else:
-                    st.metric("Hạng", f"#{current_rank}")
+                st.markdown(
+                    f"""
+                    <div style="
+                        color: #F8FAFC;
+                        font-weight: 850;
+                        font-size: 14px;
+                        margin-bottom: 6px;
+                    ">
+                        Hạng
+                    </div>
+                    <div style="
+                        color: #F5C542;
+                        font-weight: 950;
+                        font-size: 30px;
+                        line-height: 1.1;
+                    ">
+                        {rank_display}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
 
 def build_leaderboard_df():
