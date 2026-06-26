@@ -2506,53 +2506,41 @@ def page_my_predictions():
 
         st.markdown("---")
 
-        with stylable_container(
-            key="my_predictions_summary",
-            css_styles="""
-            {
+        st.markdown(
+            f"""
+            <div style="
                 background:
                     linear-gradient(90deg, #07111F 0%, #0B1F3A 70%, #04101F 100%);
                 border: 1px solid rgba(245,197,66,0.35);
                 border-radius: 18px;
+                min-height: 118px;
                 padding: 0 24px;
-                min-height: 100px;
+                box-shadow: 0 10px 24px rgba(15,23,42,0.12);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 10px 24px rgba(15,23,42,0.12);
-            }
-
-            div[data-testid="stHorizontalBlock"] {
-                width: 100%;
-                align-items: center !important;
-            }
-
-            div[data-testid="column"] {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-            }
-            """
-        ):
-            col_total, col_rank = st.columns(2)
-
-            with col_total:
-                st.markdown(
-                    f"""
+                box-sizing: border-box;
+            ">
+                <div style="
+                    width: 100%;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    align-items: center;
+                    justify-items: center;
+                    text-align: center;
+                ">
                     <div style="
                         display: flex;
                         flex-direction: column;
-                        justify-content: center;
                         align-items: center;
-                        text-align: center;
-                        min-height: 100px;
-                        width: 100%;
+                        justify-content: center;
                     ">
                         <div style="
                             color: #F8FAFC;
                             font-weight: 850;
                             font-size: 16px;
                             margin-bottom: 8px;
+                            line-height: 1.1;
                         ">
                             Tổng điểm
                         </div>
@@ -2565,27 +2553,19 @@ def page_my_predictions():
                             {total_points}
                         </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True
-                )
 
-            with col_rank:
-                st.markdown(
-                    f"""
                     <div style="
                         display: flex;
                         flex-direction: column;
-                        justify-content: center;
                         align-items: center;
-                        text-align: center;
-                        min-height: 100px;
-                        width: 100%;
+                        justify-content: center;
                     ">
                         <div style="
                             color: #F8FAFC;
                             font-weight: 850;
                             font-size: 16px;
                             margin-bottom: 8px;
+                            line-height: 1.1;
                         ">
                             Hạng
                         </div>
@@ -2598,9 +2578,11 @@ def page_my_predictions():
                             {rank_display}
                         </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 def build_leaderboard_df():
