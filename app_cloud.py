@@ -2648,8 +2648,11 @@ def page_leaderboard():
         st.info("Chưa có dữ liệu người chơi.")
         return
 
+    current_user_id = int(st.session_state["user"]["user_id"])
+
     display_df = leaderboard[
         [
+            "user_id",
             "rank",
             "display_name",
             "total_points",
@@ -2663,6 +2666,7 @@ def page_leaderboard():
     ].copy()
 
     display_df = display_df.rename(columns={
+        "user_id": "user_id",
         "rank": "Hạng",
         "display_name": "Người chơi",
         "total_points": "Điểm",
@@ -2682,6 +2686,91 @@ def page_leaderboard():
     for col in percent_cols:
         display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.0f}%")
 
+    def style_leaderboard_row(row):
+        styles = []
+
+        is_current_user = int(row["user_id"]) == current_user_id
+        rank_value = int(row["Hạng"])
+
+        for col in row.index:
+            style = ""
+
+            if is_current_user:
+                style += (
+                    "background-color: #E0F2FE; "
+                    "font-weight: 800; "
+                )
+
+            if col == "Điểm":
+                style += (
+                    "font-weight: 950; "
+                    "color: #07111F; "
+                )
+
+            if col == "Hạng":
+                style += (
+                    "font-weight: 950; "
+                    "text-align: center; "
+                )
+
+                if rank_value == 1:
+                    style += (
+                        "background-color: #F5C542; "
+                        "color: #78350F; "
+                    )
+
+                elif rank_value == 2:
+                    style += (
+                        "background-color: #CBD5E1; "
+                        "color: #334155; "
+                    )
+
+                elif rank_value == 3:
+                    style += (
+                        "background-color: #CD7F32; "
+                        "color: #431407; "
+                    )
+
+            styles.append(style)
+
+        return styles
+
+    styled_df = (
+        display_df
+        .style
+        .apply(style_leaderboard_row, axis=1)
+        .hide(axis="columns", subset=["user_id"])
+        .set_table_styles(
+            [
+                {
+                    "selector": "thead th",
+                    "props": [
+                        ("background-color", "#07111F"),
+                        ("color", "#F8FAFC"),
+                        ("font-weight", "900"),
+                        ("text-align", "left"),
+                        ("border-bottom", "1px solid rgba(255,255,255,0.16)")
+                    ]
+                },
+                {
+                    "selector": "tbody td",
+                    "props": [
+                        ("border-bottom", "1px solid rgba(15,23,42,0.08)"),
+                        ("padding", "10px 12px")
+                    ]
+                },
+                {
+                    "selector": "table",
+                    "props": [
+                        ("width", "100%"),
+                        ("border-collapse", "collapse"),
+                        ("font-size", "14px")
+                    ]
+                }
+            ]
+        )
+    )
+
     with stylable_container(
         key="leaderboard_table_card",
         css_styles="""
@@ -2694,12 +2783,7 @@ def page_leaderboard():
         }
         """
     ):
-        st.dataframe(
-            display_df,
-            use_container_width=True,
-            hide_index=True
-        )
-
+        st.table(styled_df)
 
 def page_dashboard():
     render_page_title(
