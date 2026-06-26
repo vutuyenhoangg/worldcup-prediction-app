@@ -1660,7 +1660,7 @@ def format_goal_text(row) -> str:
 
 def render_goal_scorers_for_match(match_id: int):
     """
-    Hiển thị danh sách cầu thủ ghi bàn của một trận.
+    Hiển thị nút mở rộng/thu gọn danh sách cầu thủ ghi bàn của một trận.
     Chỉ dùng để render UI, không ảnh hưởng logic dự đoán/tính điểm.
     """
     from html import escape
@@ -1675,6 +1675,28 @@ def render_goal_scorers_for_match(match_id: int):
     ].copy()
 
     if match_goals.empty:
+        return
+
+    toggle_key = f"show_goal_scorers_{match_id}"
+
+    if toggle_key not in st.session_state:
+        st.session_state[toggle_key] = False
+
+    button_label = (
+        "Ẩn cầu thủ ghi bàn"
+        if st.session_state[toggle_key]
+        else "⚽ Xem cầu thủ ghi bàn"
+    )
+
+    if st.button(
+        button_label,
+        key=f"goal_scorers_button_{match_id}",
+        type="secondary"
+    ):
+        st.session_state[toggle_key] = not st.session_state[toggle_key]
+        st.rerun()
+
+    if not st.session_state[toggle_key]:
         return
 
     home_goals = match_goals[match_goals["team_side"] == "home"]
@@ -1698,7 +1720,7 @@ def render_goal_scorers_for_match(match_id: int):
     st.markdown(
         f"""
         <div style="
-            margin-top: 10px;
+            margin-top: 8px;
             padding: 10px 12px;
             border-radius: 14px;
             background: rgba(15,23,42,0.04);
