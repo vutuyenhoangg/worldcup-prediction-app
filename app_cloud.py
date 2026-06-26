@@ -605,7 +605,7 @@ def render_sidebar_footer():
         <div class="wc-sidebar-footer">
             <strong>One World. One Game.</strong>
             <div style="margin-top:6px;color:#CBD5E1;">
-                Developed by JungKookHuang.
+                Developed by JKH
             </div>
             {project_link_html}
             {image_html}
