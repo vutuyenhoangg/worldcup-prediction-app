@@ -3039,7 +3039,21 @@ def page_dashboard():
         st.info("Chưa đủ dữ liệu để vẽ dashboard.")
         return
 
-    col1, col2, col3, col4 = st.columns(4)
+    scored_points = pd.to_numeric(
+        predictions["points"],
+        errors="coerce"
+    )
+
+    scored_prediction_count = int(scored_points.notna().sum())
+
+    if scored_prediction_count == 0:
+        avg_points_all_players = 0.0
+    else:
+        avg_points_all_players = scored_points.fillna(0).sum() / scored_prediction_count
+
+    avg_points_display = f"{avg_points_all_players:.1f}"
+
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
         st.metric("Số người chơi", len(leaderboard))
@@ -3055,6 +3069,9 @@ def page_dashboard():
 
     with col4:
         st.metric("Điểm cao nhất", int(leaderboard["total_points"].max()))
+
+    with col5:
+        st.metric("Điểm TB/trận", avg_points_display)
 
     st.markdown("---")
 
@@ -3116,8 +3133,8 @@ def page_dashboard():
         custom_data=["total_points"],
         title="Độ chính xác kết quả vs độ chính xác tỉ số",
         labels={
-            "result_prediction_rate": "Đúng kết quả",
-            "exact_score_rate": "Đúng hoàn toàn tỉ số",
+            "result_prediction_rate": "% Đoán đúng kết quả",
+            "exact_score_rate": "% Đoán đúng hoàn toàn tỉ số",
             "total_points": "Điểm"
         },
         color="total_points",
@@ -3131,8 +3148,8 @@ def page_dashboard():
     fig_accuracy.update_traces(
         hovertemplate=(
             "<b>%{hovertext}</b><br>"
-            "Đúng kết quả = %{x:.1%}<br>"
-            "Đúng hoàn toàn tỉ số = %{y:.1%}<br>"
+            "% Đoán đúng kết quả = %{x:.1%}<br>"
+            "% Đoán đúng hoàn toàn tỉ số = %{y:.1%}<br>"
             "Điểm = %{customdata[0]}"
             "<extra></extra>"
         ),
