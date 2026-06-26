@@ -2022,7 +2022,7 @@ def render_inline_prediction_confirmation(match_id: int):
         }
         """
     ):
-        st.markdown("#### 🎯 Xác nhận dự đoán")
+        st.markdown("#### Xác nhận dự đoán")
 
         st.markdown(
             f"""
@@ -2041,7 +2041,7 @@ def render_inline_prediction_confirmation(match_id: int):
 
         with col_confirm:
             if st.button(
-                "✅ Xác nhận lưu",
+                "Xác nhận lưu",
                 use_container_width=True,
                 key=f"confirm_prediction_{match_id}"
             ):
@@ -2063,7 +2063,7 @@ def render_inline_prediction_confirmation(match_id: int):
 
         with col_cancel:
             if st.button(
-                "❌ Hủy",
+                "Hủy",
                 use_container_width=True,
                 key=f"cancel_prediction_{match_id}"
             ):
