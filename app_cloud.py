@@ -3048,12 +3048,26 @@ def page_dashboard():
         st.metric("Tổng dự đoán", len(predictions))
 
     with col3:
-        st.metric("Trận đã có kết quả", int(matches["is_finished"].apply(to_bool).sum()))
+        st.metric(
+            "Trận đã có kết quả",
+            int(matches["is_finished"].apply(to_bool).sum())
+        )
 
     with col4:
         st.metric("Điểm cao nhất", int(leaderboard["total_points"].max()))
 
     st.markdown("---")
+
+    score_max = int(leaderboard["total_points"].max())
+
+    if score_max <= 0:
+        score_max = 1
+
+    custom_score_scale = [
+        [0.00, "#DC2626"],   # đỏ
+        [0.45, "#2563EB"],   # xanh dương
+        [1.00, "#07111F"]    # xanh đậm sidebar
+    ]
 
     top_points = leaderboard.sort_values("total_points", ascending=False)
 
@@ -3067,13 +3081,24 @@ def page_dashboard():
             "total_points": "Điểm"
         },
         color="total_points",
-        color_continuous_scale=["#123C69", "#00B4D8", "#F5C542"]
+        color_continuous_scale=custom_score_scale,
+        range_color=(0, score_max)
     )
 
     fig_points.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#07111F")
+        font=dict(color="#07111F"),
+        coloraxis_colorbar=dict(
+            title="Điểm",
+            tickfont=dict(color="#64748B"),
+            titlefont=dict(color="#64748B")
+        )
+    )
+
+    fig_points.update_traces(
+        marker_line_width=0,
+        opacity=0.92
     )
 
     st.plotly_chart(fig_points, use_container_width=True)
@@ -3086,12 +3111,13 @@ def page_dashboard():
         hover_name="display_name",
         title="Độ chính xác kết quả vs độ chính xác tỉ số",
         labels={
-            "result_prediction_rate": "% Đoán đúng kết quả",
-            "exact_score_rate": "% Đoán đúng hoàn toàn tỉ số",
+            "result_prediction_rate": "Đúng kết quả",
+            "exact_score_rate": "Đúng hoàn toàn tỉ số",
             "total_points": "Điểm"
         },
         color="total_points",
-        color_continuous_scale=["#E63946", "#00B4D8", "#F5C542"]
+        color_continuous_scale=custom_score_scale,
+        range_color=(0, score_max)
     )
 
     fig_accuracy.update_xaxes(tickformat=".1%")
@@ -3100,7 +3126,22 @@ def page_dashboard():
     fig_accuracy.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#07111F")
+        font=dict(color="#07111F"),
+        coloraxis_colorbar=dict(
+            title="Điểm",
+            tickfont=dict(color="#64748B"),
+            titlefont=dict(color="#64748B")
+        )
+    )
+
+    fig_accuracy.update_traces(
+        marker=dict(
+            line=dict(
+                width=1,
+                color="rgba(7,17,31,0.28)"
+            )
+        ),
+        opacity=0.88
     )
 
     st.plotly_chart(fig_accuracy, use_container_width=True)
