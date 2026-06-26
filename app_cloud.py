@@ -2232,6 +2232,9 @@ def render_match_card(row, user_id: int):
             if venue or city:
                 st.caption(f"🏟️ {venue or ''} {city or ''}")
 
+            if is_finished:
+                render_goal_scorers_for_match(match_id)
+
         with top_right:
             actual_home = to_optional_int(row.get("home_score_for_prediction"))
             actual_away = to_optional_int(row.get("away_score_for_prediction"))
@@ -2264,9 +2267,6 @@ def render_match_card(row, user_id: int):
 
             else:
                 render_match_status_box(status_info)
-
-        if is_finished:
-            render_goal_scorers_for_match(match_id)
 
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
