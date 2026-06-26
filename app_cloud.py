@@ -2506,81 +2506,81 @@ def page_my_predictions():
 
         st.markdown("---")
 
-        st.markdown(
-            f"""
-            <div style="
-                background:
-                    linear-gradient(90deg, #07111F 0%, #0B1F3A 70%, #04101F 100%);
-                border: 1px solid rgba(245,197,66,0.35);
-                border-radius: 18px;
-                min-height: 118px;
-                padding: 0 24px;
-                box-shadow: 0 10px 24px rgba(15,23,42,0.12);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-sizing: border-box;
-            ">
-                <div style="
-                    width: 100%;
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    align-items: center;
-                    justify-items: center;
-                    text-align: center;
-                ">
-                    <div style="
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                    ">
-                        <div style="
-                            color: #F8FAFC;
-                            font-weight: 850;
-                            font-size: 16px;
-                            margin-bottom: 8px;
-                            line-height: 1.1;
-                        ">
-                            Tổng điểm
-                        </div>
-                        <div style="
-                            color: #F5C542;
-                            font-weight: 950;
-                            font-size: 34px;
-                            line-height: 1.1;
-                        ">
-                            {total_points}
-                        </div>
-                    </div>
+        summary_html = (
+            '<div style="'
+            'background: linear-gradient(90deg, #07111F 0%, #0B1F3A 70%, #04101F 100%);'
+            'border: 1px solid rgba(245,197,66,0.35);'
+            'border-radius: 18px;'
+            'min-height: 118px;'
+            'padding: 0 24px;'
+            'box-shadow: 0 10px 24px rgba(15,23,42,0.12);'
+            'display: flex;'
+            'align-items: center;'
+            'justify-content: center;'
+            'box-sizing: border-box;'
+            '">'
+            '<div style="'
+            'width: 100%;'
+            'display: grid;'
+            'grid-template-columns: 1fr 1fr;'
+            'align-items: center;'
+            'justify-items: center;'
+            'text-align: center;'
+            '">'
+            '<div style="'
+            'display: flex;'
+            'flex-direction: column;'
+            'align-items: center;'
+            'justify-content: center;'
+            '">'
+            '<div style="'
+            'color: #F8FAFC;'
+            'font-weight: 850;'
+            'font-size: 16px;'
+            'margin-bottom: 8px;'
+            'line-height: 1.1;'
+            '">'
+            'Tổng điểm'
+            '</div>'
+            '<div style="'
+            'color: #F5C542;'
+            'font-weight: 950;'
+            'font-size: 34px;'
+            'line-height: 1.1;'
+            '">'
+            f'{total_points}'
+            '</div>'
+            '</div>'
+            '<div style="'
+            'display: flex;'
+            'flex-direction: column;'
+            'align-items: center;'
+            'justify-content: center;'
+            '">'
+            '<div style="'
+            'color: #F8FAFC;'
+            'font-weight: 850;'
+            'font-size: 16px;'
+            'margin-bottom: 8px;'
+            'line-height: 1.1;'
+            '">'
+            'Hạng'
+            '</div>'
+            '<div style="'
+            'color: #F5C542;'
+            'font-weight: 950;'
+            'font-size: 34px;'
+            'line-height: 1.1;'
+            '">'
+            f'{rank_display}'
+            '</div>'
+            '</div>'
+            '</div>'
+            '</div>'
+        )
 
-                    <div style="
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        justify-content: center;
-                    ">
-                        <div style="
-                            color: #F8FAFC;
-                            font-weight: 850;
-                            font-size: 16px;
-                            margin-bottom: 8px;
-                            line-height: 1.1;
-                        ">
-                            Hạng
-                        </div>
-                        <div style="
-                            color: #F5C542;
-                            font-weight: 950;
-                            font-size: 34px;
-                            line-height: 1.1;
-                        ">
-                            {rank_display}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            """,
+        st.markdown(
+            summary_html,
             unsafe_allow_html=True
         )
 
