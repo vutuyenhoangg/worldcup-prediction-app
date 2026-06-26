@@ -3047,20 +3047,7 @@ def page_leaderboard():
             ]
         )
     )
-
-    with stylable_container(
-        key="leaderboard_table_card",
-        css_styles="""
-        {
-            background: rgba(255,255,255,0.94);
-            border: 1px solid rgba(15,23,42,0.08);
-            border-radius: 22px;
-            padding: 18px;
-            box-shadow: 0 14px 34px rgba(15,23,42,0.08);
-        }
-        """
-    ):
-        st.table(styled_df)
+    st.table(styled_df)
 
 def page_dashboard():
     render_page_title(
