@@ -1660,8 +1660,8 @@ def format_goal_text(row) -> str:
 
 def render_goal_scorers_for_match(match_id: int):
     """
-    Hiển thị nút mở rộng/thu gọn danh sách cầu thủ ghi bàn của một trận.
-    Chỉ dùng để render UI, không ảnh hưởng logic dự đoán/tính điểm.
+    Hiển thị nút mở rộng/thu gọn danh sách cầu thủ ghi bàn.
+    Khi mở ra chỉ hiển thị text gọn, không dùng box nền xám.
     """
     from html import escape
 
@@ -1685,7 +1685,7 @@ def render_goal_scorers_for_match(match_id: int):
     button_label = (
         "Ẩn cầu thủ ghi bàn"
         if st.session_state[toggle_key]
-        else "Xem cầu thủ ghi bàn"
+        else "⚽ Xem cầu thủ ghi bàn"
     )
 
     if st.button(
@@ -1707,12 +1707,28 @@ def render_goal_scorers_for_match(match_id: int):
     if not home_goals.empty:
         home_team = escape(str(home_goals.iloc[0]["team_name"]).strip())
         home_text = ", ".join(home_goals.apply(format_goal_text, axis=1))
-        goal_lines.append(f"<div><b>{home_team}:</b> {home_text}</div>")
+
+        goal_lines.append(
+            f"""
+            <div style="margin-top: 3px;">
+                <span style="font-weight: 800; color: #0F172A;">{home_team}:</span>
+                <span style="color: #334155;">{home_text}</span>
+            </div>
+            """
+        )
 
     if not away_goals.empty:
         away_team = escape(str(away_goals.iloc[0]["team_name"]).strip())
         away_text = ", ".join(away_goals.apply(format_goal_text, axis=1))
-        goal_lines.append(f"<div><b>{away_team}:</b> {away_text}</div>")
+
+        goal_lines.append(
+            f"""
+            <div style="margin-top: 3px;">
+                <span style="font-weight: 800; color: #0F172A;">{away_team}:</span>
+                <span style="color: #334155;">{away_text}</span>
+            </div>
+            """
+        )
 
     if not goal_lines:
         return
@@ -1721,18 +1737,17 @@ def render_goal_scorers_for_match(match_id: int):
         f"""
         <div style="
             margin-top: 8px;
-            padding: 10px 12px;
-            border-radius: 14px;
-            background: rgba(15,23,42,0.04);
-            border: 1px solid rgba(15,23,42,0.08);
-            color: #334155;
+            margin-bottom: 6px;
+            padding-left: 12px;
+            border-left: 3px solid rgba(245,197,66,0.9);
             font-size: 13px;
             line-height: 1.55;
         ">
             <div style="
-                font-weight: 850;
+                font-weight: 900;
                 color: #07111F;
                 margin-bottom: 4px;
+                letter-spacing: 0.01em;
             ">
                 Cầu thủ ghi bàn
             </div>
@@ -1741,7 +1756,6 @@ def render_goal_scorers_for_match(match_id: int):
         """,
         unsafe_allow_html=True
     )
-
 def clear_data_cache():
     """
     Xóa cache dữ liệu đọc từ Supabase sau khi có thao tác ghi dữ liệu.
