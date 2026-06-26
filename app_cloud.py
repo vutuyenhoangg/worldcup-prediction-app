@@ -104,11 +104,12 @@ def resolve_asset_src(asset_path: str) -> str:
 
 
 st.set_page_config(
-	cookie_controller = CookieController(),
     page_title=APP_NAME,
     page_icon="⚽",
     layout="wide"
 )
+
+cookie_controller = CookieController()
 
 
 # ============================================================
@@ -1247,24 +1248,24 @@ def init_app_tables():
         """
     )
 
-	execute_sql(
-		"""
-		CREATE TABLE IF NOT EXISTS login_sessions (
-			session_id SERIAL PRIMARY KEY,
-			user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-			token_hash TEXT NOT NULL UNIQUE,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			expires_at TIMESTAMPTZ NOT NULL
-		)
-		"""
-	)
+    execute_sql(
+        """
+        CREATE TABLE IF NOT EXISTS login_sessions (
+            session_id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+            token_hash TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            expires_at TIMESTAMPTZ NOT NULL
+        )
+        """
+    )
 
-	execute_sql(
-		"""
-		DELETE FROM login_sessions
-		WHERE expires_at <= NOW()
-		"""
-	)
+    execute_sql(
+        """
+        DELETE FROM login_sessions
+        WHERE expires_at <= NOW()
+        """
+    )
     # Tạo unique index cho tên hiển thị nếu dữ liệu hiện tại chưa bị trùng.
     # Index này giúp chặn các biến thể như "Hoang", " hoang ", "HOANG".
     try:
@@ -1905,13 +1906,13 @@ def render_auth_page():
                     else:
                         clear_filter_state()
 
-						session_token = create_login_session(user["user_id"])
-						cookie_controller.set(COOKIE_NAME, session_token)
+                        session_token = create_login_session(user["user_id"])
+                        cookie_controller.set(COOKIE_NAME, session_token)
 
-						st.session_state["user"] = user
-						st.session_state["selected_page"] = ""Lịch thi đấu & dự đoán"
+                        st.session_state["user"] = user
+                        st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
 
-						st.rerun()
+                        st.rerun()
 
         with tab_register:
             st.info("Mật khẩu phải có ít nhất 8 ký tự.")
@@ -2281,7 +2282,7 @@ def page_matches():
             box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
             margin: 4px 0 24px 0;
             width: 100%;
-	    min-height: 96px;	
+        min-height: 96px;
             box-sizing: border-box;
         }
 
@@ -2414,9 +2415,9 @@ def page_my_predictions():
             axis=1
         ),
         "Điểm": df["points"].apply(
-            lambda x: "" if pd.isna(x) else str(int(round(float(x))))	
-    	)
-    })	
+            lambda x: "" if pd.isna(x) else str(int(round(float(x))))
+        )
+    })
 
     with stylable_container(
         key="my_predictions_table",
@@ -2987,7 +2988,7 @@ def render_footer():
 def main():
     check_base_database()
     init_app_tables()
-	restore_user_from_cookie()
+    restore_user_from_cookie()
     # Nếu chưa đăng nhập, chỉ hiển thị trang đăng nhập rồi dừng hẳn app.
     if "user" not in st.session_state:
         render_auth_page()
