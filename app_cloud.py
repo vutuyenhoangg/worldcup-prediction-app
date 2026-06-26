@@ -2648,11 +2648,10 @@ def page_leaderboard():
         st.info("Chưa có dữ liệu người chơi.")
         return
 
-    current_user_id = int(st.session_state["user"]["user_id"])
+    current_display_name = str(st.session_state["user"]["display_name"]).strip()
 
     display_df = leaderboard[
         [
-            "user_id",
             "rank",
             "display_name",
             "total_points",
@@ -2666,7 +2665,6 @@ def page_leaderboard():
     ].copy()
 
     display_df = display_df.rename(columns={
-        "user_id": "user_id",
         "rank": "Hạng",
         "display_name": "Người chơi",
         "total_points": "Điểm",
@@ -2689,7 +2687,7 @@ def page_leaderboard():
     def style_leaderboard_row(row):
         styles = []
 
-        is_current_user = int(row["user_id"]) == current_user_id
+        is_current_user = str(row["Người chơi"]).strip() == current_display_name
         rank_value = int(row["Hạng"])
 
         for col in row.index:
@@ -2697,38 +2695,38 @@ def page_leaderboard():
 
             if is_current_user:
                 style += (
-                    "background-color: #E0F2FE; "
-                    "font-weight: 800; "
+                    "background-color: #E0F2FE !important; "
+                    "font-weight: 800 !important; "
                 )
 
             if col == "Điểm":
                 style += (
-                    "font-weight: 950; "
-                    "color: #07111F; "
+                    "font-weight: 950 !important; "
+                    "color: #07111F !important; "
                 )
 
             if col == "Hạng":
                 style += (
-                    "font-weight: 950; "
-                    "text-align: center; "
+                    "font-weight: 950 !important; "
+                    "text-align: center !important; "
                 )
 
                 if rank_value == 1:
                     style += (
-                        "background-color: #F5C542; "
-                        "color: #78350F; "
+                        "background-color: #F5C542 !important; "
+                        "color: #78350F !important; "
                     )
 
                 elif rank_value == 2:
                     style += (
-                        "background-color: #CBD5E1; "
-                        "color: #334155; "
+                        "background-color: #CBD5E1 !important; "
+                        "color: #334155 !important; "
                     )
 
                 elif rank_value == 3:
                     style += (
-                        "background-color: #CD7F32; "
-                        "color: #431407; "
+                        "background-color: #CD7F32 !important; "
+                        "color: #431407 !important; "
                     )
 
             styles.append(style)
@@ -2739,7 +2737,13 @@ def page_leaderboard():
         display_df
         .style
         .apply(style_leaderboard_row, axis=1)
-        .hide(axis="columns", subset=["user_id"])
+        .set_properties(
+            subset=["Điểm"],
+            **{
+                "font-weight": "950 !important",
+                "color": "#07111F !important"
+            }
+        )
         .set_table_styles(
             [
                 {
@@ -2749,7 +2753,8 @@ def page_leaderboard():
                         ("color", "#F8FAFC"),
                         ("font-weight", "900"),
                         ("text-align", "left"),
-                        ("border-bottom", "1px solid rgba(255,255,255,0.16)")
+                        ("border-bottom", "1px solid rgba(255,255,255,0.16)"),
+                        ("padding", "11px 12px")
                     ]
                 },
                 {
