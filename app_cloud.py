@@ -2467,48 +2467,26 @@ def page_matches():
     if st.session_state["filter_status"] not in status_options:
         st.session_state["filter_status"] = "Tất cả"
 
-    with stylable_container(
-        key="match_filter_panel",
-        css_styles="""
-        {
-            background: rgba(255,255,255,0.94);
-            border: 1px solid rgba(15,23,42,0.08);
-            border-radius: 22px;
-            padding: 12px 26px 10px 26px;
-            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
-            margin: 4px 0 24px 0;
-            width: 100%;
-            min-height: 96px;
-            box-sizing: border-box;
-        }
+    col_filter_1, col_filter_2 = st.columns([1, 1])
 
-        div[data-testid="stSelectbox"] {
-            margin-bottom: 0 !important;
-        }
+    with col_filter_1:
+        selected_date = st.selectbox(
+            "Ngày thi đấu",
+            options=date_options,
+            index=date_options.index(st.session_state["filter_date"]),
+            format_func=format_filter_date,
+            key="filter_date"
+        )
 
-        div[data-testid="stSelectbox"] label {
-            margin-bottom: 4px !important;
-        }
-        """
-    ):
-        col_filter_1, col_filter_2 = st.columns([1, 1])
+    with col_filter_2:
+        status_filter = st.selectbox(
+            "Trạng thái",
+            options=status_options,
+            index=status_options.index(st.session_state["filter_status"]),
+            key="filter_status"
+        )
 
-        with col_filter_1:
-            selected_date = st.selectbox(
-                "Ngày thi đấu",
-                options=date_options,
-                index=date_options.index(st.session_state["filter_date"]),
-                format_func=format_filter_date,
-                key="filter_date"
-            )
-
-        with col_filter_2:
-            status_filter = st.selectbox(
-                "Trạng thái",
-                options=status_options,
-                index=status_options.index(st.session_state["filter_status"]),
-                key="filter_status"
-            )
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
 
     filtered = matches.copy()
 
