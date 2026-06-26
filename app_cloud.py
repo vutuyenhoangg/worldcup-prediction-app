@@ -1602,6 +1602,123 @@ def load_predictions() -> pd.DataFrame:
         """
     )
 
+@st.cache_data(ttl=30, show_spinner=False)
+def load_match_goals() -> pd.DataFrame:
+    query = text(
+        """
+        SELECT
+            goal_key,
+            match_id,
+            team_id,
+            team_name,
+            team_side,
+            player_name,
+            minute,
+            is_penalty,
+            is_own_goal
+        FROM match_goals
+        ORDER BY match_id, team_side, goal_key
+        """
+    )
+
+    try:
+        with get_engine().connect() as conn:
+            return pd.read_sql_query(query, conn)
+    except Exception:
+        return pd.DataFrame()
+
+def format_goal_text(row) -> str:
+    """
+    Format 1 dòng cầu thủ ghi bàn để hiển thị UI:
+    Tên cầu thủ 32'
+    Tên cầu thủ 55' (OG)
+    Tên cầu thủ 70' (pen)
+    """
+    from html import escape
+
+    player_name = escape(str(row.get("player_name", "")).strip())
+    minute = row.get("minute")
+
+    parts = [player_name]
+
+    if pd.notna(minute) and str(minute).strip():
+        parts.append(escape(str(minute).strip()))
+
+    tags = []
+
+    if to_bool(row.get("is_own_goal")):
+        tags.append("OG")
+
+    if to_bool(row.get("is_penalty")):
+        tags.append("pen")
+
+    if tags:
+        parts.append(f"({', '.join(tags)})")
+
+    return " ".join(parts)
+
+
+def render_goal_scorers_for_match(match_id: int):
+    """
+    Hiển thị danh sách cầu thủ ghi bàn của một trận.
+    Chỉ dùng để render UI, không ảnh hưởng logic dự đoán/tính điểm.
+    """
+    from html import escape
+
+    goals_df = load_match_goals()
+
+    if goals_df.empty:
+        return
+
+    match_goals = goals_df[
+        goals_df["match_id"].astype(int) == int(match_id)
+    ].copy()
+
+    if match_goals.empty:
+        return
+
+    home_goals = match_goals[match_goals["team_side"] == "home"]
+    away_goals = match_goals[match_goals["team_side"] == "away"]
+
+    goal_lines = []
+
+    if not home_goals.empty:
+        home_team = escape(str(home_goals.iloc[0]["team_name"]).strip())
+        home_text = ", ".join(home_goals.apply(format_goal_text, axis=1))
+        goal_lines.append(f"<div><b>{home_team}:</b> {home_text}</div>")
+
+    if not away_goals.empty:
+        away_team = escape(str(away_goals.iloc[0]["team_name"]).strip())
+        away_text = ", ".join(away_goals.apply(format_goal_text, axis=1))
+        goal_lines.append(f"<div><b>{away_team}:</b> {away_text}</div>")
+
+    if not goal_lines:
+        return
+
+    st.markdown(
+        f"""
+        <div style="
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: rgba(15,23,42,0.04);
+            border: 1px solid rgba(15,23,42,0.08);
+            color: #334155;
+            font-size: 13px;
+            line-height: 1.55;
+        ">
+            <div style="
+                font-weight: 850;
+                color: #07111F;
+                margin-bottom: 4px;
+            ">
+                Cầu thủ ghi bàn
+            </div>
+            {''.join(goal_lines)}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def clear_data_cache():
     """
@@ -2147,6 +2264,9 @@ def render_match_card(row, user_id: int):
 
             else:
                 render_match_status_box(status_info)
+
+        if is_finished:
+            render_goal_scorers_for_match(match_id)
 
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
