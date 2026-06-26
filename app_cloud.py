@@ -1294,6 +1294,21 @@ def init_app_tables():
         pass
 
 
+@st.cache_resource
+def initialize_app_once():
+    """
+    Chạy kiểm tra/khoi tạo database một lần cho mỗi app process.
+
+    Mục tiêu:
+    - Không gọi check/create table ở mỗi lần rerun.
+    - Giảm thời gian khởi động lại giao diện khi người dùng click/F5.
+    - Không thay đổi logic dữ liệu hay logic chấm điểm.
+    """
+    check_base_database()
+    init_app_tables()
+    return True
+
+
 def count_users() -> int:
     row = fetch_one(
         """
@@ -1481,6 +1496,8 @@ def create_user(username: str, display_name: str, password: str):
             }
         )
 
+        clear_data_cache()
+
     except IntegrityError:
         raise ValueError("Username hoặc tên hiển thị đã tồn tại.")
 
@@ -1533,6 +1550,7 @@ def logout_user():
 # 6. DATA LOADING
 # ============================================================
 
+@st.cache_data(ttl=30, show_spinner=False)
 def load_matches() -> pd.DataFrame:
     df = read_sql(
         """
@@ -1564,6 +1582,7 @@ def load_matches() -> pd.DataFrame:
     return df
 
 
+@st.cache_data(ttl=30, show_spinner=False)
 def load_users() -> pd.DataFrame:
     return read_sql(
         """
@@ -1573,6 +1592,7 @@ def load_users() -> pd.DataFrame:
     )
 
 
+@st.cache_data(ttl=10, show_spinner=False)
 def load_predictions() -> pd.DataFrame:
     return read_sql(
         """
@@ -1580,6 +1600,19 @@ def load_predictions() -> pd.DataFrame:
         FROM predictions
         """
     )
+
+
+def clear_data_cache():
+    """
+    Xóa cache dữ liệu đọc từ Supabase sau khi có thao tác ghi dữ liệu.
+
+    Các hàm load_* có TTL ngắn để app nhanh hơn, nhưng khi user lưu dự đoán
+    hoặc admin cập nhật kết quả, cache cần được xóa ngay để màn hình tiếp theo
+    đọc dữ liệu mới nhất.
+    """
+    load_matches.clear()
+    load_users.clear()
+    load_predictions.clear()
 
 
 def get_user_prediction(user_id: int, match_id: int):
@@ -1732,6 +1765,7 @@ def save_prediction(
                 }
             )
 
+    clear_data_cache()
 
 def score_all_predictions():
     matches = load_matches()
@@ -1777,6 +1811,8 @@ def score_all_predictions():
         """,
         scored_rows
     )
+
+    clear_data_cache()
 
 
 def update_match_result(
@@ -1868,6 +1904,7 @@ def update_match_result(
         }
     )
 
+    clear_data_cache()
     score_all_predictions()
 
 
@@ -2997,8 +3034,7 @@ def render_footer():
 # ============================================================
 
 def main():
-    check_base_database()
-    init_app_tables()
+    initialize_app_once()
     restore_user_from_cookie()
 
     # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
