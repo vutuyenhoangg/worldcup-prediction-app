@@ -1685,7 +1685,7 @@ def render_goal_scorers_for_match(match_id: int):
     button_label = (
         "Ẩn cầu thủ ghi bàn"
         if st.session_state[toggle_key]
-        else "⚽ Xem cầu thủ ghi bàn"
+        else "Xem cầu thủ ghi bàn"
     )
 
     if st.button(
