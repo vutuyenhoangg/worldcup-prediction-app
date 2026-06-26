@@ -1047,7 +1047,6 @@ def verify_password(password: str, salt: str, stored_hash: str) -> bool:
 def clear_filter_state():
     for key in [
         "filter_date",
-        "filter_stage",
         "filter_status",
         "pending_prediction"
     ]:
@@ -2277,7 +2276,7 @@ def page_matches():
 
     render_page_title(
         "Lịch thi đấu & dự đoán",
-        "Chọn ngày, vòng đấu và trạng thái để nhập dự đoán cho từng trận."
+        "Chọn ngày và trạng thái để nhập dự đoán cho từng trận."
     )
 
     matches = load_matches()
@@ -2303,20 +2302,13 @@ def page_matches():
     if "filter_date" not in st.session_state:
         st.session_state["filter_date"] = today_vn
 
-    if "filter_stage" not in st.session_state:
-        st.session_state["filter_stage"] = "Tất cả"
-
     if "filter_status" not in st.session_state:
         st.session_state["filter_status"] = "Tất cả"
 
-    stage_options = ["Tất cả"] + sorted(matches["stage_type"].dropna().unique().tolist())
     status_options = ["Tất cả", "Sắp diễn ra", "Đã khóa", "Đã có kết quả"]
 
     if st.session_state["filter_date"] not in date_options:
         st.session_state["filter_date"] = today_vn
-
-    if st.session_state["filter_stage"] not in stage_options:
-        st.session_state["filter_stage"] = "Tất cả"
 
     if st.session_state["filter_status"] not in status_options:
         st.session_state["filter_status"] = "Tất cả"
@@ -2332,7 +2324,7 @@ def page_matches():
             box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
             margin: 4px 0 24px 0;
             width: 100%;
-        min-height: 96px;
+            min-height: 96px;
             box-sizing: border-box;
         }
 
@@ -2345,7 +2337,7 @@ def page_matches():
         }
         """
     ):
-        col_filter_1, col_filter_2, col_filter_3 = st.columns([2, 2, 2])
+        col_filter_1, col_filter_2 = st.columns([1, 1])
 
         with col_filter_1:
             selected_date = st.selectbox(
@@ -2357,14 +2349,6 @@ def page_matches():
             )
 
         with col_filter_2:
-            selected_stage = st.selectbox(
-                "Vòng đấu",
-                options=stage_options,
-                index=stage_options.index(st.session_state["filter_stage"]),
-                key="filter_stage"
-            )
-
-        with col_filter_3:
             status_filter = st.selectbox(
                 "Trạng thái",
                 options=status_options,
@@ -2375,9 +2359,6 @@ def page_matches():
     filtered = matches.copy()
 
     filtered = filtered[filtered["kickoff_date_filter"] == selected_date]
-
-    if selected_stage != "Tất cả":
-        filtered = filtered[filtered["stage_type"] == selected_stage]
 
     now_utc = pd.Timestamp.now(tz="UTC")
 
