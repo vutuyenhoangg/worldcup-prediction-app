@@ -2514,14 +2514,29 @@ def page_my_predictions():
                     linear-gradient(90deg, #07111F 0%, #0B1F3A 70%, #04101F 100%);
                 border: 1px solid rgba(245,197,66,0.35);
                 border-radius: 18px;
-                padding: 26px 24px;
+                padding: 0 24px;
+                min-height: 125px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 box-shadow: 0 10px 24px rgba(15,23,42,0.12);
+            }
+
+            div[data-testid="stHorizontalBlock"] {
+                width: 100%;
+                align-items: center !important;
+            }
+
+            div[data-testid="column"] {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
             """
         ):
-            col_left, col_right = st.columns(2)
+            col_total, col_rank = st.columns(2)
 
-            with col_left:
+            with col_total:
                 st.markdown(
                     f"""
                     <div style="
@@ -2530,7 +2545,8 @@ def page_my_predictions():
                         justify-content: center;
                         align-items: center;
                         text-align: center;
-                        min-height: 90px;
+                        min-height: 100px;
+                        width: 100%;
                     ">
                         <div style="
                             color: #F8FAFC;
@@ -2553,7 +2569,7 @@ def page_my_predictions():
                     unsafe_allow_html=True
                 )
 
-            with col_right:
+            with col_rank:
                 st.markdown(
                     f"""
                     <div style="
@@ -2562,7 +2578,8 @@ def page_my_predictions():
                         justify-content: center;
                         align-items: center;
                         text-align: center;
-                        min-height: 90px;
+                        min-height: 100px;
+                        width: 100%;
                     ">
                         <div style="
                             color: #F8FAFC;
