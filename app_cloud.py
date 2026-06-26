@@ -2519,9 +2519,9 @@ def page_matches():
                 font-weight: 950;
                 font-size: 16px;
                 line-height: 1.2;
-                margin-bottom: 14px;
+                margin-bottom: 18px;
             ">
-                Bộ lọc trận đấu
+                Bộ lọc
             </div>
             """,
             unsafe_allow_html=True
