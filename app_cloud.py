@@ -1385,6 +1385,12 @@ def restore_user_from_cookie():
     token = cookie_controller.get(COOKIE_NAME)
 
     if not token:
+        cookies = cookie_controller.getAll()
+
+        if isinstance(cookies, dict):
+            token = cookies.get(COOKIE_NAME)
+
+    if not token:
         return
 
     user = get_user_by_session_token(token)
@@ -1907,12 +1913,17 @@ def render_auth_page():
                         clear_filter_state()
 
                         session_token = create_login_session(user["user_id"])
-                        cookie_controller.set(COOKIE_NAME, session_token)
+
+                        cookie_controller.set(
+                            COOKIE_NAME,
+                            session_token,
+                            max_age=SESSION_DAYS * 24 * 60 * 60
+                        )
 
                         st.session_state["user"] = user
                         st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
 
-                        st.rerun()
+                        st.success("Đăng nhập thành công.")
 
         with tab_register:
             st.info("Mật khẩu phải có ít nhất 8 ký tự.")
@@ -2989,11 +3000,16 @@ def main():
     check_base_database()
     init_app_tables()
     restore_user_from_cookie()
-    # Nếu chưa đăng nhập, chỉ hiển thị trang đăng nhập rồi dừng hẳn app.
+
+    # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
+    # Sau khi đăng nhập thành công, render_auth_page() sẽ set st.session_state["user"].
+    # Khi đó app không stop nữa mà render tiếp màn hình chính trong cùng lượt chạy.
     if "user" not in st.session_state:
         render_auth_page()
-        render_footer()
-        st.stop()
+
+        if "user" not in st.session_state:
+            render_footer()
+            st.stop()
 
     user = st.session_state["user"]
 
