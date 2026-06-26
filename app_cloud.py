@@ -2474,14 +2474,14 @@ def page_matches():
             background:
                 linear-gradient(
                     135deg,
-                    rgba(255,255,255,0.96) 0%,
-                    rgba(248,250,252,0.96) 68%,
-                    rgba(245,197,66,0.10) 100%
+                    rgba(255,255,255,0.97) 0%,
+                    rgba(248,250,252,0.97) 72%,
+                    rgba(7,17,31,0.04) 100%
                 );
             border: 1px solid rgba(15,23,42,0.08);
-            border-left: 5px solid #F5C542;
+            border-left: 5px solid #07111F;
             border-radius: 22px;
-            padding: 18px 24px 16px 24px;
+            padding: 16px 24px 16px 24px;
             box-shadow: 0 16px 40px rgba(15,23,42,0.10);
             margin: 8px 0 28px 0;
             width: 100%;
@@ -2508,48 +2508,20 @@ def page_matches():
         }
 
         div[data-baseweb="select"] > div:hover {
-            border-color: rgba(245,197,66,0.75) !important;
+            border-color: rgba(7,17,31,0.55) !important;
         }
         """
     ):
         st.markdown(
             """
             <div style="
-                display: flex;
-                align-items: center;
-                gap: 10px;
+                color: #07111F;
+                font-weight: 950;
+                font-size: 16px;
+                line-height: 1.2;
                 margin-bottom: 14px;
             ">
-                <div style="
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 999px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: rgba(245,197,66,0.18);
-                    border: 1px solid rgba(245,197,66,0.45);
-                    font-size: 16px;
-                ">
-                    🎛️
-                </div>
-                <div>
-                    <div style="
-                        color: #07111F;
-                        font-weight: 950;
-                        font-size: 16px;
-                        line-height: 1.2;
-                    ">
-                        Bộ lọc trận đấu
-                    </div>
-                    <div style="
-                        color: #64748B;
-                        font-size: 13px;
-                        margin-top: 2px;
-                    ">
-                        Lọc nhanh theo ngày thi đấu và trạng thái trận.
-                    </div>
-                </div>
+                Bộ lọc trận đấu
             </div>
             """,
             unsafe_allow_html=True
