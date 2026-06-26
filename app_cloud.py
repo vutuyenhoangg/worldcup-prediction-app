@@ -3071,7 +3071,7 @@ def page_dashboard():
         st.metric("Điểm cao nhất", int(leaderboard["total_points"].max()))
 
     with col5:
-        st.metric("Điểm TB/trận", avg_points_display)
+        st.metric("Điểm TB/trận của tất cả người chơi", avg_points_display)
 
     st.markdown("---")
 
