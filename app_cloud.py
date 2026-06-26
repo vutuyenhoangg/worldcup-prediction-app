@@ -2514,68 +2514,72 @@ def page_my_predictions():
                     linear-gradient(90deg, #07111F 0%, #0B1F3A 70%, #04101F 100%);
                 border: 1px solid rgba(245,197,66,0.35);
                 border-radius: 18px;
-                padding: 18px 20px;
+                padding: 26px 24px;
                 box-shadow: 0 10px 24px rgba(15,23,42,0.12);
             }
             """
         ):
-            st.markdown(
-                """
-                <div style="
-                    color: #F8FAFC;
-                    font-weight: 900;
-                    margin-bottom: 16px;
-                    font-size: 16px;
-                ">
-                    Tổng kết dự đoán của bạn
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            col_left, col_right = st.columns(2)
 
-            col_total, col_rank = st.columns(2)
-
-            with col_total:
+            with col_left:
                 st.markdown(
                     f"""
                     <div style="
-                        color: #F8FAFC;
-                        font-weight: 850;
-                        font-size: 14px;
-                        margin-bottom: 6px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        text-align: center;
+                        min-height: 90px;
                     ">
-                        Tổng điểm
-                    </div>
-                    <div style="
-                        color: #F5C542;
-                        font-weight: 950;
-                        font-size: 30px;
-                        line-height: 1.1;
-                    ">
-                        {total_points}
+                        <div style="
+                            color: #F8FAFC;
+                            font-weight: 850;
+                            font-size: 16px;
+                            margin-bottom: 8px;
+                        ">
+                            Tổng điểm
+                        </div>
+                        <div style="
+                            color: #F5C542;
+                            font-weight: 950;
+                            font-size: 34px;
+                            line-height: 1.1;
+                        ">
+                            {total_points}
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-            with col_rank:
+            with col_right:
                 st.markdown(
                     f"""
                     <div style="
-                        color: #F8FAFC;
-                        font-weight: 850;
-                        font-size: 14px;
-                        margin-bottom: 6px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        text-align: center;
+                        min-height: 90px;
                     ">
-                        Hạng
-                    </div>
-                    <div style="
-                        color: #F5C542;
-                        font-weight: 950;
-                        font-size: 30px;
-                        line-height: 1.1;
-                    ">
-                        {rank_display}
+                        <div style="
+                            color: #F8FAFC;
+                            font-weight: 850;
+                            font-size: 16px;
+                            margin-bottom: 8px;
+                        ">
+                            Hạng
+                        </div>
+                        <div style="
+                            color: #F5C542;
+                            font-weight: 950;
+                            font-size: 34px;
+                            line-height: 1.1;
+                        ">
+                            {rank_display}
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True
