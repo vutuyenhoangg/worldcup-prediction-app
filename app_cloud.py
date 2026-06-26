@@ -1731,8 +1731,8 @@ def render_goal_scorers_for_match(match_id: int):
 
     scorers_html = (
         '<div style="'
-        'margin-top:8px;'
-        'margin-bottom:6px;'
+        'margin-top:2px;'
+        'margin-bottom:18px;'
         'padding-left:12px;'
         'border-left:3px solid rgba(245,197,66,0.9);'
         'font-size:13px;'
