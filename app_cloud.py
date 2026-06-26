@@ -18,6 +18,8 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 from streamlit_extras.stylable_container import stylable_container
+import secrets
+from streamlit_cookies_controller import CookieController
 
 
 # ============================================================
@@ -30,12 +32,11 @@ DATABASE_URL = st.secrets["DATABASE_URL"]
 APP_NAME = "World Cup 2026 Prediction Arena"
 APP_SHORT_NAME = "WC 2026"
 APP_TAGLINE = "Dự đoán tỉ số, tích điểm và leo bảng xếp hạng cùng bạn bè."
+COOKIE_NAME = "wc_session_token"
+SESSION_DAYS = 30
 
 # ============================================================
 # TODO LINK AREA
-# Bạn tự gắn link theo mong muốn ở các biến bên dưới.
-# Nên dùng ảnh bạn tự thiết kế hoặc ảnh có quyền sử dụng.
-# Không nên dùng trực tiếp logo/emblem/trophy artwork chính thức của FIFA nếu chưa có quyền.
 # ============================================================
 
 APP_LOGO_URL = "data/static/app-logo.png"
@@ -103,6 +104,7 @@ def resolve_asset_src(asset_path: str) -> str:
 
 
 st.set_page_config(
+	cookie_controller = CookieController(),
     page_title=APP_NAME,
     page_icon="⚽",
     layout="wide"
@@ -1245,6 +1247,24 @@ def init_app_tables():
         """
     )
 
+	execute_sql(
+		"""
+		CREATE TABLE IF NOT EXISTS login_sessions (
+			session_id SERIAL PRIMARY KEY,
+			user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+			token_hash TEXT NOT NULL UNIQUE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			expires_at TIMESTAMPTZ NOT NULL
+		)
+		"""
+	)
+
+	execute_sql(
+		"""
+		DELETE FROM login_sessions
+		WHERE expires_at <= NOW()
+		"""
+	)
     # Tạo unique index cho tên hiển thị nếu dữ liệu hiện tại chưa bị trùng.
     # Index này giúp chặn các biến thể như "Hoang", " hoang ", "HOANG".
     try:
@@ -1282,6 +1302,97 @@ def count_users() -> int:
     )
 
     return int(row["n"])
+
+def hash_session_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def create_login_session(user_id: int) -> str:
+    token = secrets.token_urlsafe(48)
+    token_hash = hash_session_token(token)
+
+    expires_at = datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)
+
+    execute_sql(
+        """
+        INSERT INTO login_sessions (
+            user_id,
+            token_hash,
+            expires_at
+        )
+        VALUES (
+            :user_id,
+            :token_hash,
+            :expires_at
+        )
+        """,
+        {
+            "user_id": user_id,
+            "token_hash": token_hash,
+            "expires_at": expires_at
+        }
+    )
+
+    return token
+
+
+def get_user_by_session_token(token: str):
+    if not token:
+        return None
+
+    token_hash = hash_session_token(token)
+
+    return fetch_one(
+        """
+        SELECT
+            u.user_id,
+            u.username,
+            u.display_name,
+            u.role,
+            u.created_at
+        FROM login_sessions s
+        JOIN users u
+          ON s.user_id = u.user_id
+        WHERE s.token_hash = :token_hash
+          AND s.expires_at > NOW()
+        """,
+        {
+            "token_hash": token_hash
+        }
+    )
+
+
+def delete_login_session(token: str):
+    if not token:
+        return
+
+    execute_sql(
+        """
+        DELETE FROM login_sessions
+        WHERE token_hash = :token_hash
+        """,
+        {
+            "token_hash": hash_session_token(token)
+        }
+    )
+
+
+def restore_user_from_cookie():
+    if "user" in st.session_state:
+        return
+
+    token = cookie_controller.get(COOKIE_NAME)
+
+    if not token:
+        return
+
+    user = get_user_by_session_token(token)
+
+    if user is None:
+        cookie_controller.remove(COOKIE_NAME)
+        return
+
+    st.session_state["user"] = user
 
 
 # ============================================================
@@ -1399,6 +1510,12 @@ def login_user(username: str, password: str):
 
 
 def logout_user():
+    token = cookie_controller.get(COOKIE_NAME)
+
+    if token:
+        delete_login_session(token)
+        cookie_controller.remove(COOKIE_NAME)
+
     for key in list(st.session_state.keys()):
         del st.session_state[key]
 
@@ -1787,9 +1904,14 @@ def render_auth_page():
                         st.error("Sai username hoặc mật khẩu.")
                     else:
                         clear_filter_state()
-                        st.session_state["user"] = user
-                        st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
-                        st.rerun()
+
+						session_token = create_login_session(user["user_id"])
+						cookie_controller.set(COOKIE_NAME, session_token)
+
+						st.session_state["user"] = user
+						st.session_state["selected_page"] = ""Lịch thi đấu & dự đoán"
+
+						st.rerun()
 
         with tab_register:
             st.info("Mật khẩu phải có ít nhất 8 ký tự.")
@@ -2865,9 +2987,8 @@ def render_footer():
 def main():
     check_base_database()
     init_app_tables()
-
+	restore_user_from_cookie()
     # Nếu chưa đăng nhập, chỉ hiển thị trang đăng nhập rồi dừng hẳn app.
-    # st.stop() giúp tránh việc Streamlit render tiếp phần app chính trong cùng một lượt chạy.
     if "user" not in st.session_state:
         render_auth_page()
         render_footer()
