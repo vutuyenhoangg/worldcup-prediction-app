@@ -3085,22 +3085,24 @@ def page_dashboard():
         range_color=(0, score_max)
     )
 
+    fig_points.update_traces(
+        hovertemplate=(
+            "<b>%{x}</b><br>"
+            "Điểm = %{y}"
+            "<extra></extra>"
+        ),
+        marker_line_width=0,
+        opacity=0.92
+    )
+
     fig_points.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#07111F"),
         coloraxis_colorbar=dict(
-            title=dict(
-                text="Điểm",
-                font=dict(color="#64748B")
-            ),
+            title="Điểm",
             tickfont=dict(color="#64748B")
         )
-    )
-
-    fig_points.update_traces(
-        marker_line_width=0,
-        opacity=0.92
     )
 
     st.plotly_chart(fig_points, use_container_width=True)
@@ -3111,10 +3113,11 @@ def page_dashboard():
         y="exact_score_rate",
         size="total_points",
         hover_name="display_name",
+        custom_data=["total_points"],
         title="Độ chính xác kết quả vs độ chính xác tỉ số",
         labels={
-            "result_prediction_rate": "% Đoán đúng kết quả",
-            "exact_score_rate": "% Đoán đúng hoàn toàn tỉ số",
+            "result_prediction_rate": "Đúng kết quả",
+            "exact_score_rate": "Đúng hoàn toàn tỉ số",
             "total_points": "Điểm"
         },
         color="total_points",
@@ -3125,20 +3128,14 @@ def page_dashboard():
     fig_accuracy.update_xaxes(tickformat=".1%")
     fig_accuracy.update_yaxes(tickformat=".1%")
 
-    fig_accuracy.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#07111F"),
-        coloraxis_colorbar=dict(
-            title=dict(
-                text="Điểm",
-                font=dict(color="#64748B")
-            ),
-            tickfont=dict(color="#64748B")
-        )
-    )
-
     fig_accuracy.update_traces(
+        hovertemplate=(
+            "<b>%{hovertext}</b><br>"
+            "Đúng kết quả = %{x:.1%}<br>"
+            "Đúng hoàn toàn tỉ số = %{y:.1%}<br>"
+            "Điểm = %{customdata[0]}"
+            "<extra></extra>"
+        ),
         marker=dict(
             line=dict(
                 width=1,
@@ -3146,6 +3143,16 @@ def page_dashboard():
             )
         ),
         opacity=0.88
+    )
+
+    fig_accuracy.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#07111F"),
+        coloraxis_colorbar=dict(
+            title="Điểm",
+            tickfont=dict(color="#64748B")
+        )
     )
 
     st.plotly_chart(fig_accuracy, use_container_width=True)
