@@ -1705,55 +1705,53 @@ def render_goal_scorers_for_match(match_id: int):
     goal_lines = []
 
     if not home_goals.empty:
-        home_team = escape(str(home_goals.iloc[0]["team_name"]).strip())
+        home_team = escape(str(home_goals.iloc[0]["team_name"]).strip(), quote=False)
         home_text = ", ".join(home_goals.apply(format_goal_text, axis=1))
 
         goal_lines.append(
-            f"""
-            <div style="margin-top: 3px;">
-                <span style="font-weight: 800; color: #0F172A;">{home_team}:</span>
-                <span style="color: #334155;">{home_text}</span>
-            </div>
-            """
+            '<div style="margin-top:3px;">'
+            f'<span style="font-weight:800;color:#0F172A;">{home_team}:</span> '
+            f'<span style="color:#334155;">{home_text}</span>'
+            '</div>'
         )
 
     if not away_goals.empty:
-        away_team = escape(str(away_goals.iloc[0]["team_name"]).strip())
+        away_team = escape(str(away_goals.iloc[0]["team_name"]).strip(), quote=False)
         away_text = ", ".join(away_goals.apply(format_goal_text, axis=1))
 
         goal_lines.append(
-            f"""
-            <div style="margin-top: 3px;">
-                <span style="font-weight: 800; color: #0F172A;">{away_team}:</span>
-                <span style="color: #334155;">{away_text}</span>
-            </div>
-            """
+            '<div style="margin-top:3px;">'
+            f'<span style="font-weight:800;color:#0F172A;">{away_team}:</span> '
+            f'<span style="color:#334155;">{away_text}</span>'
+            '</div>'
         )
 
     if not goal_lines:
         return
 
+    scorers_html = (
+        '<div style="'
+        'margin-top:8px;'
+        'margin-bottom:6px;'
+        'padding-left:12px;'
+        'border-left:3px solid rgba(245,197,66,0.9);'
+        'font-size:13px;'
+        'line-height:1.55;'
+        '">'
+        '<div style="'
+        'font-weight:900;'
+        'color:#07111F;'
+        'margin-bottom:4px;'
+        'letter-spacing:0.01em;'
+        '">'
+        'Cầu thủ ghi bàn'
+        '</div>'
+        f'{"".join(goal_lines)}'
+        '</div>'
+    )
+
     st.markdown(
-        f"""
-        <div style="
-            margin-top: 8px;
-            margin-bottom: 6px;
-            padding-left: 12px;
-            border-left: 3px solid rgba(245,197,66,0.9);
-            font-size: 13px;
-            line-height: 1.55;
-        ">
-            <div style="
-                font-weight: 900;
-                color: #07111F;
-                margin-bottom: 4px;
-                letter-spacing: 0.01em;
-            ">
-                Cầu thủ ghi bàn
-            </div>
-            {''.join(goal_lines)}
-        </div>
-        """,
+        scorers_html,
         unsafe_allow_html=True
     )
 def clear_data_cache():
