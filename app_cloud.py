@@ -758,6 +758,33 @@ def render_kpi_tiles(matches: pd.DataFrame):
 def render_star_balance(user_id: int):
     usage = get_user_star_usage(user_id)
 
+    st.markdown(
+        """
+        <div style="
+            margin-top: 26px;
+            margin-bottom: 12px;
+        ">
+            <div style="
+                color: #07111F;
+                font-weight: 950;
+                font-size: 20px;
+                letter-spacing: -0.02em;
+                line-height: 1.2;
+            ">
+                Bổ trợ
+            </div>
+            <div style="
+                color: #64748B;
+                font-size: 13px;
+                margin-top: 4px;
+            ">
+                Sử dụng sao để nhân điểm cho những trận bạn tự tin nhất.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     col_hope, col_super = st.columns([1, 1], gap="large")
 
     with col_hope:
@@ -768,10 +795,10 @@ def render_star_balance(user_id: int):
                 background: linear-gradient(135deg, #FFF7ED, #FFFFFF);
                 border: 1px solid rgba(245, 158, 11, 0.32);
                 border-radius: 22px;
-                padding: 22px 26px;
+                padding: 24px 28px;
                 box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
-                margin: 10px 0 24px 0;
-                min-height: 132px;
+                margin: 0 0 28px 0;
+                min-height: 142px;
                 width: 100%;
             }
             """
@@ -783,7 +810,7 @@ def render_star_balance(user_id: int):
                     font-weight:900;
                     font-size:15px;
                     line-height:1.2;
-                    margin-bottom:18px;
+                    margin-bottom:24px;
                 ">
                     ⭐ Ngôi sao hy vọng
                 </div>
@@ -796,9 +823,9 @@ def render_star_balance(user_id: int):
                 <div style="
                     color:#07111F;
                     font-weight:950;
-                    font-size:34px;
+                    font-size:36px;
                     line-height:1;
-                    margin-bottom:14px;
+                    margin-bottom:16px;
                 ">
                     {usage["hope_left"]}/{HOPE_STARS_PER_USER}
                 </div>
@@ -827,10 +854,10 @@ def render_star_balance(user_id: int):
                 background: linear-gradient(135deg, #FEF3C7, #FFFFFF);
                 border: 1px solid rgba(245, 197, 66, 0.50);
                 border-radius: 22px;
-                padding: 22px 26px;
+                padding: 24px 28px;
                 box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
-                margin: 10px 0 24px 0;
-                min-height: 132px;
+                margin: 0 0 28px 0;
+                min-height: 142px;
                 width: 100%;
             }
             """
@@ -842,7 +869,7 @@ def render_star_balance(user_id: int):
                     font-weight:900;
                     font-size:15px;
                     line-height:1.2;
-                    margin-bottom:18px;
+                    margin-bottom:24px;
                 ">
                     🌟 Siêu sao
                 </div>
@@ -855,9 +882,9 @@ def render_star_balance(user_id: int):
                 <div style="
                     color:#07111F;
                     font-weight:950;
-                    font-size:34px;
+                    font-size:36px;
                     line-height:1;
-                    margin-bottom:14px;
+                    margin-bottom:16px;
                 ">
                     {usage["super_left"]}/{SUPER_STARS_PER_USER}
                 </div>
