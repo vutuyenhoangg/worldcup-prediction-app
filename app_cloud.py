@@ -2720,9 +2720,9 @@ def render_match_card(row, user_id: int):
             )
 
             if current_star_type != STAR_TYPE_NONE:
-                st.markdown(f"Sao đang dùng: **{format_star_short(current_star_type)}**")
+                st.markdown(f"Bổ trợ: **{format_star_short(current_star_type)}**")
             else:
-                st.caption("Sao đang dùng: Không dùng sao")
+                st.caption("Bổ trợ: Không dùng sao")
 
             actual_home_for_result = to_optional_int(row.get("home_score_for_prediction"))
             actual_away_for_result = to_optional_int(row.get("away_score_for_prediction"))
@@ -2745,8 +2745,8 @@ def render_match_card(row, user_id: int):
                 if base_points is not None and bonus_points is not None:
                     st.markdown(
                         f"Điểm: **{int(final_points)}** "
-                        f"= điểm gốc **{int(base_points)}** "
-                        f"+ thưởng sao **{int(bonus_points)}**"
+                        f"= Điểm gốc **{int(base_points)}** "
+                        f"+ Thưởng sao **{int(bonus_points)}**"
                     )
                 else:
                     st.markdown(f"Điểm: **{existing['points']}**")
