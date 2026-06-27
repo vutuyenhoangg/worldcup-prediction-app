@@ -907,19 +907,54 @@ def render_star_balance(user_id: int):
 
 def render_scoring_rules():
     with stylable_container(
-        key="scoring_rules_card",
+        key="scoring_rules_expander_shell",
         css_styles="""
         {
-            background: rgba(255,255,255,0.92);
-            border: 1px solid rgba(15,23,42,0.08);
-            border-radius: 20px;
-            padding: 4px 18px 8px 18px;
-            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
-            margin: 0 0 24px 0;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 4px 0 28px 0;
+        }
+
+        div[data-testid="stExpander"] {
+            border: none !important;
+            background: transparent !important;
+        }
+
+        div[data-testid="stExpander"] details {
+            border: 1px solid rgba(245, 197, 66, 0.60) !important;
+            border-left: 6px solid #F5C542 !important;
+            border-radius: 18px !important;
+            background:
+                radial-gradient(circle at top left, rgba(245, 197, 66, 0.18), transparent 28%),
+                linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.94)) !important;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08) !important;
+            overflow: hidden !important;
+        }
+
+        div[data-testid="stExpander"] summary {
+            padding: 15px 18px !important;
+            font-weight: 950 !important;
+            color: #07111F !important;
+            font-size: 16px !important;
+            letter-spacing: -0.01em !important;
+        }
+
+        div[data-testid="stExpander"] summary:hover {
+            background: rgba(245, 197, 66, 0.12) !important;
+        }
+
+        div[data-testid="stExpander"] details[open] summary {
+            border-bottom: 1px solid rgba(245, 197, 66, 0.30) !important;
+        }
+
+        div[data-testid="stExpander"] div[data-testid="stMarkdownContainer"] {
+            color: #334155 !important;
         }
         """
     ):
-        with st.expander("Cách tính điểm", expanded=False):
+        with st.expander("📘 Cách tính điểm", expanded=False):
             st.markdown(
                 f"""
                 **Vòng bảng**
@@ -930,16 +965,15 @@ def render_scoring_rules():
 
                 **Vòng knockout**
 
-                Điểm trận knockout = **điểm tỉ số + điểm đội đi tiếp**.
-
+                - Điểm = **điểm tỉ số + điểm đội đi tiếp**
                 - Điểm tỉ số vẫn tính như vòng bảng: **+3 / +1 / 0**
-                - Đoán đúng đội đi tiếp: **+1 điểm**
-                - Nếu dự đoán hòa, bạn cần chọn thêm đội đi tiếp.
+                - Đúng đội đi tiếp: **+1 điểm**
+                - Nếu dự đoán hòa, cần chọn thêm đội đi tiếp.
 
                 **Bổ trợ**
 
-                - {STAR_CONFIG[STAR_TYPE_HOPE]["short_label"]}: nhân đôi tổng điểm trận đó
-                - {STAR_CONFIG[STAR_TYPE_SUPER]["short_label"]}: nhân ba tổng điểm trận đó
+                - {STAR_CONFIG[STAR_TYPE_HOPE]["short_label"]}: **x2** tổng điểm trận đó
+                - {STAR_CONFIG[STAR_TYPE_SUPER]["short_label"]}: **x3** tổng điểm trận đó
                 """
             )
 
