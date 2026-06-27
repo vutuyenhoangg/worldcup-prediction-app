@@ -778,7 +778,7 @@ def render_star_balance(user_id: int):
                 font-size: 13px;
                 margin-top: 4px;
             ">
-                Sử dụng sao để nhân điểm cho những trận bạn tự tin nhất.
+                Sử dụng sao để nhân điểm cho những trận bạn tự tin nhất. Có thể chọn sử dụng khi dự đoán tỉ số từng trận phía dưới.
             </div>
         </div>
         """,
