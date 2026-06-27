@@ -36,6 +36,30 @@ APP_SHORT_NAME = "WC 2026"
 APP_TAGLINE = "Dự đoán tỉ số, tích điểm và leo bảng xếp hạng cùng bạn bè."
 COOKIE_NAME = "wc_session_token"
 SESSION_DAYS = 30
+HOPE_STARS_PER_USER = 5
+SUPER_STARS_PER_USER = 1
+
+STAR_TYPE_NONE = "none"
+STAR_TYPE_HOPE = "hope"
+STAR_TYPE_SUPER = "super"
+
+STAR_CONFIG = {
+    STAR_TYPE_NONE: {
+        "label": "Không dùng sao",
+        "short_label": "Không dùng sao",
+        "multiplier": 1
+    },
+    STAR_TYPE_HOPE: {
+        "label": "⭐ Ngôi sao hy vọng x2",
+        "short_label": "⭐ Ngôi sao hy vọng",
+        "multiplier": 2
+    },
+    STAR_TYPE_SUPER: {
+        "label": "🌟 Siêu sao x3",
+        "short_label": "🌟 Siêu sao",
+        "multiplier": 3
+    }
+}
 
 # ============================================================
 # TODO LINK AREA
@@ -731,6 +755,83 @@ def render_kpi_tiles(matches: pd.DataFrame):
         unsafe_allow_html=True
     )
 
+def render_star_balance(user_id: int):
+    usage = get_user_star_usage(user_id)
+
+    st.markdown(
+        f"""
+        <div style="
+            display:grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin: 8px 0 18px 0;
+        ">
+            <div style="
+                background: linear-gradient(135deg, #FFF7ED, #FFFFFF);
+                border: 1px solid rgba(245, 158, 11, 0.28);
+                border-radius: 20px;
+                padding: 15px 17px;
+                box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+            ">
+                <div style="color:#92400E;font-weight:900;font-size:14px;">
+                    ⭐ Ngôi sao hy vọng
+                </div>
+                <div style="color:#07111F;font-weight:950;font-size:30px;line-height:1.1;margin-top:5px;">
+                    {usage["hope_left"]}/{HOPE_STARS_PER_USER}
+                </div>
+                <div style="color:#64748B;font-size:12px;margin-top:4px;">
+                    x2 điểm dự đoán của trận được chọn
+                </div>
+            </div>
+
+            <div style="
+                background: linear-gradient(135deg, #FEF3C7, #FFFFFF);
+                border: 1px solid rgba(245, 197, 66, 0.42);
+                border-radius: 20px;
+                padding: 15px 17px;
+                box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+            ">
+                <div style="color:#78350F;font-weight:900;font-size:14px;">
+                    🌟 Siêu sao
+                </div>
+                <div style="color:#07111F;font-weight:950;font-size:30px;line-height:1.1;margin-top:5px;">
+                    {usage["super_left"]}/{SUPER_STARS_PER_USER}
+                </div>
+                <div style="color:#64748B;font-size:12px;margin-top:4px;">
+                    x3 điểm dự đoán của trận được chọn
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def render_sidebar_star_balance(user_id: int):
+    usage = get_user_star_usage(user_id)
+
+    st.markdown(
+        f"""
+        <div style="
+            margin-top: 10px;
+            padding: 12px 13px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+        ">
+            <div style="font-weight:900;color:#F8FAFC;margin-bottom:8px;">
+                Kho sao của bạn
+            </div>
+            <div style="font-size:13px;color:#CBD5E1;">
+                ⭐ Ngôi sao hy vọng: <b style="color:#F5C542;">{usage["hope_left"]}/{HOPE_STARS_PER_USER}</b>
+            </div>
+            <div style="font-size:13px;color:#CBD5E1;margin-top:4px;">
+                🌟 Siêu sao: <b style="color:#F5C542;">{usage["super_left"]}/{SUPER_STARS_PER_USER}</b>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # ============================================================
 # 3. BASIC UTILITIES
@@ -934,6 +1035,135 @@ def calculate_total_points(row) -> int:
 
     return points
 
+def normalize_star_type(star_type) -> str:
+    if star_type is None:
+        return STAR_TYPE_NONE
+
+    if pd.isna(star_type):
+        return STAR_TYPE_NONE
+
+    star_type = str(star_type).strip().lower()
+
+    if star_type not in STAR_CONFIG:
+        return STAR_TYPE_NONE
+
+    return star_type
+
+
+def get_star_multiplier(star_type) -> int:
+    star_type = normalize_star_type(star_type)
+    return int(STAR_CONFIG[star_type]["multiplier"])
+
+
+def calculate_points_with_star(base_points: int, star_type: str) -> dict:
+    base_points = int(base_points or 0)
+    multiplier = get_star_multiplier(star_type)
+
+    final_points = base_points * multiplier
+    bonus_points = final_points - base_points
+
+    return {
+        "base_points": base_points,
+        "star_bonus_points": bonus_points,
+        "points": final_points
+    }
+
+
+def format_star_short(star_type) -> str:
+    star_type = normalize_star_type(star_type)
+    return STAR_CONFIG[star_type]["short_label"]
+
+
+def get_user_star_usage(user_id: int, exclude_match_id: int | None = None) -> dict:
+    query = """
+        SELECT
+            COALESCE(SUM(CASE WHEN star_type = 'hope' THEN 1 ELSE 0 END), 0) AS hope_used,
+            COALESCE(SUM(CASE WHEN star_type = 'super' THEN 1 ELSE 0 END), 0) AS super_used
+        FROM predictions
+        WHERE user_id = :user_id
+    """
+
+    params = {
+        "user_id": user_id
+    }
+
+    if exclude_match_id is not None:
+        query += " AND match_id <> :exclude_match_id"
+        params["exclude_match_id"] = exclude_match_id
+
+    row = fetch_one(query, params)
+
+    hope_used = int(row["hope_used"]) if row else 0
+    super_used = int(row["super_used"]) if row else 0
+
+    return {
+        "hope_used": hope_used,
+        "super_used": super_used,
+        "hope_left": max(0, HOPE_STARS_PER_USER - hope_used),
+        "super_left": max(0, SUPER_STARS_PER_USER - super_used)
+    }
+
+
+def validate_star_quota(user_id: int, match_id: int, star_type: str):
+    star_type = normalize_star_type(star_type)
+
+    usage = get_user_star_usage(
+        user_id=user_id,
+        exclude_match_id=match_id
+    )
+
+    if star_type == STAR_TYPE_HOPE and usage["hope_left"] <= 0:
+        raise ValueError("Bạn đã dùng hết Ngôi sao hy vọng.")
+
+    if star_type == STAR_TYPE_SUPER and usage["super_left"] <= 0:
+        raise ValueError("Bạn đã dùng hết Siêu sao.")
+
+
+def get_available_star_options(
+    user_id: int,
+    match_id: int,
+    current_star_type: str
+) -> list[str]:
+    current_star_type = normalize_star_type(current_star_type)
+
+    usage = get_user_star_usage(
+        user_id=user_id,
+        exclude_match_id=match_id
+    )
+
+    options = [STAR_TYPE_NONE]
+
+    if current_star_type == STAR_TYPE_HOPE or usage["hope_left"] > 0:
+        options.append(STAR_TYPE_HOPE)
+
+    if current_star_type == STAR_TYPE_SUPER or usage["super_left"] > 0:
+        options.append(STAR_TYPE_SUPER)
+
+    return options
+
+
+def format_star_option_label(
+    star_type: str,
+    current_star_type: str,
+    usage: dict
+) -> str:
+    star_type = normalize_star_type(star_type)
+    current_star_type = normalize_star_type(current_star_type)
+
+    if star_type == STAR_TYPE_NONE:
+        return "Không dùng sao"
+
+    if star_type == STAR_TYPE_HOPE:
+        if current_star_type == STAR_TYPE_HOPE:
+            return "⭐ Ngôi sao hy vọng x2 đang dùng ở trận này"
+        return f"⭐ Ngôi sao hy vọng x2 còn {usage['hope_left']}"
+
+    if star_type == STAR_TYPE_SUPER:
+        if current_star_type == STAR_TYPE_SUPER:
+            return "🌟 Siêu sao x3 đang dùng ở trận này"
+        return f"🌟 Siêu sao x3 còn {usage['super_left']}"
+
+    return STAR_CONFIG[star_type]["label"]
 
 def get_prediction_result_info(
     pred_home,
@@ -1225,6 +1455,9 @@ def init_app_tables():
             predicted_home_score INTEGER NOT NULL,
             predicted_away_score INTEGER NOT NULL,
             predicted_winner_team_id INTEGER,
+            star_type TEXT NOT NULL DEFAULT 'none',
+            base_points INTEGER,
+            star_bonus_points INTEGER,
             points INTEGER,
             submitted_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
@@ -1246,6 +1479,59 @@ def init_app_tables():
             new_winner_team_id INTEGER,
             changed_at TEXT NOT NULL
         )
+        """
+    )
+
+    execute_sql(
+    """
+    ALTER TABLE predictions
+    ADD COLUMN IF NOT EXISTS star_type TEXT DEFAULT 'none'
+    """
+    )
+    
+    execute_sql(
+        """
+        UPDATE predictions
+        SET star_type = 'none'
+        WHERE star_type IS NULL
+        """
+    )
+    
+    execute_sql(
+        """
+        ALTER TABLE predictions
+        ALTER COLUMN star_type SET NOT NULL
+        """
+    )
+    
+    execute_sql(
+        """
+        ALTER TABLE predictions
+        ADD COLUMN IF NOT EXISTS base_points INTEGER
+        """
+    )
+    
+    execute_sql(
+        """
+        ALTER TABLE predictions
+        ADD COLUMN IF NOT EXISTS star_bonus_points INTEGER
+        """
+    )
+    
+    execute_sql(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'predictions_star_type_check'
+            ) THEN
+                ALTER TABLE predictions
+                ADD CONSTRAINT predictions_star_type_check
+                CHECK (star_type IN ('none', 'hope', 'super'));
+            END IF;
+        END $$;
         """
     )
 
@@ -1804,8 +2090,11 @@ def save_prediction(
     match_id: int,
     predicted_home_score: int,
     predicted_away_score: int,
-    predicted_winner_team_id: int | None
+    predicted_winner_team_id: int | None,
+    star_type: str = STAR_TYPE_NONE
 ):
+    star_type = normalize_star_type(star_type)
+
     match = get_match_by_id(match_id)
 
     if match is None:
@@ -1813,6 +2102,12 @@ def save_prediction(
 
     if not can_edit_prediction(match["kickoff_time_utc"]):
         raise ValueError("Trận đấu đã khóa dự đoán.")
+
+    validate_star_quota(
+        user_id=user_id,
+        match_id=match_id,
+        star_type=star_type
+    )
 
     existing = get_user_prediction(user_id, match_id)
     now_text = now_utc_iso()
@@ -1828,6 +2123,9 @@ def save_prediction(
                         predicted_home_score,
                         predicted_away_score,
                         predicted_winner_team_id,
+                        star_type,
+                        base_points,
+                        star_bonus_points,
                         points,
                         submitted_at,
                         updated_at
@@ -1838,6 +2136,9 @@ def save_prediction(
                         :predicted_home_score,
                         :predicted_away_score,
                         :predicted_winner_team_id,
+                        :star_type,
+                        NULL,
+                        NULL,
                         NULL,
                         :submitted_at,
                         :updated_at
@@ -1850,6 +2151,7 @@ def save_prediction(
                     "predicted_home_score": predicted_home_score,
                     "predicted_away_score": predicted_away_score,
                     "predicted_winner_team_id": predicted_winner_team_id,
+                    "star_type": star_type,
                     "submitted_at": now_text,
                     "updated_at": now_text
                 }
@@ -1903,7 +2205,10 @@ def save_prediction(
                         predicted_home_score = :predicted_home_score,
                         predicted_away_score = :predicted_away_score,
                         predicted_winner_team_id = :predicted_winner_team_id,
+                        star_type = :star_type,
                         updated_at = :updated_at,
+                        base_points = NULL,
+                        star_bonus_points = NULL,
                         points = NULL
                     WHERE prediction_id = :prediction_id
                     """
@@ -1912,6 +2217,7 @@ def save_prediction(
                     "predicted_home_score": predicted_home_score,
                     "predicted_away_score": predicted_away_score,
                     "predicted_winner_team_id": predicted_winner_team_id,
+                    "star_type": star_type,
                     "updated_at": now_text,
                     "prediction_id": prediction_id
                 }
@@ -1943,11 +2249,18 @@ def score_all_predictions():
         if not is_finished or actual_home is None or actual_away is None:
             continue
 
-        points = calculate_total_points(row)
+        base_points = calculate_total_points(row)
+
+        point_info = calculate_points_with_star(
+            base_points=base_points,
+            star_type=row.get("star_type")
+        )
 
         scored_rows.append(
             {
-                "points": points,
+                "base_points": point_info["base_points"],
+                "star_bonus_points": point_info["star_bonus_points"],
+                "points": point_info["points"],
                 "prediction_id": int(row["prediction_id"])
             }
         )
@@ -1958,7 +2271,10 @@ def score_all_predictions():
     execute_many(
         """
         UPDATE predictions
-        SET points = :points
+        SET
+            base_points = :base_points,
+            star_bonus_points = :star_bonus_points,
+            points = :points
         WHERE prediction_id = :prediction_id
         """,
         scored_rows
@@ -2158,6 +2474,10 @@ def render_inline_prediction_confirmation(match_id: int):
     home_name = match["home_team_name"]
     away_name = match["away_team_name"]
 
+    pending_star_type = normalize_star_type(
+        pending.get("star_type", STAR_TYPE_NONE)
+    )
+
     with stylable_container(
         key=f"inline_confirm_box_{match_id}",
         css_styles="""
@@ -2185,9 +2505,18 @@ def render_inline_prediction_confirmation(match_id: int):
         )
 
         if pending.get("predicted_winner_team_name"):
-            st.markdown(f"Đội đi tiếp: **{pending['predicted_winner_team_name']}**")
+            st.markdown(
+                f"Đội đi tiếp: **{pending['predicted_winner_team_name']}**"
+            )
 
-        st.caption("Bạn vẫn có thể chỉnh sửa dự đoán cho đến trước giờ bóng lăn.")
+        if pending_star_type != STAR_TYPE_NONE:
+            st.markdown(
+                f"Sao sử dụng: **{format_star_short(pending_star_type)}**"
+            )
+        else:
+            st.markdown("Sao sử dụng: **Không dùng sao**")
+
+        st.caption("Bạn vẫn có thể chỉnh sửa dự đoán và lựa chọn sao cho đến trước giờ bóng lăn.")
 
         col_confirm, col_cancel = st.columns([1, 1])
 
@@ -2203,7 +2532,8 @@ def render_inline_prediction_confirmation(match_id: int):
                         match_id=pending["match_id"],
                         predicted_home_score=pending["predicted_home_score"],
                         predicted_away_score=pending["predicted_away_score"],
-                        predicted_winner_team_id=pending["predicted_winner_team_id"]
+                        predicted_winner_team_id=pending["predicted_winner_team_id"],
+                        star_type=pending_star_type
                     )
 
                     st.session_state["pending_prediction"] = None
@@ -2311,11 +2641,17 @@ def render_match_card(row, user_id: int):
             pred_home = int(existing["predicted_home_score"])
             pred_away = int(existing["predicted_away_score"])
             pred_winner_team_id = existing["predicted_winner_team_id"]
+            current_star_type = normalize_star_type(existing.get("star_type"))
 
             st.markdown(
                 f"Dự đoán hiện tại của bạn: "
                 f"**{home_name} {pred_home} - {pred_away} {away_name}**"
             )
+
+            if current_star_type != STAR_TYPE_NONE:
+                st.markdown(f"Sao đang dùng: **{format_star_short(current_star_type)}**")
+            else:
+                st.caption("Sao đang dùng: Không dùng sao")
 
             actual_home_for_result = to_optional_int(row.get("home_score_for_prediction"))
             actual_away_for_result = to_optional_int(row.get("away_score_for_prediction"))
@@ -2331,12 +2667,24 @@ def render_match_card(row, user_id: int):
             render_prediction_result_line(prediction_result_info)
 
             if existing.get("points") is not None:
-                st.markdown(f"Điểm: **{existing['points']}**")
+                base_points = existing.get("base_points")
+                bonus_points = existing.get("star_bonus_points")
+                final_points = existing.get("points")
+
+                if base_points is not None and bonus_points is not None:
+                    st.markdown(
+                        f"Điểm: **{int(final_points)}** "
+                        f"= điểm gốc **{int(base_points)}** "
+                        f"+ thưởng sao **{int(bonus_points)}**"
+                    )
+                else:
+                    st.markdown(f"Điểm: **{existing['points']}**")
 
         else:
             pred_home = 0
             pred_away = 0
             pred_winner_team_id = None
+            current_star_type = STAR_TYPE_NONE
             st.caption("Bạn chưa dự đoán trận này.")
 
         if not editable:
@@ -2406,6 +2754,32 @@ def render_match_card(row, user_id: int):
                     predicted_winner_team_id = winner_options[selected_winner_name]
                     predicted_winner_team_name = selected_winner_name
 
+            st.markdown("#### Sao nhân điểm")
+
+            star_usage_for_card = get_user_star_usage(
+                user_id=user_id,
+                exclude_match_id=match_id
+            )
+
+            star_options = get_available_star_options(
+                user_id=user_id,
+                match_id=match_id,
+                current_star_type=current_star_type
+            )
+
+            selected_star_type = st.radio(
+                "Chọn sao cho trận này:",
+                options=star_options,
+                index=star_options.index(current_star_type) if current_star_type in star_options else 0,
+                format_func=lambda star: format_star_option_label(
+                    star,
+                    current_star_type=current_star_type,
+                    usage=star_usage_for_card
+                ),
+                horizontal=False,
+                key=f"star_type_{match_id}"
+            )
+
             submitted = st.form_submit_button("Lưu / cập nhật dự đoán")
 
             if submitted:
@@ -2414,7 +2788,8 @@ def render_match_card(row, user_id: int):
                     "predicted_home_score": int(input_home),
                     "predicted_away_score": int(input_away),
                     "predicted_winner_team_id": predicted_winner_team_id,
-                    "predicted_winner_team_name": predicted_winner_team_name
+                    "predicted_winner_team_name": predicted_winner_team_name,
+                    "star_type": selected_star_type
                 }
                 st.rerun()
 
@@ -2441,6 +2816,9 @@ def page_matches():
 
     render_kpi_tiles(matches)
     render_status_legend()
+
+    user_id = st.session_state["user"]["user_id"]
+    render_star_balance(user_id)
 
     available_dates = sorted(matches["kickoff_date_filter"].dropna().unique())
 
@@ -2575,8 +2953,6 @@ def page_matches():
         st.info("Không có trận nào phù hợp với bộ lọc hiện tại.")
         return
 
-    user_id = st.session_state["user"]["user_id"]
-
     for match_date, group_df in filtered.groupby("kickoff_date_filter"):
         st.markdown("---")
         st.header(format_filter_date(match_date))
@@ -2592,6 +2968,8 @@ def page_my_predictions():
         "Dự đoán của tôi",
         "Theo dõi toàn bộ dự đoán đã lưu và điểm số từng trận."
     )
+
+    score_all_predictions()
 
     user_id = st.session_state["user"]["user_id"]
 
@@ -2626,6 +3004,7 @@ def page_my_predictions():
             + " - "
             + df["predicted_away_score"].astype(str)
         ),
+        "Sao": df["star_type"].apply(format_star_short),
         "Kết quả": df.apply(
             lambda row: (
                 ""
@@ -2634,6 +3013,12 @@ def page_my_predictions():
                 else f"{int(row['home_score_for_prediction'])} - {int(row['away_score_for_prediction'])}"
             ),
             axis=1
+        ),
+        "Điểm gốc": df["base_points"].apply(
+            lambda x: "" if pd.isna(x) else str(int(round(float(x))))
+        ),
+        "Thưởng sao": df["star_bonus_points"].apply(
+            lambda x: "" if pd.isna(x) else str(int(round(float(x))))
         ),
         "Điểm": df["points"].apply(
             lambda x: "" if pd.isna(x) else str(int(round(float(x))))
@@ -2741,6 +3126,10 @@ def build_leaderboard_df():
     if predictions.empty:
         result = users.copy()
         result["total_points"] = 0
+        result["base_points"] = 0
+        result["star_bonus_points"] = 0
+        result["hope_stars_used"] = 0
+        result["super_stars_used"] = 0
         result["num_predictions"] = 0
         result["num_scored"] = 0
         result["exact_score_count"] = 0
@@ -2750,6 +3139,9 @@ def build_leaderboard_df():
         result["exact_score_rate"] = 0.0
         result["outcome_rate"] = 0.0
         result["knockout_winner_rate"] = 0.0
+        result["result_prediction_checkable"] = 0
+        result["result_prediction_correct"] = 0
+        result["result_prediction_rate"] = 0.0
         result = result.sort_values("display_name").reset_index(drop=True)
         result["rank"] = range(1, len(result) + 1)
         return result
@@ -2818,13 +3210,35 @@ def build_leaderboard_df():
         axis=1
     )
 
-    df["points"] = pd.to_numeric(df["points"], errors="coerce").fillna(0)
+    df["points"] = pd.to_numeric(
+        df["points"],
+        errors="coerce"
+    ).fillna(0)
+
+    df["base_points"] = pd.to_numeric(
+        df["base_points"],
+        errors="coerce"
+    ).fillna(0)
+
+    df["star_bonus_points"] = pd.to_numeric(
+        df["star_bonus_points"],
+        errors="coerce"
+    ).fillna(0)
+
+    df["star_type"] = df["star_type"].apply(normalize_star_type)
+
+    df["hope_star_used"] = df["star_type"] == STAR_TYPE_HOPE
+    df["super_star_used"] = df["star_type"] == STAR_TYPE_SUPER
 
     summary = (
         df
         .groupby(["user_id", "username", "display_name", "role"], as_index=False)
         .agg(
             total_points=("points", "sum"),
+            base_points=("base_points", "sum"),
+            star_bonus_points=("star_bonus_points", "sum"),
+            hope_stars_used=("hope_star_used", "sum"),
+            super_stars_used=("super_star_used", "sum"),
             num_predictions=("prediction_id", "count"),
             num_scored=("is_scored", "sum"),
             exact_score_count=("exact_score", "sum"),
@@ -2836,6 +3250,10 @@ def build_leaderboard_df():
 
     numeric_cols = [
         "total_points",
+        "base_points",
+        "star_bonus_points",
+        "hope_stars_used",
+        "super_stars_used",
         "num_predictions",
         "num_scored",
         "exact_score_count",
@@ -2853,10 +3271,6 @@ def build_leaderboard_df():
         axis=1
     )
 
-    # Gộp logic:
-    # - correct_outcome_count: số lần đoán đúng thắng/hòa/thua
-    # - knockout_winner_correct: số lần đoán đúng đội đi tiếp ở knockout
-    # => result_prediction_rate là % Đoán đúng kết quả tổng hợp
     summary["result_prediction_checkable"] = (
         summary["num_scored"] + summary["knockout_winner_checkable"]
     )
@@ -2883,7 +3297,7 @@ def build_leaderboard_df():
 def page_leaderboard():
     render_page_title(
         "Bảng xếp hạng",
-        "Xem ai đang dẫn đầu cuộc đua dự đoán."
+        "Xem ai đang dẫn đầu cuộc đua."
     )
 
     score_all_predictions()
@@ -2896,11 +3310,22 @@ def page_leaderboard():
 
     current_display_name = str(st.session_state["user"]["display_name"]).strip()
 
+    leaderboard["stars_used_display"] = leaderboard.apply(
+        lambda row: (
+            f"⭐ {int(row.get('hope_stars_used', 0))}/{HOPE_STARS_PER_USER} | "
+            f"🌟 {int(row.get('super_stars_used', 0))}/{SUPER_STARS_PER_USER}"
+        ),
+        axis=1
+    )
+
     display_df = leaderboard[
         [
             "rank",
             "display_name",
             "total_points",
+            "base_points",
+            "star_bonus_points",
+            "stars_used_display",
             "num_predictions",
             "num_scored",
             "exact_score_count",
@@ -2914,6 +3339,9 @@ def page_leaderboard():
         "rank": "Hạng",
         "display_name": "Người chơi",
         "total_points": "Điểm",
+        "base_points": "Điểm gốc",
+        "star_bonus_points": "Thưởng sao",
+        "stars_used_display": "Sao đã dùng",
         "num_predictions": "Số dự đoán",
         "num_scored": "Số trận đã chấm",
         "exact_score_count": "Đúng tỉ số",
@@ -2928,7 +3356,7 @@ def page_leaderboard():
     ]
 
     for col in percent_cols:
-        display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.0f}%")
+        display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.1f}%")
 
     def style_leaderboard_row(row):
         styles = []
@@ -2949,6 +3377,18 @@ def page_leaderboard():
                 style += (
                     "font-weight: 1390 !important; "
                     "color: #07111F !important; "
+                )
+
+            if col == "Thưởng sao":
+                style += (
+                    "font-weight: 900 !important; "
+                    "color: #B45309 !important; "
+                )
+
+            if col == "Sao đã dùng":
+                style += (
+                    "font-weight: 850 !important; "
+                    "color: #78350F !important; "
                 )
 
             if col == "Hạng":
@@ -2990,6 +3430,20 @@ def page_leaderboard():
                 "color": "#07111F !important"
             }
         )
+        .set_properties(
+            subset=["Thưởng sao"],
+            **{
+                "font-weight": "900 !important",
+                "color": "#B45309 !important"
+            }
+        )
+        .set_properties(
+            subset=["Sao đã dùng"],
+            **{
+                "font-weight": "850 !important",
+                "color": "#78350F !important"
+            }
+        )
         .set_table_styles(
             [
                 {
@@ -3021,6 +3475,7 @@ def page_leaderboard():
             ]
         )
     )
+
     st.table(styled_df)
 
 def page_dashboard():
@@ -3053,7 +3508,14 @@ def page_dashboard():
 
     avg_points_display = f"{avg_points_all_players:.1f}"
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    total_star_bonus = int(
+        pd.to_numeric(
+            predictions.get("star_bonus_points", pd.Series(dtype="float")),
+            errors="coerce"
+        ).fillna(0).sum()
+    )
+
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     with col1:
         st.metric("Số người chơi", len(leaderboard))
@@ -3071,7 +3533,10 @@ def page_dashboard():
         st.metric("Điểm cao nhất", int(leaderboard["total_points"].max()))
 
     with col5:
-        st.metric("Điểm TB/trận của tất cả người chơi", avg_points_display)
+        st.metric("Điểm TB/trận", avg_points_display)
+
+    with col6:
+        st.metric("Tổng thưởng sao", total_star_bonus)
 
     st.markdown("---")
 
@@ -3099,13 +3564,23 @@ def page_dashboard():
         },
         color="total_points",
         color_continuous_scale=custom_score_scale,
-        range_color=(0, score_max)
+        range_color=(0, score_max),
+        custom_data=[
+            "base_points",
+            "star_bonus_points",
+            "hope_stars_used",
+            "super_stars_used"
+        ]
     )
 
     fig_points.update_traces(
         hovertemplate=(
             "<b>%{x}</b><br>"
-            "Điểm = %{y}"
+            "Tổng điểm = %{y}<br>"
+            "Điểm gốc = %{customdata[0]}<br>"
+            "Thưởng sao = %{customdata[1]}<br>"
+            "⭐ Ngôi sao hy vọng đã dùng = %{customdata[2]}<br>"
+            "🌟 Siêu sao đã dùng = %{customdata[3]}"
             "<extra></extra>"
         ),
         marker_line_width=0,
@@ -3130,7 +3605,13 @@ def page_dashboard():
         y="exact_score_rate",
         size="total_points",
         hover_name="display_name",
-        custom_data=["total_points"],
+        custom_data=[
+            "total_points",
+            "base_points",
+            "star_bonus_points",
+            "hope_stars_used",
+            "super_stars_used"
+        ],
         title="Độ chính xác kết quả vs độ chính xác tỉ số",
         labels={
             "result_prediction_rate": "% Đoán đúng kết quả",
@@ -3150,7 +3631,11 @@ def page_dashboard():
             "<b>%{hovertext}</b><br>"
             "% Đoán đúng kết quả = %{x:.1%}<br>"
             "% Đoán đúng hoàn toàn tỉ số = %{y:.1%}<br>"
-            "Điểm = %{customdata[0]}"
+            "Tổng điểm = %{customdata[0]}<br>"
+            "Điểm gốc = %{customdata[1]}<br>"
+            "Thưởng sao = %{customdata[2]}<br>"
+            "⭐ Ngôi sao hy vọng đã dùng = %{customdata[3]}<br>"
+            "🌟 Siêu sao đã dùng = %{customdata[4]}"
             "<extra></extra>"
         ),
         marker=dict(
@@ -3446,6 +3931,7 @@ def main():
 
         st.markdown(f"Xin chào, **{user['display_name']}**")
         st.caption(f"Role: {user['role']}")
+        render_sidebar_star_balance(user["user_id"])
 
         if st.button("Đăng xuất", use_container_width=True):
             logout_user()
