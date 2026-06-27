@@ -4227,15 +4227,10 @@ def main():
     initialize_app_once()
     restore_user_from_cookie()
 
-    # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
-    # Sau khi đăng nhập thành công, render_auth_page() sẽ set st.session_state["user"].
-    # Khi đó app không stop nữa mà render tiếp màn hình chính trong cùng lượt chạy.
     if "user" not in st.session_state:
         render_auth_page()
-
-        if "user" not in st.session_state:
-            render_footer()
-            st.stop()
+        render_footer()
+        st.stop()
 
     user = st.session_state["user"]
 
