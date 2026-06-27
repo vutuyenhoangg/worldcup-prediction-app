@@ -1550,6 +1550,7 @@ def clear_filter_state():
     for key in [
         "filter_date",
         "filter_status",
+        "filter_prediction_status",
         "pending_prediction"
     ]:
         if key in st.session_state:
@@ -3226,13 +3227,30 @@ def page_matches():
     if "filter_status" not in st.session_state:
         st.session_state["filter_status"] = "Tất cả"
 
-    status_options = ["Tất cả", "Sắp diễn ra", "Đã khóa", "Đã có kết quả"]
+    if "filter_prediction_status" not in st.session_state:
+        st.session_state["filter_prediction_status"] = "Tất cả"
+
+    status_options = [
+        "Tất cả",
+        "Sắp diễn ra",
+        "Đã khóa",
+        "Đã có kết quả"
+    ]
+
+    prediction_status_options = [
+        "Tất cả",
+        "Đã dự đoán",
+        "Chưa dự đoán"
+    ]
 
     if st.session_state["filter_date"] not in date_options:
         st.session_state["filter_date"] = today_vn
 
     if st.session_state["filter_status"] not in status_options:
         st.session_state["filter_status"] = "Tất cả"
+
+    if st.session_state["filter_prediction_status"] not in prediction_status_options:
+        st.session_state["filter_prediction_status"] = "Tất cả"
 
     with stylable_container(
         key="match_filter_panel",
@@ -3294,7 +3312,7 @@ def page_matches():
             unsafe_allow_html=True
         )
 
-        col_filter_1, col_filter_2 = st.columns([1, 1])
+        col_filter_1, col_filter_2, col_filter_3 = st.columns([1, 1, 1])
 
         with col_filter_1:
             selected_date = st.selectbox(
@@ -3313,9 +3331,21 @@ def page_matches():
                 key="filter_status"
             )
 
+        with col_filter_3:
+            prediction_status_filter = st.selectbox(
+                "Tình trạng dự đoán",
+                options=prediction_status_options,
+                index=prediction_status_options.index(
+                    st.session_state["filter_prediction_status"]
+                ),
+                key="filter_prediction_status"
+            )
+
     filtered = matches.copy()
 
-    filtered = filtered[filtered["kickoff_date_filter"] == selected_date]
+    filtered = filtered[
+        filtered["kickoff_date_filter"] == selected_date
+    ]
 
     now_utc = pd.Timestamp.now(tz="UTC")
 
@@ -3334,6 +3364,27 @@ def page_matches():
     elif status_filter == "Đã có kết quả":
         filtered = filtered[
             filtered["is_finished"].apply(to_bool)
+        ]
+
+    user_predictions = load_predictions()
+
+    if user_predictions.empty:
+        predicted_match_ids = set()
+    else:
+        predicted_match_ids = set(
+            user_predictions[
+                user_predictions["user_id"].astype(int) == int(user_id)
+            ]["match_id"].astype(int).tolist()
+        )
+
+    if prediction_status_filter == "Đã dự đoán":
+        filtered = filtered[
+            filtered["match_id"].astype(int).isin(predicted_match_ids)
+        ]
+
+    elif prediction_status_filter == "Chưa dự đoán":
+        filtered = filtered[
+            ~filtered["match_id"].astype(int).isin(predicted_match_ids)
         ]
 
     filtered = filtered.sort_values("kickoff_time_utc_dt")
