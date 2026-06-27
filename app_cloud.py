@@ -905,6 +905,44 @@ def render_star_balance(user_id: int):
                 unsafe_allow_html=True
             )
 
+def render_scoring_rules():
+    with stylable_container(
+        key="scoring_rules_card",
+        css_styles="""
+        {
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(15,23,42,0.08);
+            border-radius: 20px;
+            padding: 4px 18px 8px 18px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+            margin: 0 0 24px 0;
+        }
+        """
+    ):
+        with st.expander("Cách tính điểm", expanded=False):
+            st.markdown(
+                f"""
+                **Vòng bảng**
+
+                - Đúng hoàn toàn tỉ số: **+3 điểm**
+                - Đúng kết quả thắng/hòa/thua: **+1 điểm**
+                - Sai kết quả: **0 điểm**
+
+                **Vòng knockout**
+
+                Điểm trận knockout = **điểm tỉ số + điểm đội đi tiếp**.
+
+                - Điểm tỉ số vẫn tính như vòng bảng: **+3 / +1 / 0**
+                - Đoán đúng đội đi tiếp: **+1 điểm**
+                - Nếu dự đoán hòa, bạn cần chọn thêm đội đi tiếp.
+
+                **Bổ trợ**
+
+                - {STAR_CONFIG[STAR_TYPE_HOPE]["short_label"]}: nhân đôi tổng điểm trận đó
+                - {STAR_CONFIG[STAR_TYPE_SUPER]["short_label"]}: nhân ba tổng điểm trận đó
+                """
+            )
+
 def render_sidebar_star_balance(user_id: int):
     usage = get_user_star_usage(user_id)
 
@@ -2997,6 +3035,7 @@ def page_matches():
 
     user_id = st.session_state["user"]["user_id"]
     render_star_balance(user_id)
+    render_scoring_rules()
 
     available_dates = sorted(matches["kickoff_date_filter"].dropna().unique())
 
