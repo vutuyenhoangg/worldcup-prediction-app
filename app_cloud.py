@@ -954,7 +954,7 @@ def render_scoring_rules():
         }
         """
     ):
-        with st.expander("📘 Cách tính điểm", expanded=False):
+        with st.expander("Cách tính điểm", expanded=False):
             st.markdown(
                 f"""
                 **Vòng bảng**
