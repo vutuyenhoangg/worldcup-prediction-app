@@ -2249,34 +2249,34 @@ def format_goal_text(row) -> str:
 
 def toggle_goal_scorers(match_id: int):
     """
-    Chỉ mở danh sách cầu thủ ghi bàn của 1 trận tại một thời điểm.
-    Bấm lại cùng trận thì đóng.
-    Bấm trận khác thì chuyển sang trận đó.
+    Mỗi trận có trạng thái ẩn/hiện cầu thủ ghi bàn riêng.
+    Bấm trận nào thì chỉ đổi trạng thái của trận đó,
+    không ảnh hưởng các trận khác.
     """
-    active_key = "active_goal_scorers_match_id"
-    match_id = int(match_id)
+    toggle_key = f"show_goal_scorers_{int(match_id)}"
 
-    if st.session_state.get(active_key) == match_id:
-        st.session_state[active_key] = None
-    else:
-        st.session_state[active_key] = match_id
+    st.session_state[toggle_key] = not st.session_state.get(
+        toggle_key,
+        False
+    )
 
 
 def render_goal_scorers_for_match(match_id: int):
     """
     Hiển thị nút mở rộng/thu gọn danh sách cầu thủ ghi bàn.
 
-    Tối ưu:
-    - Chưa bấm thì không query bảng match_goals.
-    - Bấm trận nào thì chỉ query cầu thủ ghi bàn của trận đó.
-    - Không gọi st.rerun() thủ công vì on_click của button đã tự rerun.
+    Logic mới:
+    - Mỗi card có trạng thái ẩn/hiện riêng.
+    - Bấm mở/ẩn trận này không tự đóng các trận khác.
+    - Chưa mở thì không query bảng match_goals.
+    - Khi mở thì chỉ query cầu thủ ghi bàn của đúng trận đó.
     """
     from html import escape
 
     match_id = int(match_id)
-    active_key = "active_goal_scorers_match_id"
+    toggle_key = f"show_goal_scorers_{match_id}"
 
-    is_open = st.session_state.get(active_key) == match_id
+    is_open = st.session_state.get(toggle_key, False)
 
     button_label = (
         "Ẩn cầu thủ ghi bàn"
@@ -2363,7 +2363,6 @@ def render_goal_scorers_for_match(match_id: int):
         scorers_html,
         unsafe_allow_html=True
     )
-
 
 def clear_data_cache():
     """
