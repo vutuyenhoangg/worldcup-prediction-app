@@ -55,8 +55,8 @@ STAR_CONFIG = {
         "multiplier": 2
     },
     STAR_TYPE_SUPER: {
-        "label": "🌠 Siêu sao x3",
-        "short_label": "🌠 Siêu sao",
+        "label": "✨ Siêu sao x3",
+        "short_label": "✨ Siêu sao",
         "multiplier": 3
     }
 }
@@ -871,7 +871,7 @@ def render_star_balance(user_id: int):
                     line-height:1.2;
                     margin-bottom:24px;
                 ">
-                    🌠 Siêu sao
+                    ✨ Siêu sao
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -924,7 +924,7 @@ def render_sidebar_star_balance(user_id: int):
                 ⭐ Ngôi sao hy vọng: <b style="color:#F5C542;">{usage["hope_left"]}/{HOPE_STARS_PER_USER}</b>
             </div>
             <div style="font-size:13px;color:#CBD5E1;margin-top:4px;">
-                🌠 Siêu sao: <b style="color:#F5C542;">{usage["super_left"]}/{SUPER_STARS_PER_USER}</b>
+                ✨ Siêu sao: <b style="color:#F5C542;">{usage["super_left"]}/{SUPER_STARS_PER_USER}</b>
             </div>
         </div>
         """,
@@ -1258,8 +1258,8 @@ def format_star_option_label(
 
     if star_type == STAR_TYPE_SUPER:
         if current_star_type == STAR_TYPE_SUPER:
-            return "🌠 Siêu sao x3 đang dùng ở trận này"
-        return f"🌠 Siêu sao x3 còn {usage['super_left']}"
+            return "✨ Siêu sao x3 đang dùng ở trận này"
+        return f"✨ Siêu sao x3 còn {usage['super_left']}"
 
     return STAR_CONFIG[star_type]["label"]
 
@@ -3517,7 +3517,7 @@ def page_leaderboard():
         "base_points": "Điểm gốc",
         "star_bonus_points": "Thưởng sao",
         "hope_star_display": "⭐",
-        "super_star_display": "🌠",
+        "super_star_display": "✨",
         "num_predictions": "Số dự đoán",
         "num_scored": "Số trận đã chấm",
         "exact_score_count": "Đúng tỉ số",
@@ -3561,7 +3561,7 @@ def page_leaderboard():
                     "color: #B45309 !important; "
                 )
 
-            if col in ["⭐", "🌠"]:
+            if col in ["⭐", "✨"]:
                 style += (
                     "text-align: center !important; "
                     "font-weight: 900 !important; "
@@ -3615,7 +3615,7 @@ def page_leaderboard():
             }
         )
         .set_properties(
-            subset=["⭐", "🌠"],
+            subset=["⭐", "✨"],
             **{
                 "text-align": "center !important",
                 "font-weight": "900 !important",
@@ -3788,7 +3788,7 @@ def page_dashboard():
             "Điểm gốc = %{customdata[0]}<br>"
             "Thưởng sao = %{customdata[1]}<br>"
             "⭐ Ngôi sao hy vọng đã dùng = %{customdata[2]}<br>"
-            "🌠 Siêu sao đã dùng = %{customdata[3]}"
+            "✨ Siêu sao đã dùng = %{customdata[3]}"
             "<extra></extra>"
         ),
         marker_line_width=0,
@@ -3843,7 +3843,7 @@ def page_dashboard():
             "Điểm gốc = %{customdata[1]}<br>"
             "Thưởng sao = %{customdata[2]}<br>"
             "⭐ Ngôi sao hy vọng đã dùng = %{customdata[3]}<br>"
-            "🌠 Siêu sao đã dùng = %{customdata[4]}"
+            "✨ Siêu sao đã dùng = %{customdata[4]}"
             "<extra></extra>"
         ),
         marker=dict(
