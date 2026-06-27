@@ -2343,12 +2343,6 @@ def clear_data_cache():
     except NameError:
         pass
 
-def clear_prediction_cache():
-    """
-    Chỉ xóa cache dự đoán sau khi user lưu/cập nhật dự đoán.
-    Không xóa matches/users vì lưu dự đoán không làm thay đổi lịch thi đấu hoặc danh sách user.
-    """
-    load_predictions.clear()
 
 def get_user_prediction(user_id: int, match_id: int):
     return fetch_one(
@@ -2520,7 +2514,7 @@ def save_prediction(
                 }
             )
 
-    clear_prediction_cache()
+    clear_data_cache()
 
 def score_all_predictions():
     matches = load_matches()
@@ -2810,12 +2804,12 @@ def render_inline_prediction_confirmation(match_id: int):
 
         if pending_star_type != STAR_TYPE_NONE:
             st.markdown(
-                f"Bổ trợ sử dụng: **{format_star_short(pending_star_type)}**"
+                f"Sao sử dụng: **{format_star_short(pending_star_type)}**"
             )
         else:
-            st.markdown("Bổ trợ sử dụng: **Không dùng sao**")
+            st.markdown("Sao sử dụng: **Không dùng sao**")
 
-        st.caption("Dự đoán chỉ được lưu chính thức sau khi bạn bấm Xác nhận lưu.")
+        st.caption("Bạn vẫn có thể chỉnh sửa dự đoán và lựa chọn sao cho đến trước giờ bóng lăn.")
 
         col_confirm, col_cancel = st.columns([1, 1])
 
@@ -2826,18 +2820,17 @@ def render_inline_prediction_confirmation(match_id: int):
                 key=f"confirm_prediction_{match_id}"
             ):
                 try:
-                    with st.spinner("Đang lưu dự đoán..."):
-                        save_prediction(
-                            user_id=st.session_state["user"]["user_id"],
-                            match_id=pending["match_id"],
-                            predicted_home_score=pending["predicted_home_score"],
-                            predicted_away_score=pending["predicted_away_score"],
-                            predicted_winner_team_id=pending["predicted_winner_team_id"],
-                            star_type=pending_star_type
-                        )
+                    save_prediction(
+                        user_id=st.session_state["user"]["user_id"],
+                        match_id=pending["match_id"],
+                        predicted_home_score=pending["predicted_home_score"],
+                        predicted_away_score=pending["predicted_away_score"],
+                        predicted_winner_team_id=pending["predicted_winner_team_id"],
+                        star_type=pending_star_type
+                    )
 
                     st.session_state["pending_prediction"] = None
-                    st.session_state["prediction_save_success"] = True
+                    st.success("Đã lưu dự đoán.")
                     st.rerun()
 
                 except ValueError as e:
@@ -2851,7 +2844,6 @@ def render_inline_prediction_confirmation(match_id: int):
             ):
                 st.session_state["pending_prediction"] = None
                 st.rerun()
-
 
 def render_match_card(row, user_id: int):
     match_id = int(row["match_id"])
@@ -3092,6 +3084,7 @@ def render_match_card(row, user_id: int):
                     "predicted_winner_team_name": predicted_winner_team_name,
                     "star_type": selected_star_type
                 }
+                st.rerun()
 
         render_inline_prediction_confirmation(match_id)
 
@@ -3107,9 +3100,6 @@ def page_matches():
         "Lịch thi đấu & dự đoán",
         "Chọn ngày và trạng thái để nhập dự đoán cho từng trận."
     )
-
-    if st.session_state.pop("prediction_save_success", False):
-        st.success("Đã lưu / cập nhật dự đoán.")
 
     matches = load_matches()
 
