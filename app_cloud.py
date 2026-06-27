@@ -3522,13 +3522,13 @@ def page_leaderboard():
         "num_scored": "Số trận đã chấm",
         "exact_score_count": "Đúng tỉ số",
         "correct_outcome_count": "Đúng kết quả",
-        "exact_score_rate": "% Đoán đúng hoàn toàn tỉ số",
-        "result_prediction_rate": "% Đoán đúng kết quả"
+        "exact_score_rate": "% Đúng tỉ số",
+        "result_prediction_rate": "% Đúng kết quả"
     })
 
     percent_cols = [
-        "% Đoán đúng hoàn toàn tỉ số",
-        "% Đoán đúng kết quả"
+        "% Đúng tỉ số",
+        "% Đúng kết quả"
     ]
 
     for col in percent_cols:
@@ -3822,8 +3822,8 @@ def page_dashboard():
         ],
         title="Độ chính xác kết quả vs độ chính xác tỉ số",
         labels={
-            "result_prediction_rate": "% Đoán đúng kết quả",
-            "exact_score_rate": "% Đoán đúng hoàn toàn tỉ số",
+            "result_prediction_rate": "% Đúng kết quả",
+            "exact_score_rate": "% Đúng hoàn toàn tỉ số",
             "total_points": "Điểm"
         },
         color="total_points",
@@ -3837,8 +3837,8 @@ def page_dashboard():
     fig_accuracy.update_traces(
         hovertemplate=(
             "<b>%{hovertext}</b><br>"
-            "% Đoán đúng kết quả = %{x:.1%}<br>"
-            "% Đoán đúng hoàn toàn tỉ số = %{y:.1%}<br>"
+            "% Đúng kết quả = %{x:.1%}<br>"
+            "% Đúng hoàn toàn tỉ số = %{y:.1%}<br>"
             "Tổng điểm = %{customdata[0]}<br>"
             "Điểm gốc = %{customdata[1]}<br>"
             "Thưởng sao = %{customdata[2]}<br>"
