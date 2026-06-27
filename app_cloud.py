@@ -22,7 +22,7 @@ import plotly.express as px
 from streamlit_extras.stylable_container import stylable_container
 import secrets
 from streamlit_cookies_controller import CookieController
-import time
+
 
 # ============================================================
 # 1. CONFIG
@@ -36,8 +36,6 @@ APP_SHORT_NAME = "WC 2026"
 APP_TAGLINE = "Dự đoán tỉ số, tích điểm và leo bảng xếp hạng cùng bạn bè."
 COOKIE_NAME = "wc_session_token"
 SESSION_DAYS = 30
-AUTH_RESTORE_MAX_ATTEMPTS = 5
-AUTH_RESTORE_WAIT_SECONDS = 0.20
 HOPE_STARS_PER_USER = 5
 SUPER_STARS_PER_USER = 1
 
@@ -4339,45 +4337,6 @@ def page_admin():
         score_all_predictions()
         st.success("Đã chấm điểm lại toàn bộ dự đoán.")
 
-def render_auth_restore_loading():
-    """
-    Màn hình chờ rất ngắn khi app đang đọc cookie để khôi phục phiên đăng nhập.
-    Mục tiêu là không để màn hình đăng nhập bị hiện chớp lên khi người dùng F5.
-    """
-    st.markdown(
-        """
-        <div style="
-            min-height: 62vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #64748B;
-        ">
-            <div style="
-                text-align: center;
-                padding: 22px 28px;
-                border-radius: 22px;
-                background: rgba(255,255,255,0.72);
-                border: 1px solid rgba(15,23,42,0.08);
-                box-shadow: 0 12px 32px rgba(15,23,42,0.06);
-            ">
-                <div style="font-size: 28px; margin-bottom: 8px;">⚽</div>
-                <div style="
-                    font-weight: 900;
-                    color: #07111F;
-                    font-size: 16px;
-                    margin-bottom: 4px;
-                ">
-                    Đang khôi phục phiên đăng nhập
-                </div>
-                <div style="font-size: 13px;">
-                    Vui lòng chờ trong giây lát...
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 def render_footer():
     if FOOTER_PROJECT_URL:
@@ -4403,24 +4362,15 @@ def main():
     initialize_app_once()
     restore_user_from_cookie()
 
+    # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
+    # Sau khi đăng nhập thành công, render_auth_page() sẽ set st.session_state["user"].
+    # Khi đó app không stop nữa mà render tiếp màn hình chính trong cùng lượt chạy.
     if "user" not in st.session_state:
-        restore_attempts = st.session_state.get("auth_restore_attempts", 0)
-
-        if restore_attempts < AUTH_RESTORE_MAX_ATTEMPTS:
-            st.session_state["auth_restore_attempts"] = restore_attempts + 1
-
-            render_auth_restore_loading()
-
-            time.sleep(AUTH_RESTORE_WAIT_SECONDS)
-            st.rerun()
-
         render_auth_page()
 
         if "user" not in st.session_state:
             render_footer()
             st.stop()
-
-    st.session_state["auth_restore_attempts"] = 0
 
     user = st.session_state["user"]
 
@@ -4440,7 +4390,7 @@ def main():
             "Lịch thi đấu & dự đoán",
             "Dự đoán của tôi",
             "Bảng xếp hạng",
-            "Dashboard"
+            "Phân tích tổng quan"
         ]
 
         if user["role"] == "admin":
@@ -4469,7 +4419,7 @@ def main():
     elif selected_page == "Bảng xếp hạng":
         page_leaderboard()
 
-    elif selected_page == "Dashboard":
+    elif selected_page == "Phân tích tổng quan":
         page_dashboard()
 
     elif selected_page == "Admin":
