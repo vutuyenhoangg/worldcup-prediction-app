@@ -1363,116 +1363,82 @@ def render_prediction_result_and_score_row(result_info, existing):
     if not has_result and not has_points:
         return
 
-    col_result, col_score = st.columns([1.05, 1], gap="medium")
+    result_html = ""
+    score_html = ""
 
-    with col_result:
+    if has_result:
+        result_label = html.escape(str(result_info["label"]))
+
+        result_html = (
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+            '<span style="color:#07111F;font-size:15px;font-weight:650;">'
+            'Kết quả dự đoán:'
+            '</span>'
+            '<span style="'
+            'display:inline-block;'
+            'padding:7px 13px;'
+            'border-radius:999px;'
+            f'background:{result_info["bg_color"]};'
+            f'color:{result_info["text_color"]};'
+            f'border:1px solid {result_info["border_color"]};'
+            'font-weight:850;'
+            'font-size:14px;'
+            '">'
+            f'{result_label}'
+            '</span>'
+            '</div>'
+        )
+
+    if has_points:
+        final_points = int(round(float(existing.get("points"))))
+
         if has_result:
-            result_label = html.escape(str(result_info["label"]))
+            score_bg = result_info["bg_color"]
+            score_text = result_info["text_color"]
+            score_border = result_info["border_color"]
+        else:
+            score_bg = "#FFF7ED"
+            score_text = "#9A3412"
+            score_border = "rgba(251,146,60,0.45)"
 
-            result_html = (
-                '<div style="'
-                'display:flex;'
-                'align-items:center;'
-                'gap:8px;'
-                'flex-wrap:wrap;'
-                'margin-top:10px;'
-                'margin-bottom:10px;'
-                '">'
-                '<span style="'
-                'color:#07111F;'
-                'font-size:15px;'
-                'font-weight:500;'
-                '">'
-                'Kết quả dự đoán:'
-                '</span>'
-                '<span style="'
-                'display:inline-block;'
-                'padding:6px 12px;'
-                'border-radius:999px;'
-                f'background:{result_info["bg_color"]};'
-                f'color:{result_info["text_color"]};'
-                f'border:1px solid {result_info["border_color"]};'
-                'font-weight:850;'
-                'font-size:14px;'
-                '">'
-                f'{result_label}'
-                '</span>'
-                '</div>'
-            )
+        score_html = (
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+            '<span style="color:#07111F;font-size:15px;font-weight:650;">'
+            'Điểm:'
+            '</span>'
+            '<span style="'
+            'display:inline-block;'
+            'min-width:34px;'
+            'text-align:center;'
+            'padding:7px 13px;'
+            'border-radius:999px;'
+            f'background:{score_bg};'
+            f'color:{score_text};'
+            f'border:1px solid {score_border};'
+            'font-weight:950;'
+            'font-size:14px;'
+            '">'
+            f'{final_points}'
+            '</span>'
+            '</div>'
+        )
 
-            st.markdown(result_html, unsafe_allow_html=True)
-
-    with col_score:
-        if has_points:
-            final_points = int(round(float(existing.get("points"))))
-
-            base_points = existing.get("base_points")
-            bonus_points = existing.get("star_bonus_points")
-
-            score_detail = ""
-
-            if (
-                base_points is not None
-                and bonus_points is not None
-                and not pd.isna(base_points)
-                and not pd.isna(bonus_points)
-            ):
-                base_points = int(round(float(base_points)))
-                bonus_points = int(round(float(bonus_points)))
-
-                if bonus_points > 0:
-                    score_detail = f"Gốc {base_points} + sao {bonus_points}"
-                else:
-                    score_detail = f"Gốc {base_points}"
-
-            score_detail = html.escape(score_detail)
-
-            if score_detail:
-                detail_html = (
-                    '<span style="'
-                    'color:#64748B;'
-                    'font-size:13px;'
-                    'font-weight:650;'
-                    '">'
-                    f'{score_detail}'
-                    '</span>'
-                )
-            else:
-                detail_html = ""
-
-            score_html = (
-                '<div style="'
-                'display:flex;'
-                'align-items:center;'
-                'gap:8px;'
-                'flex-wrap:wrap;'
-                'margin-top:10px;'
-                'margin-bottom:10px;'
-                '">'
-                '<span style="'
-                'color:#07111F;'
-                'font-size:15px;'
-                'font-weight:500;'
-                '">'
-                'Điểm:'
-                '</span>'
-                '<span style="'
-                'display:inline-block;'
-                'padding:6px 12px;'
-                'border-radius:999px;'
-                'background:#FFF7ED;'
-                'color:#9A3412;'
-                'border:1px solid rgba(251,146,60,0.45);'
-                'font-weight:900;'
-                'font-size:14px;'
-                '">'
-                f'{final_points}'
-                '</span>'
-                f'{detail_html}'
-                '</div>'
-            )
-
-            st.markdown(score_html, unsafe_allow_html=True)
+    st.markdown(
+        (
+            '<div style="'
+            'display:flex;'
+            'align-items:center;'
+            'gap:22px;'
+            'flex-wrap:wrap;'
+            'margin-top:18px;'
+            'margin-bottom:6px;'
+            '">'
+            f'{result_html}'
+            f'{score_html}'
+            '</div>'
+        ),
+        unsafe_allow_html=True
+    )
 
 def hash_password(password: str, salt: str | None = None):
     if salt is None:
@@ -1555,8 +1521,8 @@ def get_match_card_css(status_info):
     {{
         border: 2px solid {status_info["border_color"]};
         border-radius: 20px;
-        padding: 20px 20px 14px 20px;
-        margin-bottom: 18px;
+        padding: 22px 22px 32px 22px;
+        margin-bottom: 22px;
         background: {status_info["background"]};
         box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
     }}
