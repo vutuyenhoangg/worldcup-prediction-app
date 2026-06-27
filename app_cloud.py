@@ -1252,14 +1252,20 @@ def format_star_option_label(
         return "Không dùng sao"
 
     if star_type == STAR_TYPE_HOPE:
+        hope_label = STAR_CONFIG[STAR_TYPE_HOPE]["label"]
+
         if current_star_type == STAR_TYPE_HOPE:
-            return "⭐ Ngôi sao hy vọng x2 đang dùng ở trận này"
-        return f"⭐ Ngôi sao hy vọng x2 còn {usage['hope_left']}"
+            return f"{hope_label} (đang dùng ở trận này)"
+
+        return f"{hope_label} (còn {usage['hope_left']}/{HOPE_STARS_PER_USER})"
 
     if star_type == STAR_TYPE_SUPER:
+        super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
+
         if current_star_type == STAR_TYPE_SUPER:
-            return "✨ Siêu sao x3 đang dùng ở trận này"
-        return f"✨ Siêu sao x3 còn {usage['super_left']}"
+            return f"{super_label} (đang dùng ở trận này)"
+
+        return f"{super_label} (còn {usage['super_left']}/{SUPER_STARS_PER_USER})"
 
     return STAR_CONFIG[star_type]["label"]
 
@@ -2928,7 +2934,6 @@ def render_match_card(row, user_id: int):
                     predicted_winner_team_id = winner_options[selected_winner_name]
                     predicted_winner_team_name = selected_winner_name
 
-            st.markdown("#### Bổ trợ")
 
             star_usage_for_card = get_user_star_usage(
                 user_id=user_id,
@@ -2989,7 +2994,6 @@ def page_matches():
         return
 
     render_kpi_tiles(matches)
-    render_status_legend()
 
     user_id = st.session_state["user"]["user_id"]
     render_star_balance(user_id)
