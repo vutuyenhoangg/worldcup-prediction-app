@@ -965,10 +965,10 @@ def render_scoring_rules():
 
                 **Vòng knockout**
 
-                - Điểm = **điểm tỉ số + điểm đội đi tiếp**
+                - Điểm = **điểm tỉ số + điểm đội thắng chung cuộc**
                 - Điểm tỉ số vẫn tính như vòng bảng: **+3 / +1 / 0**
-                - Đúng đội đi tiếp: **+1 điểm**
-                - Nếu dự đoán hòa, cần chọn thêm đội đi tiếp.
+                - Đúng đội thắng chung cuộc: **+1 điểm**
+                - Nếu dự đoán hòa trong 120 phút, cần chọn thêm đội thắng chung cuộc.
 
                 **Bổ trợ**
 
