@@ -2994,7 +2994,7 @@ def render_match_card(row, user_id: int):
                     predicted_winner_team_id = winner_options[selected_winner_name]
                     predicted_winner_team_name = selected_winner_name
 
-            st.markdown("#### Sao nhân điểm")
+            st.markdown("#### Bổ trợ")
 
             star_usage_for_card = get_user_star_usage(
                 user_id=user_id,
@@ -3008,7 +3008,7 @@ def render_match_card(row, user_id: int):
             )
 
             selected_star_type = st.radio(
-                "Chọn sao cho trận này:",
+                "Chọn bổ trợ cho trận này:",
                 options=star_options,
                 index=star_options.index(current_star_type) if current_star_type in star_options else 0,
                 format_func=lambda star: format_star_option_label(
