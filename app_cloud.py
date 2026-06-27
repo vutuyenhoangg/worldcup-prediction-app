@@ -1901,6 +1901,35 @@ def create_login_session(user_id: int) -> str:
 
     return token
 
+def set_login_cookie_and_reload(token: str):
+    """
+    Ghi session token vào browser cookie rồi reload lại app.
+
+    Lý do:
+    - st.session_state sẽ mất khi F5.
+    - Cookie phải được browser ghi chắc chắn trước khi app rerun/reload.
+    - Không đổi logic login/session, chỉ đảm bảo cookie được persist đúng.
+    """
+    max_age_seconds = SESSION_DAYS * 24 * 60 * 60
+
+    safe_cookie_name = html.escape(COOKIE_NAME, quote=True)
+    safe_token = html.escape(str(token), quote=True)
+
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            document.cookie = "{safe_cookie_name}={safe_token}; path=/; max-age={max_age_seconds}; SameSite=Lax";
+            setTimeout(function() {{
+                window.parent.location.reload();
+            }}, 120);
+        }})();
+        </script>
+        """,
+        height=0
+    )
+
+    st.stop()
 
 def get_user_by_session_token(token: str):
     if not token:
@@ -1943,9 +1972,9 @@ def delete_login_session(token: str):
     )
 
 
-def restore_user_from_cookie():
+def restore_user_from_cookie() -> bool:
     if "user" in st.session_state:
-        return
+        return True
 
     token = cookie_controller.get(COOKIE_NAME)
 
@@ -1956,15 +1985,21 @@ def restore_user_from_cookie():
             token = cookies.get(COOKIE_NAME)
 
     if not token:
-        return
+        return False
+
+    token = str(token).strip()
+
+    if not token:
+        return False
 
     user = get_user_by_session_token(token)
 
     if user is None:
         cookie_controller.remove(COOKIE_NAME)
-        return
+        return False
 
     st.session_state["user"] = user
+    return True
 
 
 # ============================================================
@@ -2717,11 +2752,7 @@ def render_auth_page():
 
                         st.session_state["user"] = user
                         st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
-
-                        # Quan trọng:
-                        # Dừng lượt render hiện tại và chạy lại app từ đầu.
-                        # Nhờ vậy box đăng nhập/header auth không còn bị dính phía trên nội dung chính.
-                        st.rerun()
+                        set_login_cookie_and_reload(session_token)
 
         with tab_register:
             st.info("Mật khẩu phải có ít nhất 8 ký tự.")
