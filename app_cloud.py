@@ -2100,11 +2100,63 @@ def logout_user():
 # 6. DATA LOADING
 # ============================================================
 
+@st.cache_data(ttl=30, show_spinner=False)
+def load_matches() -> pd.DataFrame:
+    df = read_sql(
+        """
+        SELECT *
+        FROM matches
+        ORDER BY kickoff_time_utc
+        """
+    )
+
+    if df.empty:
+        return df
+
+    df["kickoff_time_utc_dt"] = pd.to_datetime(
+        df["kickoff_time_utc"],
+        utc=True,
+        errors="coerce"
+    )
+
+    if "kickoff_date_vietnam" in df.columns:
+        df["kickoff_date_filter"] = pd.to_datetime(
+            df["kickoff_date_vietnam"],
+            errors="coerce"
+        ).dt.date
+    else:
+        df["kickoff_date_filter"] = df["kickoff_time_utc_dt"].dt.tz_convert(
+            "Asia/Ho_Chi_Minh"
+        ).dt.date
+
+    return df
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def load_users() -> pd.DataFrame:
+    return read_sql(
+        """
+        SELECT user_id, username, display_name, role, created_at
+        FROM users
+        """
+    )
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def load_predictions() -> pd.DataFrame:
+    return read_sql(
+        """
+        SELECT *
+        FROM predictions
+        """
+    )
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def load_goal_scorers_for_match(match_id: int) -> pd.DataFrame:
     """
     Chỉ load danh sách cầu thủ ghi bàn của đúng 1 trận.
-    Nhờ cache theo match_id, nếu mở lại cùng trận thì không cần query lại ngay.
+    Không query toàn bộ bảng match_goals nữa.
     """
     try:
         return read_sql(
@@ -2132,56 +2184,9 @@ def load_goal_scorers_for_match(match_id: int) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=30, show_spinner=False)
-def load_users() -> pd.DataFrame:
-    return read_sql(
-        """
-        SELECT user_id, username, display_name, role, created_at
-        FROM users
-        """
-    )
-
-
-@st.cache_data(ttl=10, show_spinner=False)
-def load_predictions() -> pd.DataFrame:
-    return read_sql(
-        """
-        SELECT *
-        FROM predictions
-        """
-    )
-
-@st.cache_data(ttl=30, show_spinner=False)
-def load_match_goals() -> pd.DataFrame:
-    query = text(
-        """
-        SELECT
-            goal_key,
-            match_id,
-            team_id,
-            team_name,
-            team_side,
-            player_name,
-            minute,
-            is_penalty,
-            is_own_goal
-        FROM match_goals
-        ORDER BY match_id, team_side, goal_key
-        """
-    )
-
-    try:
-        with get_engine().connect() as conn:
-            return pd.read_sql_query(query, conn)
-    except Exception:
-        return pd.DataFrame()
-
 def format_goal_text(row) -> str:
     """
-    Format 1 dòng cầu thủ ghi bàn để hiển thị UI:
-    Tên cầu thủ 32'
-    Tên cầu thủ 55' (OG)
-    Tên cầu thủ 70' (pen)
+    Format 1 dòng cầu thủ ghi bàn để hiển thị UI.
     """
     from html import escape
 
@@ -2206,9 +2211,10 @@ def format_goal_text(row) -> str:
 
     return " ".join(parts)
 
+
 def toggle_goal_scorers(match_id: int):
     """
-    Chỉ cho mở danh sách cầu thủ ghi bàn của 1 trận tại một thời điểm.
+    Chỉ mở danh sách cầu thủ ghi bàn của 1 trận tại một thời điểm.
     Bấm lại cùng trận thì đóng.
     Bấm trận khác thì chuyển sang trận đó.
     """
@@ -2220,14 +2226,15 @@ def toggle_goal_scorers(match_id: int):
     else:
         st.session_state[active_key] = match_id
 
+
 def render_goal_scorers_for_match(match_id: int):
     """
     Hiển thị nút mở rộng/thu gọn danh sách cầu thủ ghi bàn.
 
     Tối ưu:
-    - Không load toàn bộ bảng match_goals.
-    - Chỉ query cầu thủ ghi bàn khi người dùng thật sự bấm mở trận đó.
-    - Không gọi st.rerun() thủ công vì button/on_click đã tự rerun.
+    - Chưa bấm thì không query bảng match_goals.
+    - Bấm trận nào thì chỉ query cầu thủ ghi bàn của trận đó.
+    - Không gọi st.rerun() thủ công vì on_click của button đã tự rerun.
     """
     from html import escape
 
@@ -2321,6 +2328,8 @@ def render_goal_scorers_for_match(match_id: int):
         scorers_html,
         unsafe_allow_html=True
     )
+
+
 def clear_data_cache():
     """
     Xóa cache dữ liệu đọc từ Supabase sau khi có thao tác ghi dữ liệu.
