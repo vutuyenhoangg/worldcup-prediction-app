@@ -1245,26 +1245,33 @@ def format_star_short(star_type) -> str:
 
 
 def get_user_star_usage(user_id: int, exclude_match_id: int | None = None) -> dict:
-    query = """
-        SELECT
-            COALESCE(SUM(CASE WHEN star_type = 'hope' THEN 1 ELSE 0 END), 0) AS hope_used,
-            COALESCE(SUM(CASE WHEN star_type = 'super' THEN 1 ELSE 0 END), 0) AS super_used
-        FROM predictions
-        WHERE user_id = :user_id
     """
+    Dùng cho UI.
+    Tính quota sao từ load_predictions() đã cache để giảm query database khi render nhiều card.
+    """
+    predictions = load_predictions()
 
-    params = {
-        "user_id": user_id
-    }
+    if predictions.empty:
+        hope_used = 0
+        super_used = 0
+    else:
+        user_predictions = predictions[
+            predictions["user_id"].astype(int) == int(user_id)
+        ].copy()
 
-    if exclude_match_id is not None:
-        query += " AND match_id <> :exclude_match_id"
-        params["exclude_match_id"] = exclude_match_id
+        if exclude_match_id is not None and not user_predictions.empty:
+            user_predictions = user_predictions[
+                user_predictions["match_id"].astype(int) != int(exclude_match_id)
+            ]
 
-    row = fetch_one(query, params)
+        if user_predictions.empty:
+            hope_used = 0
+            super_used = 0
+        else:
+            star_series = user_predictions["star_type"].apply(normalize_star_type)
 
-    hope_used = int(row["hope_used"]) if row else 0
-    super_used = int(row["super_used"]) if row else 0
+            hope_used = int((star_series == STAR_TYPE_HOPE).sum())
+            super_used = int((star_series == STAR_TYPE_SUPER).sum())
 
     return {
         "hope_used": hope_used,
@@ -1277,7 +1284,7 @@ def get_user_star_usage(user_id: int, exclude_match_id: int | None = None) -> di
 def validate_star_quota(user_id: int, match_id: int, star_type: str):
     star_type = normalize_star_type(star_type)
 
-    usage = get_user_star_usage(
+    usage = get_user_star_usage_from_db(
         user_id=user_id,
         exclude_match_id=match_id
     )
@@ -1292,14 +1299,16 @@ def validate_star_quota(user_id: int, match_id: int, star_type: str):
 def get_available_star_options(
     user_id: int,
     match_id: int,
-    current_star_type: str
+    current_star_type: str,
+    usage: dict | None = None
 ) -> list[str]:
     current_star_type = normalize_star_type(current_star_type)
 
-    usage = get_user_star_usage(
-        user_id=user_id,
-        exclude_match_id=match_id
-    )
+    if usage is None:
+        usage = get_user_star_usage(
+            user_id=user_id,
+            exclude_match_id=match_id
+        )
 
     options = [STAR_TYPE_NONE]
 
@@ -2377,8 +2386,11 @@ def clear_data_cache():
     except NameError:
         pass
 
-
-def get_user_prediction(user_id: int, match_id: int):
+def get_user_prediction_from_db(user_id: int, match_id: int):
+    """
+    Dùng cho thao tác ghi dữ liệu/save.
+    Luôn đọc trực tiếp database để đảm bảo dữ liệu mới nhất.
+    """
     return fetch_one(
         """
         SELECT *
@@ -2392,6 +2404,59 @@ def get_user_prediction(user_id: int, match_id: int):
         }
     )
 
+
+def get_user_star_usage_from_db(user_id: int, exclude_match_id: int | None = None) -> dict:
+    """
+    Dùng cho validate khi lưu dự đoán.
+    Luôn đọc trực tiếp database để tránh sai quota sao.
+    """
+    query = """
+        SELECT
+            COALESCE(SUM(CASE WHEN star_type = 'hope' THEN 1 ELSE 0 END), 0) AS hope_used,
+            COALESCE(SUM(CASE WHEN star_type = 'super' THEN 1 ELSE 0 END), 0) AS super_used
+        FROM predictions
+        WHERE user_id = :user_id
+    """
+
+    params = {
+        "user_id": user_id
+    }
+
+    if exclude_match_id is not None:
+        query += " AND match_id <> :exclude_match_id"
+        params["exclude_match_id"] = exclude_match_id
+
+    row = fetch_one(query, params)
+
+    hope_used = int(row["hope_used"]) if row else 0
+    super_used = int(row["super_used"]) if row else 0
+
+    return {
+        "hope_used": hope_used,
+        "super_used": super_used,
+        "hope_left": max(0, HOPE_STARS_PER_USER - hope_used),
+        "super_left": max(0, SUPER_STARS_PER_USER - super_used)
+    }
+
+def get_user_prediction(user_id: int, match_id: int):
+    """
+    Dùng cho UI.
+    Lấy từ load_predictions() đã cache để tránh query database lặp lại cho từng card.
+    """
+    predictions = load_predictions()
+
+    if predictions.empty:
+        return None
+
+    filtered = predictions[
+        (predictions["user_id"].astype(int) == int(user_id))
+        & (predictions["match_id"].astype(int) == int(match_id))
+    ]
+
+    if filtered.empty:
+        return None
+
+    return filtered.iloc[0].to_dict()
 
 def get_match_by_id(match_id: int):
     return fetch_one(
@@ -2434,7 +2499,7 @@ def save_prediction(
         star_type=star_type
     )
 
-    existing = get_user_prediction(user_id, match_id)
+    existing = get_user_prediction_from_db(user_id, match_id)
     now_text = now_utc_iso()
 
     with get_engine().begin() as conn:
@@ -3087,7 +3152,8 @@ def render_match_card(row, user_id: int):
             star_options = get_available_star_options(
                 user_id=user_id,
                 match_id=match_id,
-                current_star_type=current_star_type
+                current_star_type=current_star_type,
+                usage=star_usage_for_card
             )
 
             selected_star_type = st.radio(
