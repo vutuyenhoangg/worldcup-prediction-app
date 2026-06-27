@@ -3296,7 +3296,7 @@ def page_my_predictions():
             + " - "
             + df["predicted_away_score"].astype(str)
         ),
-        "Sao": df["star_type"].apply(format_star_short),
+        "Bổ trợ": df["star_type"].apply(format_star_short),
         "Kết quả": df.apply(
             lambda row: (
                 ""
