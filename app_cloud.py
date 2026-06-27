@@ -2100,36 +2100,36 @@ def logout_user():
 # 6. DATA LOADING
 # ============================================================
 
-@st.cache_data(ttl=30, show_spinner=False)
-def load_matches() -> pd.DataFrame:
-    df = read_sql(
-        """
-        SELECT *
-        FROM matches
-        ORDER BY kickoff_time_utc
-        """
-    )
+@st.cache_data(ttl=300, show_spinner=False)
+def load_goal_scorers_for_match(match_id: int) -> pd.DataFrame:
+    """
+    Chỉ load danh sách cầu thủ ghi bàn của đúng 1 trận.
+    Nhờ cache theo match_id, nếu mở lại cùng trận thì không cần query lại ngay.
+    """
+    try:
+        return read_sql(
+            """
+            SELECT
+                goal_key,
+                match_id,
+                team_id,
+                team_name,
+                team_side,
+                player_name,
+                minute,
+                is_penalty,
+                is_own_goal
+            FROM match_goals
+            WHERE match_id = :match_id
+            ORDER BY team_side, goal_key
+            """,
+            {
+                "match_id": int(match_id)
+            }
+        )
 
-    if df.empty:
-        return df
-
-    df["kickoff_time_utc_dt"] = pd.to_datetime(
-        df["kickoff_time_utc"],
-        utc=True,
-        errors="coerce"
-    )
-
-    if "kickoff_date_vietnam" in df.columns:
-        df["kickoff_date_filter"] = pd.to_datetime(
-            df["kickoff_date_vietnam"],
-            errors="coerce"
-        ).dt.date
-    else:
-        df["kickoff_date_filter"] = df["kickoff_time_utc_dt"].dt.tz_convert(
-            "Asia/Ho_Chi_Minh"
-        ).dt.date
-
-    return df
+    except Exception:
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=30, show_spinner=False)
@@ -2206,46 +2206,57 @@ def format_goal_text(row) -> str:
 
     return " ".join(parts)
 
+def toggle_goal_scorers(match_id: int):
+    """
+    Chỉ cho mở danh sách cầu thủ ghi bàn của 1 trận tại một thời điểm.
+    Bấm lại cùng trận thì đóng.
+    Bấm trận khác thì chuyển sang trận đó.
+    """
+    active_key = "active_goal_scorers_match_id"
+    match_id = int(match_id)
+
+    if st.session_state.get(active_key) == match_id:
+        st.session_state[active_key] = None
+    else:
+        st.session_state[active_key] = match_id
 
 def render_goal_scorers_for_match(match_id: int):
     """
     Hiển thị nút mở rộng/thu gọn danh sách cầu thủ ghi bàn.
-    Khi mở ra chỉ hiển thị text gọn, không dùng box nền xám.
+
+    Tối ưu:
+    - Không load toàn bộ bảng match_goals.
+    - Chỉ query cầu thủ ghi bàn khi người dùng thật sự bấm mở trận đó.
+    - Không gọi st.rerun() thủ công vì button/on_click đã tự rerun.
     """
     from html import escape
 
-    goals_df = load_match_goals()
+    match_id = int(match_id)
+    active_key = "active_goal_scorers_match_id"
 
-    if goals_df.empty:
-        return
-
-    match_goals = goals_df[
-        goals_df["match_id"].astype(int) == int(match_id)
-    ].copy()
-
-    if match_goals.empty:
-        return
-
-    toggle_key = f"show_goal_scorers_{match_id}"
-
-    if toggle_key not in st.session_state:
-        st.session_state[toggle_key] = False
+    is_open = st.session_state.get(active_key) == match_id
 
     button_label = (
         "Ẩn cầu thủ ghi bàn"
-        if st.session_state[toggle_key]
+        if is_open
         else "⚽ Xem cầu thủ ghi bàn"
     )
 
-    if st.button(
+    st.button(
         button_label,
         key=f"goal_scorers_button_{match_id}",
-        type="secondary"
-    ):
-        st.session_state[toggle_key] = not st.session_state[toggle_key]
-        st.rerun()
+        type="secondary",
+        on_click=toggle_goal_scorers,
+        args=(match_id,)
+    )
 
-    if not st.session_state[toggle_key]:
+    if not is_open:
+        return
+
+    match_goals = load_goal_scorers_for_match(match_id)
+
+    if match_goals.empty:
+        st.caption("Chưa có dữ liệu cầu thủ ghi bàn cho trận này.")
         return
 
     home_goals = match_goals[match_goals["team_side"] == "home"]
@@ -2254,7 +2265,10 @@ def render_goal_scorers_for_match(match_id: int):
     goal_lines = []
 
     if not home_goals.empty:
-        home_team = escape(str(home_goals.iloc[0]["team_name"]).strip(), quote=False)
+        home_team = escape(
+            str(home_goals.iloc[0]["team_name"]).strip(),
+            quote=False
+        )
         home_text = ", ".join(home_goals.apply(format_goal_text, axis=1))
 
         goal_lines.append(
@@ -2265,7 +2279,10 @@ def render_goal_scorers_for_match(match_id: int):
         )
 
     if not away_goals.empty:
-        away_team = escape(str(away_goals.iloc[0]["team_name"]).strip(), quote=False)
+        away_team = escape(
+            str(away_goals.iloc[0]["team_name"]).strip(),
+            quote=False
+        )
         away_text = ", ".join(away_goals.apply(format_goal_text, axis=1))
 
         goal_lines.append(
@@ -2276,11 +2293,12 @@ def render_goal_scorers_for_match(match_id: int):
         )
 
     if not goal_lines:
+        st.caption("Trận này chưa có dữ liệu cầu thủ ghi bàn.")
         return
 
     scorers_html = (
         '<div style="'
-        'margin-top:2px;'
+        'margin-top:8px;'
         'margin-bottom:18px;'
         'padding-left:12px;'
         'border-left:3px solid rgba(245,197,66,0.9);'
@@ -2306,14 +2324,15 @@ def render_goal_scorers_for_match(match_id: int):
 def clear_data_cache():
     """
     Xóa cache dữ liệu đọc từ Supabase sau khi có thao tác ghi dữ liệu.
-
-    Các hàm load_* có TTL ngắn để app nhanh hơn, nhưng khi user lưu dự đoán
-    hoặc admin cập nhật kết quả, cache cần được xóa ngay để màn hình tiếp theo
-    đọc dữ liệu mới nhất.
     """
     load_matches.clear()
     load_users.clear()
     load_predictions.clear()
+
+    try:
+        load_goal_scorers_for_match.clear()
+    except NameError:
+        pass
 
 
 def get_user_prediction(user_id: int, match_id: int):
