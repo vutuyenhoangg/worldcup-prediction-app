@@ -3485,11 +3485,11 @@ def page_leaderboard():
     current_display_name = str(st.session_state["user"]["display_name"]).strip()
 
     leaderboard["hope_star_display"] = leaderboard["hope_stars_used"].apply(
-        lambda x: f"{int(x)}/{HOPE_STARS_PER_USER}"
+        lambda x: f"{max(0, HOPE_STARS_PER_USER - int(x))}/{HOPE_STARS_PER_USER}"
     )
 
     leaderboard["super_star_display"] = leaderboard["super_stars_used"].apply(
-        lambda x: f"{int(x)}/{SUPER_STARS_PER_USER}"
+        lambda x: f"{max(0, SUPER_STARS_PER_USER - int(x))}/{SUPER_STARS_PER_USER}"
     )
 
     display_df = leaderboard[
