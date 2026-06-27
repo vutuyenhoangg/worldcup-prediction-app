@@ -758,7 +758,7 @@ def render_kpi_tiles(matches: pd.DataFrame):
 def render_star_balance(user_id: int):
     usage = get_user_star_usage(user_id)
 
-    col_hope, col_super = st.columns(2)
+    col_hope, col_super = st.columns([1, 1], gap="large")
 
     with col_hope:
         with stylable_container(
@@ -766,17 +766,25 @@ def render_star_balance(user_id: int):
             css_styles="""
             {
                 background: linear-gradient(135deg, #FFF7ED, #FFFFFF);
-                border: 1px solid rgba(245, 158, 11, 0.28);
-                border-radius: 20px;
-                padding: 15px 17px;
-                box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
-                margin: 8px 0 18px 0;
+                border: 1px solid rgba(245, 158, 11, 0.32);
+                border-radius: 22px;
+                padding: 22px 26px;
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+                margin: 10px 0 24px 0;
+                min-height: 132px;
+                width: 100%;
             }
             """
         ):
             st.markdown(
                 """
-                <div style="color:#92400E;font-weight:900;font-size:14px;">
+                <div style="
+                    color:#92400E;
+                    font-weight:900;
+                    font-size:15px;
+                    line-height:1.2;
+                    margin-bottom:18px;
+                ">
                     ⭐ Ngôi sao hy vọng
                 </div>
                 """,
@@ -785,7 +793,13 @@ def render_star_balance(user_id: int):
 
             st.markdown(
                 f"""
-                <div style="color:#07111F;font-weight:950;font-size:30px;line-height:1.1;margin-top:5px;">
+                <div style="
+                    color:#07111F;
+                    font-weight:950;
+                    font-size:34px;
+                    line-height:1;
+                    margin-bottom:14px;
+                ">
                     {usage["hope_left"]}/{HOPE_STARS_PER_USER}
                 </div>
                 """,
@@ -794,7 +808,11 @@ def render_star_balance(user_id: int):
 
             st.markdown(
                 """
-                <div style="color:#64748B;font-size:12px;margin-top:4px;">
+                <div style="
+                    color:#64748B;
+                    font-size:13px;
+                    line-height:1.35;
+                ">
                     x2 điểm dự đoán của trận được chọn
                 </div>
                 """,
@@ -807,17 +825,25 @@ def render_star_balance(user_id: int):
             css_styles="""
             {
                 background: linear-gradient(135deg, #FEF3C7, #FFFFFF);
-                border: 1px solid rgba(245, 197, 66, 0.42);
-                border-radius: 20px;
-                padding: 15px 17px;
-                box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
-                margin: 8px 0 18px 0;
+                border: 1px solid rgba(245, 197, 66, 0.50);
+                border-radius: 22px;
+                padding: 22px 26px;
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+                margin: 10px 0 24px 0;
+                min-height: 132px;
+                width: 100%;
             }
             """
         ):
             st.markdown(
                 """
-                <div style="color:#78350F;font-weight:900;font-size:14px;">
+                <div style="
+                    color:#78350F;
+                    font-weight:900;
+                    font-size:15px;
+                    line-height:1.2;
+                    margin-bottom:18px;
+                ">
                     🌟 Siêu sao
                 </div>
                 """,
@@ -826,7 +852,13 @@ def render_star_balance(user_id: int):
 
             st.markdown(
                 f"""
-                <div style="color:#07111F;font-weight:950;font-size:30px;line-height:1.1;margin-top:5px;">
+                <div style="
+                    color:#07111F;
+                    font-weight:950;
+                    font-size:34px;
+                    line-height:1;
+                    margin-bottom:14px;
+                ">
                     {usage["super_left"]}/{SUPER_STARS_PER_USER}
                 </div>
                 """,
@@ -835,13 +867,16 @@ def render_star_balance(user_id: int):
 
             st.markdown(
                 """
-                <div style="color:#64748B;font-size:12px;margin-top:4px;">
+                <div style="
+                    color:#64748B;
+                    font-size:13px;
+                    line-height:1.35;
+                ">
                     x3 điểm dự đoán của trận được chọn
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-
 
 def render_sidebar_star_balance(user_id: int):
     usage = get_user_star_usage(user_id)
