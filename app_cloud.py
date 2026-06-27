@@ -3903,8 +3903,8 @@ def page_leaderboard():
 
 def page_dashboard():
     render_page_title(
-        "Dashboard phân tích",
-        "Tổng quan hiệu suất dự đoán, điểm số và độ chính xác."
+        "Bảng phân tích tổng quan",
+        "Phân tích tổng quan hiệu suất dự đoán, điểm số và độ chính xác của tất cả người chơi."
     )
 
     score_all_predictions()
@@ -3913,56 +3913,81 @@ def page_dashboard():
     predictions = load_predictions()
     matches = load_matches()
 
-    if leaderboard.empty or predictions.empty:
+    if leaderboard.empty:
         st.info("Chưa đủ dữ liệu để vẽ dashboard.")
         return
 
+    # =========================
+    # KPI calculations
+    # =========================
+    total_players = len(leaderboard)
+
+    highest_score = int(leaderboard["total_points"].max()) if total_players > 0 else 0
+
+    avg_total_points = (
+        float(leaderboard["total_points"].mean())
+        if total_players > 0 else 0.0
+    )
+
     scored_points = pd.to_numeric(
-        predictions["points"],
+        predictions.get("points", pd.Series(dtype="float")),
         errors="coerce"
     )
 
     scored_prediction_count = int(scored_points.notna().sum())
 
     if scored_prediction_count == 0:
-        avg_points_all_players = 0.0
+        avg_points_per_match_all = 0.0
     else:
-        avg_points_all_players = scored_points.fillna(0).sum() / scored_prediction_count
-
-    avg_points_display = f"{avg_points_all_players:.1f}"
-
-    total_star_bonus = int(
-        pd.to_numeric(
-            predictions.get("star_bonus_points", pd.Series(dtype="float")),
-            errors="coerce"
-        ).fillna(0).sum()
-    )
-
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
-
-    with col1:
-        st.metric("Số người chơi", len(leaderboard))
-
-    with col2:
-        st.metric("Tổng dự đoán", len(predictions))
-
-    with col3:
-        st.metric(
-            "Trận đã có kết quả",
-            int(matches["is_finished"].apply(to_bool).sum())
+        avg_points_per_match_all = float(
+            scored_points.fillna(0).sum() / scored_prediction_count
         )
 
-    with col4:
-        st.metric("Điểm cao nhất", int(leaderboard["total_points"].max()))
+    total_result_checkable = int(leaderboard["result_prediction_checkable"].sum())
+    total_result_correct = int(leaderboard["result_prediction_correct"].sum())
 
-    with col5:
-        st.metric("Điểm TB/trận", avg_points_display)
+    if total_result_checkable == 0:
+        overall_result_rate = 0.0
+    else:
+        overall_result_rate = total_result_correct / total_result_checkable
 
-    with col6:
-        st.metric("Tổng thưởng sao", total_star_bonus)
+    total_exact_checkable = int(leaderboard["num_scored"].sum())
+    total_exact_correct = int(leaderboard["exact_score_count"].sum())
+
+    if total_exact_checkable == 0:
+        overall_exact_rate = 0.0
+    else:
+        overall_exact_rate = total_exact_correct / total_exact_checkable
+
+    # =========================
+    # KPI cards: 2 rows x 3 cards
+    # =========================
+    row1_col1, row1_col2, row1_col3 = st.columns(3)
+    row2_col1, row2_col2, row2_col3 = st.columns(3)
+
+    with row1_col1:
+        st.metric("Tổng số người chơi", total_players)
+
+    with row1_col2:
+        st.metric("Điểm cao nhất", highest_score)
+
+    with row1_col3:
+        st.metric("Điểm trung bình", f"{avg_total_points:.1f}")
+
+    with row2_col1:
+        st.metric("Điểm trung bình/trận", f"{avg_points_per_match_all:.1f}")
+
+    with row2_col2:
+        st.metric("% Đúng kết quả TB", f"{overall_result_rate * 100:.1f}%")
+
+    with row2_col3:
+        st.metric("% Đúng tỉ số TB", f"{overall_exact_rate * 100:.1f}%")
 
     st.markdown("---")
 
+    # =========================
+    # Charts
+    # =========================
     score_max = int(leaderboard["total_points"].max())
 
     if score_max <= 0:
@@ -4365,7 +4390,7 @@ def main():
             "Lịch thi đấu & dự đoán",
             "Dự đoán của tôi",
             "Bảng xếp hạng",
-            "Dashboard"
+            "Phân tích tổng quan"
         ]
 
         if user["role"] == "admin":
@@ -4394,7 +4419,7 @@ def main():
     elif selected_page == "Bảng xếp hạng":
         page_leaderboard()
 
-    elif selected_page == "Dashboard":
+    elif selected_page == "Phân tích tổng quan":
         page_dashboard()
 
     elif selected_page == "Admin":
