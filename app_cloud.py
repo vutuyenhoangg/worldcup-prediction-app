@@ -2888,7 +2888,21 @@ def render_match_card(row, user_id: int):
                 st.caption(f"🏟️ {venue or ''} {city or ''}")
 
             if is_finished:
-                render_goal_scorers_for_match(match_id)
+                actual_home_for_goal_button = to_optional_int(
+                    row.get("home_score_for_prediction")
+                )
+                actual_away_for_goal_button = to_optional_int(
+                    row.get("away_score_for_prediction")
+                )
+
+                has_any_goal = (
+                    actual_home_for_goal_button is not None
+                    and actual_away_for_goal_button is not None
+                    and (actual_home_for_goal_button + actual_away_for_goal_button) > 0
+                )
+
+                if has_any_goal:
+                    render_goal_scorers_for_match(match_id)
 
         with top_right:
             actual_home = to_optional_int(row.get("home_score_for_prediction"))
@@ -3033,7 +3047,6 @@ def render_match_card(row, user_id: int):
 
                     predicted_winner_team_id = winner_options[selected_winner_name]
                     predicted_winner_team_name = selected_winner_name
-
 
             star_usage_for_card = get_user_star_usage(
                 user_id=user_id,
