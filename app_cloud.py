@@ -2719,7 +2719,7 @@ def render_auth_page():
                         st.session_state["user"] = user
                         st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
 
-                        st.success("Đăng nhập thành công.")
+                        st.rerun()
 
         with tab_register:
             st.info("Mật khẩu phải có ít nhất 8 ký tự.")
