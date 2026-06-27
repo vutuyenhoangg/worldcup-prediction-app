@@ -3471,7 +3471,7 @@ def build_leaderboard_df():
 def page_leaderboard():
     render_page_title(
         "Bảng xếp hạng",
-        "Xem ai đang dẫn đầu cuộc đua."
+        "Xem ai đang dẫn đầu cuộc đua dự đoán."
     )
 
     score_all_predictions()
@@ -3484,12 +3484,12 @@ def page_leaderboard():
 
     current_display_name = str(st.session_state["user"]["display_name"]).strip()
 
-    leaderboard["stars_used_display"] = leaderboard.apply(
-        lambda row: (
-            f"⭐ {int(row.get('hope_stars_used', 0))}/{HOPE_STARS_PER_USER} | "
-            f"🌟 {int(row.get('super_stars_used', 0))}/{SUPER_STARS_PER_USER}"
-        ),
-        axis=1
+    leaderboard["hope_star_display"] = leaderboard["hope_stars_used"].apply(
+        lambda x: f"{int(x)}/{HOPE_STARS_PER_USER}"
+    )
+
+    leaderboard["super_star_display"] = leaderboard["super_stars_used"].apply(
+        lambda x: f"{int(x)}/{SUPER_STARS_PER_USER}"
     )
 
     display_df = leaderboard[
@@ -3499,7 +3499,8 @@ def page_leaderboard():
             "total_points",
             "base_points",
             "star_bonus_points",
-            "stars_used_display",
+            "hope_star_display",
+            "super_star_display",
             "num_predictions",
             "num_scored",
             "exact_score_count",
@@ -3515,7 +3516,8 @@ def page_leaderboard():
         "total_points": "Điểm",
         "base_points": "Điểm gốc",
         "star_bonus_points": "Thưởng sao",
-        "stars_used_display": "Sao đã dùng",
+        "hope_star_display": "⭐",
+        "super_star_display": "🌟",
         "num_predictions": "Số dự đoán",
         "num_scored": "Số trận đã chấm",
         "exact_score_count": "Đúng tỉ số",
@@ -3559,9 +3561,10 @@ def page_leaderboard():
                     "color: #B45309 !important; "
                 )
 
-            if col == "Sao đã dùng":
+            if col in ["⭐", "🌟"]:
                 style += (
-                    "font-weight: 850 !important; "
+                    "text-align: center !important; "
+                    "font-weight: 900 !important; "
                     "color: #78350F !important; "
                 )
 
@@ -3612,9 +3615,10 @@ def page_leaderboard():
             }
         )
         .set_properties(
-            subset=["Sao đã dùng"],
+            subset=["⭐", "🌟"],
             **{
-                "font-weight": "850 !important",
+                "text-align": "center !important",
+                "font-weight": "900 !important",
                 "color": "#78350F !important"
             }
         )
@@ -3632,10 +3636,40 @@ def page_leaderboard():
                     ]
                 },
                 {
+                    "selector": "thead th:nth-child(6)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-size", "18px")
+                    ]
+                },
+                {
+                    "selector": "thead th:nth-child(7)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-size", "18px")
+                    ]
+                },
+                {
                     "selector": "tbody td",
                     "props": [
                         ("border-bottom", "1px solid rgba(15,23,42,0.08)"),
                         ("padding", "10px 12px")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(6)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-weight", "900"),
+                        ("color", "#78350F")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(7)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-weight", "900"),
+                        ("color", "#78350F")
                     ]
                 },
                 {
