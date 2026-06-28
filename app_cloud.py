@@ -3234,44 +3234,43 @@ def render_match_card(row, user_id: int):
                     home_name: home_team_id,
                     away_name: away_team_id
                 }
-
+            
                 winner_option_names = list(winner_options.keys())
-
+            
                 if input_home > input_away:
                     default_index = 0
-                    winner_radio_disabled = True
-                    winner_radio_key = f"winner_{match_id}_forced_home"
-
+                    winner_radio_key = f"winner_{match_id}_auto_home"
+            
                 elif input_away > input_home:
                     default_index = 1
-                    winner_radio_disabled = True
-                    winner_radio_key = f"winner_{match_id}_forced_away"
-
+                    winner_radio_key = f"winner_{match_id}_auto_away"
+            
                 else:
                     default_index = 0
-                    winner_radio_disabled = False
                     winner_radio_key = f"winner_{match_id}_draw"
-
+            
                     if pred_winner_team_id == away_team_id:
                         default_index = 1
-
+            
                 selected_winner_name = st.radio(
                     "Chọn đội thắng chung cuộc:",
                     options=winner_option_names,
                     index=default_index,
                     horizontal=True,
-                    key=winner_radio_key,
-                    disabled=winner_radio_disabled
+                    key=winner_radio_key
                 )
-
+            
+                # Khi lưu, vẫn chốt đúng theo logic tỉ số.
+                # Nếu tỉ số lệch, đội thắng chung cuộc phải là đội có nhiều bàn hơn.
+                # Nếu tỉ số hòa, lấy lựa chọn thực sự của người chơi.
                 if input_home > input_away:
                     predicted_winner_team_id = home_team_id
                     predicted_winner_team_name = home_name
-
+            
                 elif input_away > input_home:
                     predicted_winner_team_id = away_team_id
                     predicted_winner_team_name = away_name
-
+            
                 else:
                     predicted_winner_team_id = winner_options[selected_winner_name]
                     predicted_winner_team_name = selected_winner_name
