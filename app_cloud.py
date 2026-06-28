@@ -2700,6 +2700,46 @@ def clear_data_cache():
 # ============================================================
 # AVATAR HELPERS
 # ============================================================
+@st.cache_data(show_spinner=False)
+def get_avatar_thumb_src(avatar_filename: str | None, size: int = 48) -> str:
+    avatar_filename = normalize_avatar(avatar_filename)
+
+    avatar_path_candidates = [
+        BASE_DIR / AVATAR_DIR / avatar_filename,
+        BASE_DIR / "static" / "avatars" / avatar_filename,
+        BASE_DIR / "static" / avatar_filename,
+    ]
+
+    avatar_path = None
+
+    for candidate in avatar_path_candidates:
+        if candidate.exists() and candidate.is_file():
+            avatar_path = candidate
+            break
+
+    if avatar_path is None:
+        return get_avatar_src(avatar_filename)
+
+    try:
+        from PIL import Image
+
+        image = Image.open(avatar_path).convert("RGBA")
+        image.thumbnail((size, size))
+
+        canvas = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+
+        x = (size - image.width) // 2
+        y = (size - image.height) // 2
+        canvas.paste(image, (x, y), image)
+
+        buffer = BytesIO()
+        canvas.save(buffer, format="PNG", optimize=True)
+
+        encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{encoded}"
+
+    except Exception:
+        return get_avatar_src(avatar_filename)
 
 def normalize_avatar(avatar_filename: str | None) -> str:
     """
@@ -4388,43 +4428,89 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
     st.markdown(
         """
         <style>
-        .wc-lb-table {
+        .wc-lb-wrap {
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            overflow: hidden;
+            overflow-x: auto;
             border-radius: 22px;
-            background: rgba(255,255,255,0.94);
             box-shadow: 0 14px 34px rgba(15,23,42,0.08);
-            font-size: 14px;
             border: 1px solid rgba(15,23,42,0.08);
+            background: rgba(255,255,255,0.94);
         }
 
-        .wc-lb-table th {
+        .wc-lb-grid {
+            min-width: 1180px;
+        }
+
+        .wc-lb-head,
+        .wc-lb-row {
+            display: grid;
+            grid-template-columns:
+                70px
+                minmax(210px, 1.5fr)
+                90px
+                100px
+                120px
+                80px
+                80px
+                115px
+                135px
+                105px
+                120px
+                120px
+                130px;
+            align-items: center;
+        }
+
+        .wc-lb-head {
             background: #07111F;
             color: #F8FAFC;
             font-weight: 900;
-            text-align: left;
-            padding: 12px 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.16);
+            font-size: 13px;
+        }
+
+        .wc-lb-head > div {
+            padding: 14px 12px;
             white-space: nowrap;
         }
 
-        .wc-lb-table td {
-            padding: 11px 12px;
+        .wc-lb-row {
+            background: rgba(255,255,255,0.94);
             border-bottom: 1px solid rgba(15,23,42,0.08);
             color: #07111F;
-            vertical-align: middle;
-            background: rgba(255,255,255,0.92);
+            font-size: 14px;
         }
 
-        .wc-lb-table tr:last-child td {
+        .wc-lb-row:last-child {
             border-bottom: none;
         }
 
-        .wc-lb-current-user td {
+        .wc-lb-row > div {
+            padding: 12px;
+            min-height: 54px;
+            display: flex;
+            align-items: center;
+        }
+
+        .wc-lb-current-user {
             background: #E0F2FE !important;
             font-weight: 800;
+        }
+
+        .wc-lb-rank {
+            justify-content: center;
+            font-weight: 950;
+        }
+
+        .wc-lb-rank-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            height: 34px;
+            border-radius: 999px;
+            background: rgba(15,23,42,0.06);
+            color: #07111F;
+            font-weight: 950;
         }
 
         .wc-lb-player-cell {
@@ -4432,12 +4518,12 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
             align-items: center;
             gap: 10px;
             font-weight: 900;
-            min-width: 180px;
+            min-width: 0;
         }
 
         .wc-lb-player-cell img {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid rgba(245,197,66,0.88);
@@ -4445,28 +4531,48 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
             flex-shrink: 0;
         }
 
-        .wc-lb-rank {
-            text-align: center;
-            font-weight: 950;
-            width: 62px;
+        .wc-lb-player-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .wc-lb-points {
             font-weight: 950;
-            color: #07111F;
         }
 
         .wc-lb-star {
-            text-align: center;
+            justify-content: center;
             font-weight: 900;
             color: #78350F;
         }
 
-        .wc-lb-scroll {
-            width: 100%;
-            overflow-x: auto;
-            border-radius: 22px;
-            padding-bottom: 4px;
+        .wc-lb-center {
+            justify-content: center;
+        }
+
+        @media (max-width: 900px) {
+            .wc-lb-grid {
+                min-width: 1120px;
+            }
+
+            .wc-lb-head,
+            .wc-lb-row {
+                grid-template-columns:
+                    64px
+                    190px
+                    80px
+                    92px
+                    110px
+                    74px
+                    74px
+                    105px
+                    125px
+                    96px
+                    110px
+                    110px
+                    120px;
+            }
         }
         </style>
         """,
@@ -4475,16 +4581,22 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
 
     rows_html = ""
 
+    current_display_name_raw = str(current_display_name).strip()
+
     for _, row in leaderboard.iterrows():
         rank = int(row["rank"])
 
         display_name_raw = str(row["display_name"]).strip()
         display_name = html.escape(display_name_raw, quote=False)
 
-        current_display_name_raw = str(current_display_name).strip()
         is_current_user = display_name_raw == current_display_name_raw
 
-        avatar_src = get_avatar_thumb_src(row.get("avatar"), size=48)
+        # Nếu bạn đã thêm get_avatar_thumb_src thì dùng dòng này.
+        # Nếu chưa thêm helper đó, đổi lại thành get_avatar_src(row.get("avatar")).
+        try:
+            avatar_src = get_avatar_thumb_src(row.get("avatar"), size=48)
+        except NameError:
+            avatar_src = get_avatar_src(row.get("avatar"))
 
         row_class = "wc-lb-current-user" if is_current_user else ""
 
@@ -4513,56 +4625,57 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
             rank_style = ""
 
         rows_html += f"""
-        <tr class="{row_class}">
-            <td class="wc-lb-rank" style="{rank_style}">#{rank}</td>
-            <td>
+        <div class="wc-lb-row {row_class}">
+            <div class="wc-lb-rank">
+                <span class="wc-lb-rank-pill" style="{rank_style}">#{rank}</span>
+            </div>
+
+            <div>
                 <div class="wc-lb-player-cell">
                     <img src="{avatar_src}" alt="Avatar">
-                    <span>{display_name}</span>
+                    <span class="wc-lb-player-name">{display_name}</span>
                 </div>
-            </td>
-            <td class="wc-lb-points">{total_points}</td>
-            <td>{base_points}</td>
-            <td style="font-weight:900;color:#B45309;">{star_bonus_points}</td>
-            <td class="wc-lb-star">{hope_left}</td>
-            <td class="wc-lb-star">{super_left}</td>
-            <td>{num_predictions}</td>
-            <td>{num_scored}</td>
-            <td>{exact_score_count}</td>
-            <td>{correct_outcome_count}</td>
-            <td>{exact_rate}</td>
-            <td>{result_rate}</td>
-        </tr>
+            </div>
+
+            <div class="wc-lb-points">{total_points}</div>
+            <div>{base_points}</div>
+            <div style="font-weight:900;color:#B45309;">{star_bonus_points}</div>
+            <div class="wc-lb-star">{hope_left}</div>
+            <div class="wc-lb-star">{super_left}</div>
+            <div class="wc-lb-center">{num_predictions}</div>
+            <div class="wc-lb-center">{num_scored}</div>
+            <div class="wc-lb-center">{exact_score_count}</div>
+            <div class="wc-lb-center">{correct_outcome_count}</div>
+            <div class="wc-lb-center">{exact_rate}</div>
+            <div class="wc-lb-center">{result_rate}</div>
+        </div>
         """
 
-    table_html = f"""
-    <div class="wc-lb-scroll">
-        <table class="wc-lb-table">
-            <thead>
-                <tr>
-                    <th>Hạng</th>
-                    <th>Người chơi</th>
-                    <th>Điểm</th>
-                    <th>Điểm gốc</th>
-                    <th>Thưởng sao</th>
-                    <th style="text-align:center;font-size:18px;">⭐</th>
-                    <th style="text-align:center;font-size:18px;">✨</th>
-                    <th>Số dự đoán</th>
-                    <th>Số trận đã chấm</th>
-                    <th>Đúng tỉ số</th>
-                    <th>Đúng kết quả</th>
-                    <th>% Đúng tỉ số</th>
-                    <th>% Đúng kết quả</th>
-                </tr>
-            </thead>
-            <tbody>
-                {rows_html}
-            </tbody>
-        </table>
+    leaderboard_html = f"""
+    <div class="wc-lb-wrap">
+        <div class="wc-lb-grid">
+            <div class="wc-lb-head">
+                <div>Hạng</div>
+                <div>Người chơi</div>
+                <div>Điểm</div>
+                <div>Điểm gốc</div>
+                <div>Thưởng sao</div>
+                <div style="text-align:center;font-size:18px;">⭐</div>
+                <div style="text-align:center;font-size:18px;">✨</div>
+                <div>Số dự đoán</div>
+                <div>Số trận đã chấm</div>
+                <div>Đúng tỉ số</div>
+                <div>Đúng kết quả</div>
+                <div>% Đúng tỉ số</div>
+                <div>% Đúng kết quả</div>
+            </div>
+
+            {rows_html}
+        </div>
     </div>
     """
 
-    st.html(table_html)
+    st.markdown(leaderboard_html, unsafe_allow_html=True)
 
 def page_leaderboard():
     render_page_title(
