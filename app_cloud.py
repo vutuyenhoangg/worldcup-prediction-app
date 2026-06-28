@@ -3092,12 +3092,12 @@ def render_match_card(row, user_id: int):
                 if input_home > input_away:
                     predicted_winner_team_id = home_team_id
                     predicted_winner_team_name = home_name
-                    st.info(f"Đội thắng chung cuộc tự động: {home_name}")
+                    st.info(f"Đội thắng chung cuộc tự động xác nhận: {home_name}")
 
                 elif input_away > input_home:
                     predicted_winner_team_id = away_team_id
                     predicted_winner_team_name = away_name
-                    st.info(f"Đội thắng chung cuộc tự động: {away_name}")
+                    st.info(f"Đội thắng chung cuộc tự động xác nhận: {away_name}")
 
                 else:
                     winner_options = {
