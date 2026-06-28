@@ -2995,10 +2995,65 @@ def render_match_card(row, user_id: int):
                 if has_extra_time or has_penalty:
                     result_display += " (a.e.t)"
 
-                st.metric("Kết quả", result_display)
+                penalty_html = ""
 
                 if has_penalty:
-                    st.caption(f"Penalty: {score_pen_home} - {score_pen_away}")
+                    penalty_html = f"""
+                    <div style="
+                        margin-top: 10px;
+                        padding-top: 9px;
+                        border-top: 1px solid rgba(15,23,42,0.08);
+                        color: #64748B;
+                        font-size: 13px;
+                        font-weight: 750;
+                        line-height: 1.25;
+                    ">
+                        Penalty:
+                        <span style="
+                            color: #07111F;
+                            font-weight: 950;
+                            margin-left: 4px;
+                        ">
+                            {score_pen_home} - {score_pen_away}
+                        </span>
+                    </div>
+                    """
+
+                st.markdown(
+                    f"""
+                    <div style="
+                        background: rgba(255, 255, 255, 0.86);
+                        border: 1px solid rgba(15, 23, 42, 0.08);
+                        border-radius: 16px;
+                        padding: 13px 15px;
+                        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+                        min-width: 180px;
+                    ">
+                        <div style="
+                            color: #64748B;
+                            font-size: 12px;
+                            font-weight: 800;
+                            margin-bottom: 6px;
+                        ">
+                            Kết quả
+                        </div>
+
+                        <div style="
+                            color: #07111F;
+                            font-size: 32px;
+                            font-weight: 950;
+                            line-height: 1.1;
+                            letter-spacing: -0.03em;
+                            white-space: nowrap;
+                        ">
+                            {html.escape(result_display)}
+                        </div>
+
+                        {penalty_html}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
                 winner_name = row.get("winner_team_name")
 
@@ -3203,7 +3258,6 @@ def render_match_card(row, user_id: int):
 
                 except ValueError as e:
                     st.error(str(e))
-
 
 # ============================================================
 # 10. PAGES
