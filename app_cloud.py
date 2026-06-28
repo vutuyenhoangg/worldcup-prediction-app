@@ -583,7 +583,7 @@ def inject_worldcup_theme():
 
         button[data-testid="stBaseButton-headerNoPadding"]:first-of-type::after,
         button[kind="headerNoPadding"]:first-of-type::after {{
-            content: "Menu";
+            content: "MENU";
             display: inline-block;
             color: #07111F;
             font-size: 14px;
@@ -591,6 +591,22 @@ def inject_worldcup_theme():
             letter-spacing: 0.01em;
             line-height: 1;
             margin-left: 4px;
+        }}
+        /* Khi sidebar đang mở, nút nằm trên nền xanh đậm nên chữ Menu phải chuyển sang trắng */
+        section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]:first-of-type::after,
+        section[data-testid="stSidebar"] button[kind="headerNoPadding"]:first-of-type::after {{
+            color: #F8FAFC !important;
+        }}
+
+        section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]:first-of-type svg,
+        section[data-testid="stSidebar"] button[kind="headerNoPadding"]:first-of-type svg {{
+            color: #F8FAFC !important;
+            stroke: #F8FAFC !important;
+        }}
+
+        section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]:first-of-type:hover,
+        section[data-testid="stSidebar"] button[kind="headerNoPadding"]:first-of-type:hover {{
+            background: rgba(255,255,255,0.08) !important;
         }}
 
         button[data-testid="stBaseButton-headerNoPadding"]:first-of-type:hover,
