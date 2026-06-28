@@ -3087,7 +3087,27 @@ def render_match_card(row, user_id: int):
                 else:
                     final_winner_text = "2 đội hòa nhau"
 
-                st.caption(f"Thắng chung cuộc: {final_winner_text}")
+                winner_caption_html = (
+                    '<div style="'
+                    'margin-top:14px;'
+                    'color:#64748B;'
+                    'font-size:13px;'
+                    'line-height:1.35;'
+                    '">'
+                    'Thắng chung cuộc: '
+                    '<span style="'
+                    'color:#475569;'
+                    'font-weight:750;'
+                    '">'
+                    f'{html.escape(final_winner_text)}'
+                    '</span>'
+                    '</div>'
+                )
+
+                st.markdown(
+                    winner_caption_html,
+                    unsafe_allow_html=True
+                )
 
             else:
                 render_match_status_box(status_info)
