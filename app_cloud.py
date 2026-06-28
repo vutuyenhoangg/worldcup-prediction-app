@@ -2073,6 +2073,7 @@ def get_user_by_session_token(token: str):
             u.username,
             u.display_name,
             u.role,
+            u.avatar,
             u.created_at
         FROM login_sessions s
         JOIN users u
@@ -2300,7 +2301,7 @@ def load_matches() -> pd.DataFrame:
 def load_users() -> pd.DataFrame:
     return read_sql(
         """
-        SELECT user_id, username, display_name, role, created_at
+        SELECT user_id, username, display_name, role, created_at, avatar
         FROM users
         """
     )
