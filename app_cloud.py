@@ -2707,6 +2707,66 @@ def save_prediction(
 
     clear_data_cache()
 
+def delete_prediction(user_id: int, match_id: int):
+    """
+    Xóa dự đoán đã lưu của user cho một trận.
+
+    Chỉ cho xóa khi trận vẫn còn mở dự đoán.
+    Khi xóa:
+    - Xóa prediction_history liên quan nếu có.
+    - Xóa prediction chính.
+    - Clear cache để UI quay về trạng thái chưa dự đoán.
+    """
+    match = get_match_by_id(match_id)
+
+    if match is None:
+        raise ValueError("Không tìm thấy trận đấu.")
+
+    if not can_edit_prediction(match["kickoff_time_utc"]):
+        raise ValueError("Trận đấu đã khóa dự đoán, bạn không thể hủy dự đoán nữa.")
+
+    existing = get_user_prediction_from_db(
+        user_id=user_id,
+        match_id=match_id
+    )
+
+    if existing is None:
+        clear_data_cache()
+        return
+
+    prediction_id = int(existing["prediction_id"])
+
+    with get_engine().begin() as conn:
+        conn.execute(
+            text(
+                """
+                DELETE FROM prediction_history
+                WHERE prediction_id = :prediction_id
+                """
+            ),
+            {
+                "prediction_id": prediction_id
+            }
+        )
+
+        conn.execute(
+            text(
+                """
+                DELETE FROM predictions
+                WHERE prediction_id = :prediction_id
+                  AND user_id = :user_id
+                  AND match_id = :match_id
+                """
+            ),
+            {
+                "prediction_id": prediction_id,
+                "user_id": user_id,
+                "match_id": match_id
+            }
+        )
+
+    clear_data_cache()
+
 def score_all_predictions():
     matches = load_matches()
     predictions = load_predictions()
@@ -3172,7 +3232,51 @@ def render_match_card(row, user_id: int):
                 st.markdown(f"Bổ trợ: **{format_star_short(current_star_type)}**")
             else:
                 st.caption("Bổ trợ: Không dùng sao")
-
+            if editable:
+                delete_col, _ = st.columns([1.15, 8.85])
+            
+                with delete_col:
+                    with stylable_container(
+                        key=f"delete_prediction_button_shell_{match_id}",
+                        css_styles="""
+                        button {
+                            background: transparent !important;
+                            color: #94A3B8 !important;
+                            border: 1px solid rgba(148, 163, 184, 0.38) !important;
+                            box-shadow: none !important;
+                            font-size: 12px !important;
+                            font-weight: 750 !important;
+                            padding: 4px 10px !important;
+                            min-height: 30px !important;
+                            border-radius: 999px !important;
+                        }
+            
+                        button:hover {
+                            color: #B91C1C !important;
+                            border-color: rgba(239, 68, 68, 0.55) !important;
+                            background: rgba(254, 226, 226, 0.38) !important;
+                            transform: none !important;
+                            box-shadow: none !important;
+                        }
+                        """
+                    ):
+                        if st.button(
+                            "Hủy dự đoán",
+                            key=f"delete_prediction_{match_id}",
+                            type="secondary",
+                            help="Xóa dự đoán đã lưu cho trận này."
+                        ):
+                            try:
+                                delete_prediction(
+                                    user_id=user_id,
+                                    match_id=match_id
+                                )
+            
+                                st.success("Đã hủy dự đoán.")
+                                st.rerun()
+            
+                            except ValueError as e:
+                                st.error(str(e))
             actual_home_for_result = to_optional_int(row.get("home_score_for_prediction"))
             actual_away_for_result = to_optional_int(row.get("away_score_for_prediction"))
 
