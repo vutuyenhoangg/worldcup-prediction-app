@@ -931,6 +931,91 @@ def render_top_avatar(user: dict):
             box-shadow: 0 0 0 5px rgba(245,197,66,0.18);
         }}
 
+        /* =========================
+           Leaderboard with avatars
+           ========================= */
+
+        .wc-lb-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 22px;
+            background: rgba(255,255,255,0.94);
+            box-shadow: 0 14px 34px rgba(15,23,42,0.08);
+            font-size: 14px;
+            border: 1px solid rgba(15,23,42,0.08);
+        }
+
+        .wc-lb-table th {
+            background: #07111F;
+            color: #F8FAFC;
+            font-weight: 900;
+            text-align: left;
+            padding: 12px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.16);
+            white-space: nowrap;
+        }
+
+        .wc-lb-table td {
+            padding: 11px 12px;
+            border-bottom: 1px solid rgba(15,23,42,0.08);
+            color: #07111F;
+            vertical-align: middle;
+            background: rgba(255,255,255,0.92);
+        }
+
+        .wc-lb-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .wc-lb-current-user td {
+            background: #E0F2FE !important;
+            font-weight: 800;
+        }
+
+        .wc-lb-player-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 900;
+            min-width: 180px;
+        }
+
+        .wc-lb-player-cell img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(245,197,66,0.88);
+            background: #FFFFFF;
+            flex-shrink: 0;
+        }
+
+        .wc-lb-rank {
+            text-align: center;
+            font-weight: 950;
+            width: 62px;
+        }
+
+        .wc-lb-points {
+            font-weight: 950;
+            color: #07111F;
+        }
+
+        .wc-lb-star {
+            text-align: center;
+            font-weight: 900;
+            color: #78350F;
+        }
+
+        .wc-lb-scroll {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 22px;
+            padding-bottom: 4px;
+        }
+
         @media (max-width: 900px) {{
             .st-key-top_avatar_popover {{
                 top: 14px !important;
@@ -4376,6 +4461,98 @@ def build_leaderboard_df():
     
     return summary
 
+def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_name: str):
+    rows_html = ""
+
+    for _, row in leaderboard.iterrows():
+        rank = int(row["rank"])
+
+        display_name_raw = str(row["display_name"]).strip()
+        display_name = html.escape(display_name_raw, quote=False)
+
+        current_display_name_raw = str(current_display_name).strip()
+        is_current_user = display_name_raw == current_display_name_raw
+
+        avatar_src = get_avatar_src(row.get("avatar"))
+
+        row_class = "wc-lb-current-user" if is_current_user else ""
+
+        total_points = int(row["total_points"])
+        base_points = int(row["base_points"])
+        star_bonus_points = int(row["star_bonus_points"])
+
+        hope_left = f"{max(0, HOPE_STARS_PER_USER - int(row['hope_stars_used']))}/{HOPE_STARS_PER_USER}"
+        super_left = f"{max(0, SUPER_STARS_PER_USER - int(row['super_stars_used']))}/{SUPER_STARS_PER_USER}"
+
+        num_predictions = int(row["num_predictions"])
+        num_scored = int(row["num_scored"])
+        exact_score_count = int(row["exact_score_count"])
+        correct_outcome_count = int(row["correct_outcome_count"])
+
+        exact_rate = f"{float(row['exact_score_rate']) * 100:.1f}%"
+        result_rate = f"{float(row['result_prediction_rate']) * 100:.1f}%"
+
+        if rank == 1:
+            rank_style = "background:#F5C542;color:#78350F;"
+        elif rank == 2:
+            rank_style = "background:#CBD5E1;color:#334155;"
+        elif rank == 3:
+            rank_style = "background:#CD7F32;color:#431407;"
+        else:
+            rank_style = ""
+
+        rows_html += f"""
+        <tr class="{row_class}">
+            <td class="wc-lb-rank" style="{rank_style}">#{rank}</td>
+            <td>
+                <div class="wc-lb-player-cell">
+                    <img src="{avatar_src}" alt="Avatar">
+                    <span>{display_name}</span>
+                </div>
+            </td>
+            <td class="wc-lb-points">{total_points}</td>
+            <td>{base_points}</td>
+            <td style="font-weight:900;color:#B45309;">{star_bonus_points}</td>
+            <td class="wc-lb-star">{hope_left}</td>
+            <td class="wc-lb-star">{super_left}</td>
+            <td>{num_predictions}</td>
+            <td>{num_scored}</td>
+            <td>{exact_score_count}</td>
+            <td>{correct_outcome_count}</td>
+            <td>{exact_rate}</td>
+            <td>{result_rate}</td>
+        </tr>
+        """
+
+    table_html = f"""
+    <div class="wc-lb-scroll">
+        <table class="wc-lb-table">
+            <thead>
+                <tr>
+                    <th>Hạng</th>
+                    <th>Người chơi</th>
+                    <th>Điểm</th>
+                    <th>Điểm gốc</th>
+                    <th>Thưởng sao</th>
+                    <th style="text-align:center;font-size:18px;">⭐</th>
+                    <th style="text-align:center;font-size:18px;">✨</th>
+                    <th>Số dự đoán</th>
+                    <th>Số trận đã chấm</th>
+                    <th>Đúng tỉ số</th>
+                    <th>Đúng kết quả</th>
+                    <th>% Đúng tỉ số</th>
+                    <th>% Đúng kết quả</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows_html}
+            </tbody>
+        </table>
+    </div>
+    """
+
+    st.markdown(table_html, unsafe_allow_html=True)
+
 def page_leaderboard():
     render_page_title(
         "Bảng xếp hạng",
@@ -4392,207 +4569,10 @@ def page_leaderboard():
 
     current_display_name = str(st.session_state["user"]["display_name"]).strip()
 
-    leaderboard["hope_star_display"] = leaderboard["hope_stars_used"].apply(
-        lambda x: f"{max(0, HOPE_STARS_PER_USER - int(x))}/{HOPE_STARS_PER_USER}"
+    render_leaderboard_with_avatars(
+        leaderboard=leaderboard,
+        current_display_name=current_display_name
     )
-
-    leaderboard["super_star_display"] = leaderboard["super_stars_used"].apply(
-        lambda x: f"{max(0, SUPER_STARS_PER_USER - int(x))}/{SUPER_STARS_PER_USER}"
-    )
-
-    display_df = leaderboard[
-        [
-            "rank",
-            "display_name",
-            "total_points",
-            "base_points",
-            "star_bonus_points",
-            "hope_star_display",
-            "super_star_display",
-            "num_predictions",
-            "num_scored",
-            "exact_score_count",
-            "correct_outcome_count",
-            "exact_score_rate",
-            "result_prediction_rate"
-        ]
-    ].copy()
-
-    display_df = display_df.rename(columns={
-        "rank": "Hạng",
-        "display_name": "Người chơi",
-        "total_points": "Điểm",
-        "base_points": "Điểm gốc",
-        "star_bonus_points": "Thưởng sao",
-        "hope_star_display": "⭐",
-        "super_star_display": "✨",
-        "num_predictions": "Số dự đoán",
-        "num_scored": "Số trận đã chấm",
-        "exact_score_count": "Đúng tỉ số",
-        "correct_outcome_count": "Đúng kết quả",
-        "exact_score_rate": "% Đúng tỉ số",
-        "result_prediction_rate": "% Đúng kết quả"
-    })
-
-    percent_cols = [
-        "% Đúng tỉ số",
-        "% Đúng kết quả"
-    ]
-
-    for col in percent_cols:
-        display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.1f}%")
-
-    def style_leaderboard_row(row):
-        styles = []
-
-        is_current_user = str(row["Người chơi"]).strip() == current_display_name
-        rank_value = int(row["Hạng"])
-
-        for col in row.index:
-            style = ""
-
-            if is_current_user:
-                style += (
-                    "background-color: #E0F2FE !important; "
-                    "font-weight: 800 !important; "
-                )
-
-            if col == "Điểm":
-                style += (
-                    "font-weight: 1390 !important; "
-                    "color: #07111F !important; "
-                )
-
-            if col == "Thưởng sao":
-                style += (
-                    "font-weight: 900 !important; "
-                    "color: #B45309 !important; "
-                )
-
-            if col in ["⭐", "✨"]:
-                style += (
-                    "text-align: center !important; "
-                    "font-weight: 900 !important; "
-                    "color: #78350F !important; "
-                )
-
-            if col == "Hạng":
-                style += (
-                    "font-weight: 950 !important; "
-                    "text-align: center !important; "
-                )
-
-                if rank_value == 1:
-                    style += (
-                        "background-color: #F5C542 !important; "
-                        "color: #78350F !important; "
-                    )
-
-                elif rank_value == 2:
-                    style += (
-                        "background-color: #CBD5E1 !important; "
-                        "color: #334155 !important; "
-                    )
-
-                elif rank_value == 3:
-                    style += (
-                        "background-color: #CD7F32 !important; "
-                        "color: #431407 !important; "
-                    )
-
-            styles.append(style)
-
-        return styles
-
-    styled_df = (
-        display_df
-        .style
-        .apply(style_leaderboard_row, axis=1)
-        .set_properties(
-            subset=["Điểm"],
-            **{
-                "font-weight": "1390 !important",
-                "color": "#07111F !important"
-            }
-        )
-        .set_properties(
-            subset=["Thưởng sao"],
-            **{
-                "font-weight": "900 !important",
-                "color": "#B45309 !important"
-            }
-        )
-        .set_properties(
-            subset=["⭐", "✨"],
-            **{
-                "text-align": "center !important",
-                "font-weight": "900 !important",
-                "color": "#78350F !important"
-            }
-        )
-        .set_table_styles(
-            [
-                {
-                    "selector": "thead th",
-                    "props": [
-                        ("background-color", "#07111F"),
-                        ("color", "#F8FAFC"),
-                        ("font-weight", "900"),
-                        ("text-align", "left"),
-                        ("border-bottom", "1px solid rgba(255,255,255,0.16)"),
-                        ("padding", "11px 12px")
-                    ]
-                },
-                {
-                    "selector": "thead th:nth-child(6)",
-                    "props": [
-                        ("text-align", "center"),
-                        ("font-size", "18px")
-                    ]
-                },
-                {
-                    "selector": "thead th:nth-child(7)",
-                    "props": [
-                        ("text-align", "center"),
-                        ("font-size", "18px")
-                    ]
-                },
-                {
-                    "selector": "tbody td",
-                    "props": [
-                        ("border-bottom", "1px solid rgba(15,23,42,0.08)"),
-                        ("padding", "10px 12px")
-                    ]
-                },
-                {
-                    "selector": "tbody td:nth-child(6)",
-                    "props": [
-                        ("text-align", "center"),
-                        ("font-weight", "900"),
-                        ("color", "#78350F")
-                    ]
-                },
-                {
-                    "selector": "tbody td:nth-child(7)",
-                    "props": [
-                        ("text-align", "center"),
-                        ("font-weight", "900"),
-                        ("color", "#78350F")
-                    ]
-                },
-                {
-                    "selector": "table",
-                    "props": [
-                        ("width", "100%"),
-                        ("border-collapse", "collapse"),
-                        ("font-size", "14px")
-                    ]
-                }
-            ]
-        )
-    )
-
-    st.table(styled_df)
 
 def page_dashboard():
     render_page_title(
