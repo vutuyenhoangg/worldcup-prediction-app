@@ -560,6 +560,52 @@ def inject_worldcup_theme():
             text-decoration: none;
         }}
 
+        /* =========================
+           Add clickable "Menu" text to Streamlit native sidebar toggle
+           ========================= */
+
+        button[data-testid="stBaseButton-headerNoPadding"]:first-of-type,
+        button[kind="headerNoPadding"]:first-of-type {{
+            width: auto !important;
+            min-width: 88px !important;
+            height: 38px !important;
+            min-height: 38px !important;
+            padding: 0 12px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 8px !important;
+            border-radius: 999px !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+        }}
+
+        button[data-testid="stBaseButton-headerNoPadding"]:first-of-type::after,
+        button[kind="headerNoPadding"]:first-of-type::after {{
+            content: "Menu";
+            display: inline-block;
+            color: #07111F;
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 0.01em;
+            line-height: 1;
+            margin-left: 4px;
+        }}
+
+        button[data-testid="stBaseButton-headerNoPadding"]:first-of-type:hover,
+        button[kind="headerNoPadding"]:first-of-type:hover {{
+            background: rgba(15,23,42,0.05) !important;
+        }}
+
+        button[data-testid="stBaseButton-headerNoPadding"]:first-of-type svg,
+        button[kind="headerNoPadding"]:first-of-type svg {{
+            width: 20px !important;
+            height: 20px !important;
+            color: #64748B !important;
+            stroke: #64748B !important;
+        }}
+
         @media (max-width: 900px) {{
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
