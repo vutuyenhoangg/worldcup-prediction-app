@@ -3372,7 +3372,7 @@ def render_match_card(row, user_id: int):
             delete_submitted = False
             
             if existing:
-                save_col, delete_col, _ = st.columns([1.35, 0.95, 6.7])
+                save_col, spacer_col, delete_col = st.columns([1.45, 6.2, 1.45])
             
                 with save_col:
                     submitted = st.form_submit_button(
@@ -3385,21 +3385,22 @@ def render_match_card(row, user_id: int):
                         css_styles="""
                         button {
                             width: 100% !important;
-                            background: rgba(255, 255, 255, 0.72) !important;
+                            background: rgba(255, 255, 255, 0.66) !important;
                             color: #DC2626 !important;
-                            border: 1px solid rgba(220, 38, 38, 0.42) !important;
+                            border: 1px solid rgba(220, 38, 38, 0.38) !important;
                             box-shadow: none !important;
                             font-size: 12px !important;
                             font-weight: 750 !important;
-                            padding: 6px 10px !important;
-                            min-height: 34px !important;
+                            padding: 5px 9px !important;
+                            min-height: 32px !important;
                             border-radius: 999px !important;
+                            white-space: nowrap !important;
                         }
             
                         button:hover {
                             color: #B91C1C !important;
-                            border-color: rgba(185, 28, 28, 0.72) !important;
-                            background: rgba(254, 226, 226, 0.48) !important;
+                            border-color: rgba(185, 28, 28, 0.68) !important;
+                            background: rgba(254, 226, 226, 0.46) !important;
                             transform: none !important;
                             box-shadow: none !important;
                         }
@@ -3411,7 +3412,7 @@ def render_match_card(row, user_id: int):
                         """
                     ):
                         delete_submitted = st.form_submit_button(
-                            "Hủy",
+                            "Xóa dự đoán",
                             help="Xóa dự đoán đã lưu cho trận này."
                         )
             
@@ -3446,8 +3447,11 @@ def render_match_card(row, user_id: int):
                         match_id=match_id
                     )
             
-                    st.success("Đã hủy dự đoán.")
+                    st.success("Đã xóa dự đoán.")
                     st.rerun()
+            
+                except ValueError as e:
+                    st.error(str(e))
             
                 except ValueError as e:
                     st.error(str(e))
