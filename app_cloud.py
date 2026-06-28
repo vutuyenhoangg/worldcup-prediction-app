@@ -3253,7 +3253,7 @@ def render_match_card(row, user_id: int):
                         default_index = 1
             
                 selected_winner_name = st.radio(
-                    "Chọn đội thắng chung cuộc:",
+                    "Nếu dự đoán hòa trong thời gian thi đấu chính thức, chọn đội thắng chung cuộc:",
                     options=winner_option_names,
                     index=default_index,
                     horizontal=True,
