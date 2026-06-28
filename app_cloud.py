@@ -2971,8 +2971,34 @@ def render_match_card(row, user_id: int):
             actual_home = to_optional_int(row.get("home_score_for_prediction"))
             actual_away = to_optional_int(row.get("away_score_for_prediction"))
 
+            score_et_home = to_optional_int(row.get("score_et_home"))
+            score_et_away = to_optional_int(row.get("score_et_away"))
+
+            score_pen_home = to_optional_int(row.get("score_pen_home"))
+            score_pen_away = to_optional_int(row.get("score_pen_away"))
+
+            has_extra_time = (
+                is_knockout
+                and score_et_home is not None
+                and score_et_away is not None
+            )
+
+            has_penalty = (
+                is_knockout
+                and score_pen_home is not None
+                and score_pen_away is not None
+            )
+
             if is_finished and actual_home is not None and actual_away is not None:
-                st.metric("Kết quả", f"{actual_home} - {actual_away}")
+                result_display = f"{actual_home} - {actual_away}"
+
+                if has_extra_time or has_penalty:
+                    result_display += " (a.e.t)"
+
+                st.metric("Kết quả", result_display)
+
+                if has_penalty:
+                    st.caption(f"Penalty: {score_pen_home} - {score_pen_away}")
 
                 winner_name = row.get("winner_team_name")
 
@@ -2983,19 +3009,30 @@ def render_match_card(row, user_id: int):
                 )
 
                 if winner_name_is_valid:
-                    st.caption(f"Thắng chung cuộc: {str(winner_name).strip()}")
+                    final_winner_text = str(winner_name).strip()
 
                 elif not is_knockout and actual_home == actual_away:
-                    st.caption("Thắng chung cuộc: 2 đội hòa nhau")
+                    final_winner_text = "2 đội hòa nhau"
 
-                elif is_knockout and actual_home == actual_away:
-                    st.caption("Thắng chung cuộc: Chưa xác định")
+                elif has_penalty and score_pen_home > score_pen_away:
+                    final_winner_text = str(home_name)
+
+                elif has_penalty and score_pen_away > score_pen_home:
+                    final_winner_text = str(away_name)
 
                 elif actual_home > actual_away:
-                    st.caption(f"Thắng chung cuộc: {home_name}")
+                    final_winner_text = str(home_name)
 
                 elif actual_away > actual_home:
-                    st.caption(f"Thắng chung cuộc: {away_name}")
+                    final_winner_text = str(away_name)
+
+                elif is_knockout:
+                    final_winner_text = "Chưa xác định"
+
+                else:
+                    final_winner_text = "2 đội hòa nhau"
+
+                st.caption(f"Thắng chung cuộc: {final_winner_text}")
 
             else:
                 render_match_status_box(status_info)
@@ -3009,9 +3046,9 @@ def render_match_card(row, user_id: int):
             pred_away = int(existing["predicted_away_score"])
             pred_winner_team_id = to_optional_int(existing.get("predicted_winner_team_id"))
             current_star_type = normalize_star_type(existing.get("star_type"))
-            
+
             knockout_winner_note = ""
-            
+
             if is_knockout and pred_home == pred_away:
                 if pred_winner_team_id == home_team_id:
                     knockout_winner_note = f" ({home_name} thắng chung cuộc)"
@@ -3158,8 +3195,12 @@ def render_match_card(row, user_id: int):
                         predicted_winner_team_id=predicted_winner_team_id,
                         star_type=selected_star_type
                     )
-                    st.success("Đã lưu dự đoán. Bạn vẫn có thể cập nhật dự đoán cho đến trước giờ bóng lăn.")
+
+                    st.success(
+                        "Đã lưu dự đoán. Bạn vẫn có thể cập nhật dự đoán cho đến trước giờ bóng lăn."
+                    )
                     st.rerun()
+
                 except ValueError as e:
                     st.error(str(e))
 
