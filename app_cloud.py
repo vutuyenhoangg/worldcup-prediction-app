@@ -2692,6 +2692,11 @@ def clear_data_cache():
     except NameError:
         pass
 
+    try:
+        get_avatar_thumb_src.clear()
+    except NameError:
+        pass
+
 # ============================================================
 # AVATAR HELPERS
 # ============================================================
@@ -2723,6 +2728,54 @@ def get_avatar_src(avatar_filename: str | None) -> str:
     avatar_filename = normalize_avatar(avatar_filename)
     return resolve_asset_src(f"{AVATAR_DIR}/{avatar_filename}")
 
+@st.cache_data(show_spinner=False)
+def get_avatar_thumb_src(avatar_filename: str | None, size: int = 48) -> str:
+    """
+    Trả về avatar dạng base64 thumbnail nhỏ để dùng trong bảng xếp hạng.
+
+    Lý do:
+    - get_avatar_src() đang encode ảnh gốc thành base64.
+    - Nếu dùng ảnh gốc cho từng dòng leaderboard, HTML sẽ cực dài và dễ làm trang lỗi.
+    - Hàm này resize avatar xuống size nhỏ trước khi encode.
+    """
+    avatar_filename = normalize_avatar(avatar_filename)
+
+    avatar_path_candidates = [
+        BASE_DIR / AVATAR_DIR / avatar_filename,
+        BASE_DIR / "static" / "avatars" / avatar_filename,
+        BASE_DIR / "static" / avatar_filename,
+    ]
+
+    avatar_path = None
+
+    for candidate in avatar_path_candidates:
+        if candidate.exists() and candidate.is_file():
+            avatar_path = candidate
+            break
+
+    if avatar_path is None:
+        return get_avatar_src(avatar_filename)
+
+    try:
+        from PIL import Image
+
+        image = Image.open(avatar_path).convert("RGBA")
+        image.thumbnail((size, size))
+
+        canvas = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+
+        x = (size - image.width) // 2
+        y = (size - image.height) // 2
+        canvas.paste(image, (x, y), image)
+
+        buffer = BytesIO()
+        canvas.save(buffer, format="PNG", optimize=True)
+
+        encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{encoded}"
+
+    except Exception:
+        return get_avatar_src(avatar_filename)
 
 def get_user_avatar_filename(user_id: int) -> str:
     """
@@ -4431,7 +4484,7 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
         current_display_name_raw = str(current_display_name).strip()
         is_current_user = display_name_raw == current_display_name_raw
 
-        avatar_src = get_avatar_src(row.get("avatar"))
+        avatar_src = get_avatar_thumb_src(row.get("avatar"), size=48)
 
         row_class = "wc-lb-current-user" if is_current_user else ""
 
@@ -4509,7 +4562,7 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
     </div>
     """
 
-    st.markdown(table_html, unsafe_allow_html=True)
+    st.html(table_html)
 
 def page_leaderboard():
     render_page_title(
