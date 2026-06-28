@@ -2983,7 +2983,7 @@ def render_match_card(row, user_id: int):
                 )
 
                 if winner_name_is_valid:
-                    st.caption(f": {str(winner_name).strip()}")
+                    st.caption(f"Thắng chung cuộc: {str(winner_name).strip()}")
 
                 elif not is_knockout and actual_home == actual_away:
                     st.caption("Thắng chung cuộc: 2 đội hòa nhau")
