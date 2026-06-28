@@ -560,7 +560,7 @@ def inject_worldcup_theme():
             text-decoration: none;
         }}
         /* =========================
-           Đổi nút mở sidebar mặc định thành nút 3 thanh ngang
+           Đổi nút mở sidebar mặc định thành nút 3 thanh ngang + chữ MORE
            ========================= */
 
         [data-testid="collapsedControl"] {{
@@ -571,31 +571,16 @@ def inject_worldcup_theme():
         }}
 
         [data-testid="collapsedControl"] button {{
-            width: 56px !important;
-            height: 56px !important;
-            min-width: 56px !important;
-            min-height: 56px !important;
+            width: 72px !important;
+            height: 76px !important;
+            min-width: 72px !important;
+            min-height: 76px !important;
             border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             background-color: #001E9A !important;
-            background-image:
-                linear-gradient(#FFFFFF, #FFFFFF),
-                linear-gradient(#FFFFFF, #FFFFFF),
-                linear-gradient(#FFFFFF, #FFFFFF) !important;
-            background-size:
-                22px 2.5px,
-                22px 2.5px,
-                22px 2.5px !important;
-            background-repeat: no-repeat !important;
-            background-position:
-                center 18px,
-                center 27px,
-                center 36px !important;
             padding: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            position: relative !important;
             transition: 0.18s ease !important;
         }}
 
@@ -604,11 +589,49 @@ def inject_worldcup_theme():
             transform: translateY(-1px) !important;
         }}
 
-        /* Ẩn icon mũi tên mặc định */
+        /* Ẩn mũi tên mặc định */
         [data-testid="collapsedControl"] button svg {{
             opacity: 0 !important;
             width: 0 !important;
             height: 0 !important;
+        }}
+
+        /* 3 thanh ngang */
+        [data-testid="collapsedControl"] button::before {{
+            content: "";
+            position: absolute;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 22px;
+            height: 14px;
+            background-image:
+                linear-gradient(#FFFFFF, #FFFFFF),
+                linear-gradient(#FFFFFF, #FFFFFF),
+                linear-gradient(#FFFFFF, #FFFFFF);
+            background-size:
+                22px 2.5px,
+                22px 2.5px,
+                22px 2.5px;
+            background-repeat: no-repeat;
+            background-position:
+                center 0,
+                center 6px,
+                center 12px;
+        }}
+
+        /* Chữ MORE */
+        [data-testid="collapsedControl"] button::after {{
+            content: "MORE";
+            position: absolute;
+            left: 50%;
+            bottom: 16px;
+            transform: translateX(-50%);
+            color: #FFFFFF;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            line-height: 1;
         }}
         @media (max-width: 900px) {{
             .wc-hero-grid {{
