@@ -2990,15 +2990,15 @@ def render_match_card(row, user_id: int):
             )
 
             if is_finished and actual_home is not None and actual_away is not None:
-                result_display = f"{actual_home} - {actual_away}"
+                result_text = f"{actual_home} - {actual_away}"
 
                 if has_extra_time or has_penalty:
-                    result_display += " (a.e.t)"
+                    result_text = f"{result_text} (a.e.t)"
 
-                penalty_html = ""
+                penalty_line_html = ""
 
                 if has_penalty:
-                    penalty_html = f"""
+                    penalty_line_html = f"""
                     <div style="
                         margin-top: 10px;
                         padding-top: 9px;
@@ -3019,39 +3019,41 @@ def render_match_card(row, user_id: int):
                     </div>
                     """
 
-                st.markdown(
-                    f"""
+                result_card_html = f"""
+                <div style="
+                    background: rgba(255, 255, 255, 0.86);
+                    border: 1px solid rgba(15, 23, 42, 0.08);
+                    border-radius: 16px;
+                    padding: 13px 15px;
+                    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+                    min-width: 180px;
+                ">
                     <div style="
-                        background: rgba(255, 255, 255, 0.86);
-                        border: 1px solid rgba(15, 23, 42, 0.08);
-                        border-radius: 16px;
-                        padding: 13px 15px;
-                        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
-                        min-width: 180px;
+                        color: #64748B;
+                        font-size: 12px;
+                        font-weight: 800;
+                        margin-bottom: 6px;
                     ">
-                        <div style="
-                            color: #64748B;
-                            font-size: 12px;
-                            font-weight: 800;
-                            margin-bottom: 6px;
-                        ">
-                            Kết quả
-                        </div>
-
-                        <div style="
-                            color: #07111F;
-                            font-size: 32px;
-                            font-weight: 950;
-                            line-height: 1.1;
-                            letter-spacing: -0.03em;
-                            white-space: nowrap;
-                        ">
-                            {html.escape(result_display)}
-                        </div>
-
-                        {penalty_html}
+                        Kết quả
                     </div>
-                    """,
+
+                    <div style="
+                        color: #07111F;
+                        font-size: 32px;
+                        font-weight: 950;
+                        line-height: 1.1;
+                        letter-spacing: -0.03em;
+                        white-space: nowrap;
+                    ">
+                        {html.escape(result_text)}
+                    </div>
+
+                    {penalty_line_html}
+                </div>
+                """
+
+                st.markdown(
+                    result_card_html,
                     unsafe_allow_html=True
                 )
 
