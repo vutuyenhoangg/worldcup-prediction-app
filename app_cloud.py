@@ -523,6 +523,7 @@ def inject_worldcup_theme():
             transform: translateY(-1px);
         }}
 
+        /* Fix nút Đăng xuất trong sidebar: nền trắng nhưng chữ không bị trắng theo sidebar */
         section[data-testid="stSidebar"] .stButton > button {{
             background: rgba(255, 255, 255, 0.96) !important;
             color: #07111F !important;
@@ -559,118 +560,7 @@ def inject_worldcup_theme():
             text-decoration: none;
         }}
 
-        /* =========================
-           Sidebar open button patch
-           Bắt nhiều selector vì Streamlit có thể đổi DOM theo version/mobile
-           ========================= */
-
-        [data-testid="collapsedControl"],
-        [data-testid="stSidebarCollapsedControl"] {{
-            position: fixed !important;
-            top: 86px !important;
-            left: 16px !important;
-            z-index: 999999 !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 8px !important;
-            padding: 0 !important;
-        }}
-
-        [data-testid="collapsedControl"] button,
-        [data-testid="stSidebarCollapsedControl"] button,
-        button[aria-label="Open sidebar"],
-        button[title="Open sidebar"],
-        button[aria-label="Mở sidebar"],
-        button[title="Mở sidebar"] {{
-            width: auto !important;
-            min-width: 98px !important;
-            height: 48px !important;
-            min-height: 48px !important;
-            padding: 0 16px !important;
-            border-radius: 999px !important;
-            background:
-                radial-gradient(circle at 26% 18%, rgba(245,197,66,0.36), transparent 32%),
-                linear-gradient(135deg, #07111F 0%, #0B1F3A 100%) !important;
-            border: 2px solid rgba(245,197,66,0.96) !important;
-            box-shadow: 0 14px 32px rgba(7,17,31,0.34) !important;
-            color: #F8FAFC !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
-            font-size: 0 !important;
-            transition: 0.18s ease !important;
-        }}
-
-        [data-testid="collapsedControl"] button:hover,
-        [data-testid="stSidebarCollapsedControl"] button:hover,
-        button[aria-label="Open sidebar"]:hover,
-        button[title="Open sidebar"]:hover,
-        button[aria-label="Mở sidebar"]:hover,
-        button[title="Mở sidebar"]:hover {{
-            transform: translateY(-1px) !important;
-            border-color: #F5C542 !important;
-            box-shadow: 0 18px 40px rgba(7,17,31,0.42) !important;
-        }}
-
-        [data-testid="collapsedControl"] button::after,
-        [data-testid="stSidebarCollapsedControl"] button::after,
-        button[aria-label="Open sidebar"]::after,
-        button[title="Open sidebar"]::after,
-        button[aria-label="Mở sidebar"]::after,
-        button[title="Mở sidebar"]::after {{
-            content: "Menu";
-            color: #F8FAFC;
-            font-size: 14px;
-            font-weight: 950;
-            letter-spacing: 0.01em;
-            line-height: 1;
-        }}
-
-        [data-testid="collapsedControl"] svg,
-        [data-testid="stSidebarCollapsedControl"] svg,
-        button[aria-label="Open sidebar"] svg,
-        button[title="Open sidebar"] svg,
-        button[aria-label="Mở sidebar"] svg,
-        button[title="Mở sidebar"] svg {{
-            width: 23px !important;
-            height: 23px !important;
-            color: #F5C542 !important;
-            stroke: #F5C542 !important;
-            fill: none !important;
-            flex-shrink: 0 !important;
-        }}
-
-        @media (min-width: 901px) {{
-            [data-testid="collapsedControl"] button,
-            [data-testid="stSidebarCollapsedControl"] button,
-            button[aria-label="Open sidebar"],
-            button[title="Open sidebar"],
-            button[aria-label="Mở sidebar"],
-            button[title="Mở sidebar"] {{
-                min-width: 48px !important;
-                width: 48px !important;
-                height: 48px !important;
-                min-height: 48px !important;
-                padding: 0 !important;
-            }}
-
-            [data-testid="collapsedControl"] button::after,
-            [data-testid="stSidebarCollapsedControl"] button::after,
-            button[aria-label="Open sidebar"]::after,
-            button[title="Open sidebar"]::after,
-            button[aria-label="Mở sidebar"]::after,
-            button[title="Mở sidebar"]::after {{
-                content: "";
-                display: none;
-            }}
-        }}
-
         @media (max-width: 900px) {{
-            .block-container {{
-                padding-top: 4.6rem;
-            }}
-
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
             }}
@@ -682,27 +572,6 @@ def inject_worldcup_theme():
 
             .wc-kpi-grid {{
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-            }}
-
-            .wc-mobile-menu-hint {{
-                display: block;
-                margin: 0 0 14px 0;
-                padding: 11px 14px;
-                border-radius: 16px;
-                background:
-                    radial-gradient(circle at top left, rgba(245,197,66,0.20), transparent 34%),
-                    rgba(255,255,255,0.90);
-                border: 1px solid rgba(245,197,66,0.42);
-                box-shadow: 0 10px 24px rgba(15,23,42,0.06);
-                color: #07111F;
-                font-size: 13px;
-                line-height: 1.45;
-                font-weight: 750;
-            }}
-
-            .wc-mobile-menu-hint b {{
-                color: #07111F;
-                font-weight: 950;
             }}
         }}
         </style>
@@ -820,15 +689,6 @@ def render_page_title(title: str, subtitle: str = ""):
         unsafe_allow_html=True
     )
 
-def render_mobile_menu_hint():
-    st.markdown(
-        """
-        <div class="wc-mobile-menu-hint">
-            ☰ Bấm <b>Menu</b> ở góc trái để mở bảng điều hướng, xem bảng xếp hạng và các trang khác.
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 def render_status_legend():
     st.markdown(
@@ -4600,8 +4460,6 @@ def main():
         )
 
         render_sidebar_footer()
-
-    render_mobile_menu_hint()
 
     if selected_page == "Lịch thi đấu & dự đoán":
         page_matches()
