@@ -2998,59 +2998,57 @@ def render_match_card(row, user_id: int):
                 penalty_line_html = ""
 
                 if has_penalty:
-                    penalty_line_html = f"""
-                    <div style="
-                        margin-top: 10px;
-                        padding-top: 9px;
-                        border-top: 1px solid rgba(15,23,42,0.08);
-                        color: #64748B;
-                        font-size: 13px;
-                        font-weight: 750;
-                        line-height: 1.25;
-                    ">
-                        Penalty:
-                        <span style="
-                            color: #07111F;
-                            font-weight: 950;
-                            margin-left: 4px;
-                        ">
-                            {score_pen_home} - {score_pen_away}
-                        </span>
-                    </div>
-                    """
+                    penalty_line_html = (
+                        '<div style="'
+                        'margin-top:10px;'
+                        'padding-top:9px;'
+                        'border-top:1px solid rgba(15,23,42,0.08);'
+                        'color:#64748B;'
+                        'font-size:13px;'
+                        'font-weight:750;'
+                        'line-height:1.25;'
+                        '">'
+                        'Penalty:'
+                        '<span style="'
+                        'color:#07111F;'
+                        'font-weight:950;'
+                        'margin-left:4px;'
+                        '">'
+                        f'{score_pen_home} - {score_pen_away}'
+                        '</span>'
+                        '</div>'
+                    )
 
-                result_card_html = f"""
-                <div style="
-                    background: rgba(255, 255, 255, 0.86);
-                    border: 1px solid rgba(15, 23, 42, 0.08);
-                    border-radius: 16px;
-                    padding: 13px 15px;
-                    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
-                    min-width: 180px;
-                ">
-                    <div style="
-                        color: #64748B;
-                        font-size: 12px;
-                        font-weight: 800;
-                        margin-bottom: 6px;
-                    ">
-                        Kết quả
-                    </div>
-
-                    <div style="
-                        color: #07111F;
-                        font-size: 32px;
-                        font-weight: 950;
-                        line-height: 1.1;
-                        letter-spacing: -0.03em;
-                        white-space: nowrap;
-                    ">
-                        {html.escape(result_text)}
-                    </div>
-
-                    {penalty_line_html}
-                </div>
-                """
+                result_card_html = (
+                    '<div style="'
+                    'background:rgba(255,255,255,0.86);'
+                    'border:1px solid rgba(15,23,42,0.08);'
+                    'border-radius:16px;'
+                    'padding:13px 15px;'
+                    'box-shadow:0 6px 18px rgba(15,23,42,0.04);'
+                    'min-width:180px;'
+                    '">'
+                    '<div style="'
+                    'color:#64748B;'
+                    'font-size:12px;'
+                    'font-weight:800;'
+                    'margin-bottom:6px;'
+                    '">'
+                    'Kết quả'
+                    '</div>'
+                    '<div style="'
+                    'color:#07111F;'
+                    'font-size:32px;'
+                    'font-weight:950;'
+                    'line-height:1.1;'
+                    'letter-spacing:-0.03em;'
+                    'white-space:nowrap;'
+                    '">'
+                    f'{html.escape(result_text)}'
+                    '</div>'
+                    f'{penalty_line_html}'
+                    '</div>'
+                )
 
                 st.markdown(
                     result_card_html,
