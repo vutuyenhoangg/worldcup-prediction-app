@@ -559,80 +559,7 @@ def inject_worldcup_theme():
             font-weight: 800;
             text-decoration: none;
         }}
-        /* =========================
-           Đổi nút mở sidebar mặc định thành nút 3 thanh ngang + chữ MORE
-           ========================= */
 
-        [data-testid="collapsedControl"] {{
-            position: fixed !important;
-            top: 14px !important;
-            left: 14px !important;
-            z-index: 999999 !important;
-        }}
-
-        [data-testid="collapsedControl"] button {{
-            width: 72px !important;
-            height: 76px !important;
-            min-width: 72px !important;
-            min-height: 76px !important;
-            border: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            background-color: #001E9A !important;
-            padding: 0 !important;
-            position: relative !important;
-            transition: 0.18s ease !important;
-        }}
-
-        [data-testid="collapsedControl"] button:hover {{
-            filter: brightness(1.08) !important;
-            transform: translateY(-1px) !important;
-        }}
-
-        /* Ẩn mũi tên mặc định */
-        [data-testid="collapsedControl"] button svg {{
-            opacity: 0 !important;
-            width: 0 !important;
-            height: 0 !important;
-        }}
-
-        /* 3 thanh ngang */
-        [data-testid="collapsedControl"] button::before {{
-            content: "";
-            position: absolute;
-            top: 18px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 22px;
-            height: 14px;
-            background-image:
-                linear-gradient(#FFFFFF, #FFFFFF),
-                linear-gradient(#FFFFFF, #FFFFFF),
-                linear-gradient(#FFFFFF, #FFFFFF);
-            background-size:
-                22px 2.5px,
-                22px 2.5px,
-                22px 2.5px;
-            background-repeat: no-repeat;
-            background-position:
-                center 0,
-                center 6px,
-                center 12px;
-        }}
-
-        /* Chữ MORE */
-        [data-testid="collapsedControl"] button::after {{
-            content: "MORE";
-            position: absolute;
-            left: 50%;
-            bottom: 16px;
-            transform: translateX(-50%);
-            color: #FFFFFF;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            line-height: 1;
-        }}
         @media (max-width: 900px) {{
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
@@ -655,6 +582,204 @@ def inject_worldcup_theme():
 
 inject_worldcup_theme()
 
+def inject_custom_sidebar_toggle_button():
+    components.html(
+        """
+        <script>
+        (function() {
+            const doc = window.parent.document;
+
+            const STYLE_ID = "wc-custom-sidebar-toggle-style";
+            const BUTTON_ID = "wc-custom-sidebar-toggle-button";
+
+            if (!doc.getElementById(STYLE_ID)) {
+                const style = doc.createElement("style");
+                style.id = STYLE_ID;
+                style.innerHTML = `
+                    #wc-custom-sidebar-toggle-button {
+                        position: fixed;
+                        top: 12px;
+                        left: 12px;
+                        z-index: 2147483647;
+                        width: 64px;
+                        height: 58px;
+                        border: none;
+                        border-radius: 0;
+                        background: #001E9A;
+                        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
+                        cursor: pointer;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 7px;
+                        padding: 0;
+                        transition: transform 0.16s ease, filter 0.16s ease;
+                    }
+
+                    #wc-custom-sidebar-toggle-button:hover {
+                        filter: brightness(1.08);
+                        transform: translateY(-1px);
+                    }
+
+                    #wc-custom-sidebar-toggle-button .wc-hamburger-lines {
+                        width: 24px;
+                        height: 16px;
+                        background-image:
+                            linear-gradient(#FFFFFF, #FFFFFF),
+                            linear-gradient(#FFFFFF, #FFFFFF),
+                            linear-gradient(#FFFFFF, #FFFFFF);
+                        background-size:
+                            24px 2px,
+                            24px 2px,
+                            24px 2px;
+                        background-repeat: no-repeat;
+                        background-position:
+                            center 0,
+                            center 7px,
+                            center 14px;
+                    }
+
+                    #wc-custom-sidebar-toggle-button .wc-menu-text {
+                        color: #FFFFFF;
+                        font-size: 10px;
+                        font-weight: 900;
+                        letter-spacing: 0.12em;
+                        line-height: 1;
+                    }
+
+                    @media (max-width: 900px) {
+                        #wc-custom-sidebar-toggle-button {
+                            top: 10px;
+                            left: 10px;
+                            width: 58px;
+                            height: 54px;
+                            gap: 6px;
+                        }
+
+                        #wc-custom-sidebar-toggle-button .wc-hamburger-lines {
+                            width: 22px;
+                            height: 15px;
+                            background-size:
+                                22px 2px,
+                                22px 2px,
+                                22px 2px;
+                            background-position:
+                                center 0,
+                                center 6.5px,
+                                center 13px;
+                        }
+
+                        #wc-custom-sidebar-toggle-button .wc-menu-text {
+                            font-size: 9px;
+                        }
+                    }
+                `;
+                doc.head.appendChild(style);
+            }
+
+            function getVisibleButtonFromSelector(selector) {
+                const elements = Array.from(doc.querySelectorAll(selector));
+
+                for (const element of elements) {
+                    const button = element.tagName === "BUTTON"
+                        ? element
+                        : element.querySelector("button");
+
+                    if (!button) {
+                        continue;
+                    }
+
+                    const rect = button.getBoundingClientRect();
+
+                    if (rect.width > 0 && rect.height > 0) {
+                        return button;
+                    }
+                }
+
+                return null;
+            }
+
+            function findStreamlitSidebarButton() {
+                const selectors = [
+                    '[data-testid="collapsedControl"]',
+                    '[data-testid="stSidebarCollapsedControl"]',
+                    '[data-testid="stSidebarCollapseButton"]',
+                    'button[aria-label="Open sidebar"]',
+                    'button[aria-label="Close sidebar"]',
+                    'button[title="Open sidebar"]',
+                    'button[title="Close sidebar"]',
+                    'button[aria-label="Mở sidebar"]',
+                    'button[aria-label="Đóng sidebar"]'
+                ];
+
+                for (const selector of selectors) {
+                    const button = getVisibleButtonFromSelector(selector);
+
+                    if (button) {
+                        return button;
+                    }
+                }
+
+                const allButtons = Array.from(doc.querySelectorAll("button"));
+
+                const topLeftButtons = allButtons.filter(function(button) {
+                    const rect = button.getBoundingClientRect();
+                    const text = (button.innerText || button.textContent || "").trim().toLowerCase();
+
+                    const isVisible = rect.width > 0 && rect.height > 0;
+                    const isTopLeft = rect.left >= -5 && rect.left <= 120 && rect.top >= -5 && rect.top <= 100;
+                    const hasSvg = !!button.querySelector("svg");
+                    const isNotCustomButton = button.id !== BUTTON_ID;
+                    const isNotFork = !text.includes("fork");
+
+                    return isVisible && isTopLeft && hasSvg && isNotCustomButton && isNotFork;
+                });
+
+                if (topLeftButtons.length > 0) {
+                    return topLeftButtons[0];
+                }
+
+                return null;
+            }
+
+            function ensureCustomButton() {
+                let customButton = doc.getElementById(BUTTON_ID);
+
+                if (!customButton) {
+                    customButton = doc.createElement("button");
+                    customButton.id = BUTTON_ID;
+                    customButton.type = "button";
+                    customButton.setAttribute("aria-label", "Mở hoặc đóng menu điều hướng");
+                    customButton.innerHTML = `
+                        <span class="wc-hamburger-lines"></span>
+                        <span class="wc-menu-text">MENU</span>
+                    `;
+
+                    doc.body.appendChild(customButton);
+                }
+
+                customButton.onclick = function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const streamlitSidebarButton = findStreamlitSidebarButton();
+
+                    if (streamlitSidebarButton) {
+                        streamlitSidebarButton.click();
+                    }
+                };
+            }
+
+            ensureCustomButton();
+
+            setTimeout(ensureCustomButton, 300);
+            setTimeout(ensureCustomButton, 1000);
+        })();
+        </script>
+        """,
+        height=0
+    )
 
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
@@ -4497,6 +4622,8 @@ def main():
             st.stop()
 
     user = st.session_state["user"]
+
+    inject_custom_sidebar_toggle_button()
 
     with st.sidebar:
         render_sidebar_brand()
