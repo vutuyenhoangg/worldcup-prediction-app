@@ -4198,6 +4198,10 @@ def build_leaderboard_df():
 
     if predictions.empty:
         result = users.copy()
+        if "avatar" not in result.columns:
+            result["avatar"] = DEFAULT_AVATAR
+        
+        result["avatar"] = result["avatar"].apply(normalize_avatar)
         result["total_points"] = 0
         result["base_points"] = 0
         result["star_bonus_points"] = 0
@@ -4305,7 +4309,7 @@ def build_leaderboard_df():
 
     summary = (
         df
-        .groupby(["user_id", "username", "display_name", "role"], as_index=False)
+        .groupby(["user_id", "username", "display_name", "role", "avatar"], as_index=False)
         .agg(
             total_points=("points", "sum"),
             base_points=("base_points", "sum"),
@@ -4364,7 +4368,12 @@ def build_leaderboard_df():
     ).reset_index(drop=True)
 
     summary["rank"] = range(1, len(summary) + 1)
-
+    
+    if "avatar" not in summary.columns:
+        summary["avatar"] = DEFAULT_AVATAR
+    
+    summary["avatar"] = summary["avatar"].apply(normalize_avatar)
+    
     return summary
 
 def page_leaderboard():
