@@ -1795,7 +1795,7 @@ def check_base_database():
 
 def init_app_tables():
     execute_sql(
-        """
+        f"""
         CREATE TABLE IF NOT EXISTS users (
             user_id SERIAL PRIMARY KEY,
             username TEXT NOT NULL UNIQUE,
@@ -1803,11 +1803,41 @@ def init_app_tables():
             password_salt TEXT NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'player',
+            avatar TEXT NOT NULL DEFAULT '{DEFAULT_AVATAR}',
             created_at TEXT NOT NULL
         )
         """
     )
 
+    execute_sql(
+        f"""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '{DEFAULT_AVATAR}'
+        """
+    )
+
+    execute_sql(
+        f"""
+        UPDATE users
+        SET avatar = '{DEFAULT_AVATAR}'
+        WHERE avatar IS NULL
+           OR TRIM(avatar) = ''
+        """
+    )
+
+    execute_sql(
+        f"""
+        ALTER TABLE users
+        ALTER COLUMN avatar SET DEFAULT '{DEFAULT_AVATAR}'
+        """
+    )
+
+    execute_sql(
+        """
+        ALTER TABLE users
+        ALTER COLUMN avatar SET NOT NULL
+        """
+    )
     execute_sql(
         """
         CREATE TABLE IF NOT EXISTS predictions (
