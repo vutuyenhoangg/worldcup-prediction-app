@@ -834,27 +834,180 @@ def render_page_title(title: str, subtitle: str = ""):
 
 def render_top_avatar(user: dict):
     """
-    Hiển thị avatar nhỏ ở góc trên bên phải màn hình.
+    Hiển thị avatar nhỏ ở góc trên bên phải.
+    Khi bấm vào avatar, mở popover để chọn avatar mới.
     Chỉ dùng cho UI, không ảnh hưởng logic dự đoán/chấm điểm.
     """
     user_id = int(user["user_id"])
+
     display_name = html.escape(
         str(user.get("display_name", "")).strip(),
         quote=False
     )
 
-    avatar_filename = user.get("avatar") or get_user_avatar_filename(user_id)
-    avatar_src = get_avatar_src(avatar_filename)
+    current_avatar = normalize_avatar(
+        user.get("avatar") or get_user_avatar_filename(user_id)
+    )
+    current_avatar_src = get_avatar_src(current_avatar)
 
+    # Style riêng cho popover avatar.
+    # key="top_avatar_popover" sẽ tạo CSS class .st-key-top_avatar_popover.
     st.markdown(
         f"""
-        <div class="wc-top-avatar">
-            <img src="{avatar_src}" alt="User avatar">
-            <div class="wc-top-avatar-name">{display_name}</div>
-        </div>
+        <style>
+        .st-key-top_avatar_popover {{
+            position: fixed !important;
+            top: 18px !important;
+            right: 28px !important;
+            z-index: 999999 !important;
+            width: 46px !important;
+            height: 46px !important;
+        }}
+
+        .st-key-top_avatar_popover button {{
+            width: 46px !important;
+            height: 46px !important;
+            min-width: 46px !important;
+            min-height: 46px !important;
+            padding: 0 !important;
+            border-radius: 50% !important;
+            background-image: url("{current_avatar_src}") !important;
+            background-size: cover !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            background-color: #FFFFFF !important;
+            border: 2px solid #F5C542 !important;
+            box-shadow: 0 10px 26px rgba(15,23,42,0.16) !important;
+            color: transparent !important;
+            font-size: 0 !important;
+            overflow: hidden !important;
+        }}
+
+        .st-key-top_avatar_popover button:hover {{
+            border-color: #00B4D8 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 12px 30px rgba(15,23,42,0.20) !important;
+        }}
+
+        .st-key-top_avatar_popover button p {{
+            display: none !important;
+        }}
+
+        .wc-avatar-picker-title {{
+            color: #07111F;
+            font-weight: 950;
+            font-size: 17px;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }}
+
+        .wc-avatar-picker-subtitle {{
+            color: #64748B;
+            font-size: 13px;
+            line-height: 1.4;
+            margin-bottom: 14px;
+        }}
+
+        .wc-avatar-picker-item {{
+            text-align: center;
+            padding: 10px 8px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(15,23,42,0.08);
+            margin-bottom: 8px;
+        }}
+
+        .wc-avatar-picker-item img {{
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #FFFFFF;
+            border: 3px solid rgba(15,23,42,0.08);
+        }}
+
+        .wc-avatar-picker-current img {{
+            border-color: #F5C542;
+            box-shadow: 0 0 0 5px rgba(245,197,66,0.18);
+        }}
+
+        @media (max-width: 900px) {{
+            .st-key-top_avatar_popover {{
+                top: 14px !important;
+                right: 16px !important;
+                width: 42px !important;
+                height: 42px !important;
+            }}
+
+            .st-key-top_avatar_popover button {{
+                width: 42px !important;
+                height: 42px !important;
+                min-width: 42px !important;
+                min-height: 42px !important;
+            }}
+        }}
+        </style>
         """,
         unsafe_allow_html=True
     )
+
+    with st.popover(
+        "Avatar",
+        key="top_avatar_popover",
+        help="Chọn avatar",
+        width="content"
+    ):
+        st.markdown(
+            f"""
+            <div class="wc-avatar-picker-title">
+                {display_name}
+            </div>
+            <div class="wc-avatar-picker-subtitle">
+                Chọn avatar bạn muốn hiển thị trên app và bảng xếp hạng.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        avatars_per_row = 3
+
+        for start in range(0, len(AVATAR_OPTIONS), avatars_per_row):
+            row_avatars = AVATAR_OPTIONS[start:start + avatars_per_row]
+            cols = st.columns(len(row_avatars))
+
+            for idx, avatar_file in enumerate(row_avatars):
+                avatar_src = get_avatar_src(avatar_file)
+                is_current = avatar_file == current_avatar
+
+                with cols[idx]:
+                    current_class = "wc-avatar-picker-current" if is_current else ""
+
+                    st.markdown(
+                        f"""
+                        <div class="wc-avatar-picker-item {current_class}">
+                            <img src="{avatar_src}" alt="Avatar option">
+                            <div style="
+                                margin-top: 7px;
+                                color: #64748B;
+                                font-size: 12px;
+                                font-weight: 800;
+                            ">
+                                {"Đang dùng" if is_current else "Avatar"}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    if st.button(
+                        "Đang dùng" if is_current else "Chọn",
+                        key=f"top_avatar_choose_{avatar_file}",
+                        disabled=is_current,
+                        use_container_width=True
+                    ):
+                        update_user_avatar(user_id, avatar_file)
+                        st.success("Đã cập nhật avatar.")
+                        st.rerun()
 
 def render_status_legend():
     st.markdown(
