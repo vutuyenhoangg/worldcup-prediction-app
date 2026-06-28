@@ -648,7 +648,61 @@ def inject_worldcup_theme():
             color: #64748B !important;
             stroke: #64748B !important;
         }}
+        /* =========================
+           User Avatar
+           ========================= */
 
+        .wc-top-avatar {
+            position: fixed;
+            top: 18px;
+            right: 28px;
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px 6px 6px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.88);
+            border: 1px solid rgba(15,23,42,0.10);
+            box-shadow: 0 10px 26px rgba(15,23,42,0.14);
+            backdrop-filter: blur(10px);
+        }
+
+        .wc-top-avatar img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #F5C542;
+            background: #FFFFFF;
+        }
+
+        .wc-top-avatar-name {
+            color: #07111F;
+            font-size: 13px;
+            font-weight: 900;
+            max-width: 140px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (max-width: 900px) {
+            .wc-top-avatar-name {
+                display: none;
+            }
+
+            .wc-top-avatar {
+                right: 16px;
+                top: 14px;
+                padding: 5px;
+            }
+
+            .wc-top-avatar img {
+                width: 34px;
+                height: 34px;
+            }
+        }
         @media (max-width: 900px) {{
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
@@ -778,6 +832,29 @@ def render_page_title(title: str, subtitle: str = ""):
         unsafe_allow_html=True
     )
 
+def render_top_avatar(user: dict):
+    """
+    Hiển thị avatar nhỏ ở góc trên bên phải màn hình.
+    Chỉ dùng cho UI, không ảnh hưởng logic dự đoán/chấm điểm.
+    """
+    user_id = int(user["user_id"])
+    display_name = html.escape(
+        str(user.get("display_name", "")).strip(),
+        quote=False
+    )
+
+    avatar_filename = user.get("avatar") or get_user_avatar_filename(user_id)
+    avatar_src = get_avatar_src(avatar_filename)
+
+    st.markdown(
+        f"""
+        <div class="wc-top-avatar">
+            <img src="{avatar_src}" alt="User avatar">
+            <div class="wc-top-avatar-name">{display_name}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def render_status_legend():
     st.markdown(
