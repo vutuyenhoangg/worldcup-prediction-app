@@ -4941,6 +4941,8 @@ def main():
 
         render_sidebar_footer()
 
+    render_top_avatar(user)
+
     if selected_page == "Lịch thi đấu & dự đoán":
         page_matches()
 
