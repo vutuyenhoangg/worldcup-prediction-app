@@ -2507,6 +2507,81 @@ def clear_data_cache():
     except NameError:
         pass
 
+# ============================================================
+# AVATAR HELPERS
+# ============================================================
+
+def normalize_avatar(avatar_filename: str | None) -> str:
+    """
+    Đảm bảo avatar luôn nằm trong danh sách preset hợp lệ.
+    Nếu dữ liệu lỗi hoặc rỗng, trả về avatar mặc định.
+    """
+    if avatar_filename is None:
+        return DEFAULT_AVATAR
+
+    if pd.isna(avatar_filename):
+        return DEFAULT_AVATAR
+
+    avatar_filename = str(avatar_filename).strip()
+
+    if avatar_filename not in AVATAR_OPTIONS:
+        return DEFAULT_AVATAR
+
+    return avatar_filename
+
+
+def get_avatar_src(avatar_filename: str | None) -> str:
+    """
+    Trả về src ảnh dùng được trong HTML.
+    Tận dụng resolve_asset_src() hiện có để hỗ trợ ảnh local.
+    """
+    avatar_filename = normalize_avatar(avatar_filename)
+    return resolve_asset_src(f"{AVATAR_DIR}/{avatar_filename}")
+
+
+def get_user_avatar_filename(user_id: int) -> str:
+    """
+    Lấy avatar hiện tại của user từ load_users() đã cache.
+    Chỉ dùng cho UI, không ảnh hưởng logic dự đoán/chấm điểm.
+    """
+    users = load_users()
+
+    if users.empty or "avatar" not in users.columns:
+        return DEFAULT_AVATAR
+
+    filtered = users[
+        users["user_id"].astype(int) == int(user_id)
+    ]
+
+    if filtered.empty:
+        return DEFAULT_AVATAR
+
+    return normalize_avatar(filtered.iloc[0].get("avatar"))
+
+
+def update_user_avatar(user_id: int, avatar_filename: str):
+    """
+    Cập nhật avatar được chọn cho user hiện tại.
+    """
+    avatar_filename = normalize_avatar(avatar_filename)
+
+    execute_sql(
+        """
+        UPDATE users
+        SET avatar = :avatar
+        WHERE user_id = :user_id
+        """,
+        {
+            "avatar": avatar_filename,
+            "user_id": int(user_id)
+        }
+    )
+
+    clear_data_cache()
+
+    if "user" in st.session_state:
+        st.session_state["user"]["avatar"] = avatar_filename
+
 def get_user_prediction_from_db(user_id: int, match_id: int):
     """
     Dùng cho thao tác ghi dữ liệu/save.
