@@ -3007,12 +3007,24 @@ def render_match_card(row, user_id: int):
         if existing:
             pred_home = int(existing["predicted_home_score"])
             pred_away = int(existing["predicted_away_score"])
-            pred_winner_team_id = existing["predicted_winner_team_id"]
+            pred_winner_team_id = to_optional_int(existing.get("predicted_winner_team_id"))
             current_star_type = normalize_star_type(existing.get("star_type"))
+            
+            knockout_winner_note = ""
+            
+            if is_knockout and pred_home == pred_away:
+                if pred_winner_team_id == home_team_id:
+                    knockout_winner_note = f" ({home_name} thắng chung cuộc)"
+
+                elif pred_winner_team_id == away_team_id:
+                    knockout_winner_note = f" ({away_name} thắng chung cuộc)"
+
+                else:
+                    knockout_winner_note = " (chưa chọn đội thắng chung cuộc)"
 
             st.markdown(
                 f"Dự đoán hiện tại của bạn: "
-                f"**{home_name} {pred_home} - {pred_away} {away_name}**"
+                f"**{home_name} {pred_home} - {pred_away} {away_name}{knockout_winner_note}**"
             )
 
             if current_star_type != STAR_TYPE_NONE:
