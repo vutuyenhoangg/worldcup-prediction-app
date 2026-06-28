@@ -523,7 +523,6 @@ def inject_worldcup_theme():
             transform: translateY(-1px);
         }}
 
-        /* Fix nút Đăng xuất trong sidebar: nền trắng nhưng chữ không bị trắng theo sidebar */
         section[data-testid="stSidebar"] .stButton > button {{
             background: rgba(255, 255, 255, 0.96) !important;
             color: #07111F !important;
@@ -560,7 +559,84 @@ def inject_worldcup_theme():
             text-decoration: none;
         }}
 
+        /* Nút mở sidebar khi sidebar đang đóng */
+        [data-testid="collapsedControl"] {{
+            position: fixed !important;
+            top: 14px !important;
+            left: 14px !important;
+            z-index: 999999 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            padding: 0 !important;
+        }}
+
+        [data-testid="collapsedControl"] button {{
+            width: 52px !important;
+            height: 52px !important;
+            min-width: 52px !important;
+            min-height: 52px !important;
+            border-radius: 999px !important;
+            background:
+                radial-gradient(circle at 30% 20%, rgba(245,197,66,0.30), transparent 34%),
+                linear-gradient(135deg, #07111F 0%, #0B1F3A 100%) !important;
+            border: 2px solid rgba(245,197,66,0.96) !important;
+            box-shadow: 0 12px 30px rgba(7,17,31,0.34) !important;
+            transition: 0.18s ease !important;
+        }}
+
+        [data-testid="collapsedControl"] button:hover {{
+            transform: translateY(-1px) !important;
+            border-color: #F5C542 !important;
+            box-shadow: 0 16px 38px rgba(7,17,31,0.42) !important;
+        }}
+
+        [data-testid="collapsedControl"] svg {{
+            width: 28px !important;
+            height: 28px !important;
+            color: #F5C542 !important;
+            stroke: #F5C542 !important;
+        }}
+
+        [data-testid="collapsedControl"]::after {{
+            content: "Menu";
+            display: inline-flex;
+            align-items: center;
+            height: 34px;
+            padding: 0 13px;
+            border-radius: 999px;
+            background: rgba(7,17,31,0.94);
+            color: #F8FAFC;
+            border: 1px solid rgba(245,197,66,0.52);
+            font-size: 13px;
+            font-weight: 950;
+            letter-spacing: 0.02em;
+            box-shadow: 0 10px 24px rgba(7,17,31,0.24);
+            pointer-events: none;
+        }}
+
+        .wc-mobile-menu-hint {{
+            display: none;
+        }}
+
+        @media (min-width: 901px) {{
+            [data-testid="collapsedControl"]::after {{
+                display: none;
+            }}
+
+            [data-testid="collapsedControl"] button {{
+                width: 44px !important;
+                height: 44px !important;
+                min-width: 44px !important;
+                min-height: 44px !important;
+            }}
+        }}
+
         @media (max-width: 900px) {{
+            .block-container {{
+                padding-top: 4.6rem;
+            }}
+
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
             }}
@@ -572,6 +648,27 @@ def inject_worldcup_theme():
 
             .wc-kpi-grid {{
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }}
+
+            .wc-mobile-menu-hint {{
+                display: block;
+                margin: 0 0 14px 0;
+                padding: 11px 14px;
+                border-radius: 16px;
+                background:
+                    radial-gradient(circle at top left, rgba(245,197,66,0.20), transparent 34%),
+                    rgba(255,255,255,0.90);
+                border: 1px solid rgba(245,197,66,0.42);
+                box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+                color: #07111F;
+                font-size: 13px;
+                line-height: 1.45;
+                font-weight: 750;
+            }}
+
+            .wc-mobile-menu-hint b {{
+                color: #07111F;
+                font-weight: 950;
             }}
         }}
         </style>
@@ -689,6 +786,15 @@ def render_page_title(title: str, subtitle: str = ""):
         unsafe_allow_html=True
     )
 
+def render_mobile_menu_hint():
+    st.markdown(
+        """
+        <div class="wc-mobile-menu-hint">
+            ☰ Bấm <b>Menu</b> ở góc trái để mở bảng điều hướng, xem bảng xếp hạng và các trang khác.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def render_status_legend():
     st.markdown(
@@ -4460,6 +4566,8 @@ def main():
         )
 
         render_sidebar_footer()
+
+    render_mobile_menu_hint()
 
     if selected_page == "Lịch thi đấu & dự đoán":
         page_matches()
