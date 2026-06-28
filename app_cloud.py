@@ -2783,7 +2783,7 @@ def update_match_result(
             if winner_team_id is None:
                 raise ValueError(
                     "Trận knockout hòa sau thời gian thi đấu. "
-                    "Bạn cần chọn đội đi tiếp."
+                    "Bạn cần chọn đội thắng chung cuộc."
                 )
 
     winner_team_name = None
@@ -2983,19 +2983,19 @@ def render_match_card(row, user_id: int):
                 )
 
                 if winner_name_is_valid:
-                    st.caption(f"Đi tiếp/thắng: {str(winner_name).strip()}")
+                    st.caption(f": {str(winner_name).strip()}")
 
                 elif not is_knockout and actual_home == actual_away:
-                    st.caption("Đi tiếp/thắng: 2 đội hòa nhau")
+                    st.caption("Thắng chung cuộc: 2 đội hòa nhau")
 
                 elif is_knockout and actual_home == actual_away:
-                    st.caption("Đi tiếp/thắng: Chưa xác định đội đi tiếp")
+                    st.caption("Thắng chung cuộc: Chưa xác định")
 
                 elif actual_home > actual_away:
-                    st.caption(f"Đi tiếp/thắng: {home_name}")
+                    st.caption(f"Thắng chung cuộc: {home_name}")
 
                 elif actual_away > actual_home:
-                    st.caption(f"Đi tiếp/thắng: {away_name}")
+                    st.caption(f"Thắng chung cuộc: {away_name}")
 
             else:
                 render_match_status_box(status_info)
@@ -3080,12 +3080,12 @@ def render_match_card(row, user_id: int):
                 if input_home > input_away:
                     predicted_winner_team_id = home_team_id
                     predicted_winner_team_name = home_name
-                    st.info(f"Đội đi tiếp tự động: {home_name}")
+                    st.info(f"Đội thắng chung cuộc tự động: {home_name}")
 
                 elif input_away > input_home:
                     predicted_winner_team_id = away_team_id
                     predicted_winner_team_name = away_name
-                    st.info(f"Đội đi tiếp tự động: {away_name}")
+                    st.info(f"Đội thắng chung cuộc tự động: {away_name}")
 
                 else:
                     winner_options = {
@@ -3099,7 +3099,7 @@ def render_match_card(row, user_id: int):
                         default_index = 1
 
                     selected_winner_name = st.radio(
-                        "Dự đoán hòa ở knockout. Chọn đội đi tiếp:",
+                        "Dự đoán hòa trong thời gian thi đấu chính thức. Chọn đội thắng chung cuộc:",
                         options=list(winner_options.keys()),
                         index=default_index,
                         horizontal=True,
@@ -4319,7 +4319,7 @@ def page_admin():
                         default_index = 1
 
                     selected_winner = st.radio(
-                        "Chọn đội đi tiếp",
+                        "Chọn đội thắng chung cuộc",
                         options=list(winner_options.keys()),
                         index=default_index,
                         horizontal=True
