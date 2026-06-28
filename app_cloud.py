@@ -795,104 +795,113 @@ def render_top_avatar(user: dict):
     )
     current_avatar_src = get_avatar_src(current_avatar)
 
-    # Style riêng cho popover avatar.
-    # key="top_avatar_popover" sẽ tạo CSS class .st-key-top_avatar_popover.
+    # Không dùng f-string cho CSS để tránh lỗi SyntaxError với dấu { } trong CSS.
+    safe_avatar_src = (
+        str(current_avatar_src)
+        .replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "")
+        .replace("\r", "")
+    )
+
+    avatar_css = """
+    <style>
+    .st-key-top_avatar_popover {
+        position: fixed !important;
+        top: 18px !important;
+        right: 28px !important;
+        z-index: 999999 !important;
+        width: 46px !important;
+        height: 46px !important;
+    }
+
+    .st-key-top_avatar_popover button {
+        width: 46px !important;
+        height: 46px !important;
+        min-width: 46px !important;
+        min-height: 46px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        background-image: url("__CURRENT_AVATAR_SRC__") !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        background-color: #FFFFFF !important;
+        border: 2px solid #F5C542 !important;
+        box-shadow: 0 10px 26px rgba(15,23,42,0.16) !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .st-key-top_avatar_popover button:hover {
+        border-color: #00B4D8 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 12px 30px rgba(15,23,42,0.20) !important;
+    }
+
+    .st-key-top_avatar_popover button p {
+        display: none !important;
+    }
+
+    .wc-avatar-picker-title {
+        color: #07111F;
+        font-weight: 950;
+        font-size: 17px;
+        line-height: 1.2;
+        margin-bottom: 4px;
+    }
+
+    .wc-avatar-picker-subtitle {
+        color: #64748B;
+        font-size: 13px;
+        line-height: 1.4;
+        margin-bottom: 14px;
+    }
+
+    .wc-avatar-picker-item {
+        text-align: center;
+        padding: 10px 8px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(15,23,42,0.08);
+        margin-bottom: 8px;
+    }
+
+    .wc-avatar-picker-item img {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        object-fit: cover;
+        background: #FFFFFF;
+        border: 3px solid rgba(15,23,42,0.08);
+    }
+
+    .wc-avatar-picker-current img {
+        border-color: #F5C542;
+        box-shadow: 0 0 0 5px rgba(245,197,66,0.18);
+    }
+
+    @media (max-width: 900px) {
+        .st-key-top_avatar_popover {
+            top: 14px !important;
+            right: 16px !important;
+            width: 42px !important;
+            height: 42px !important;
+        }
+
+        .st-key-top_avatar_popover button {
+            width: 42px !important;
+            height: 42px !important;
+            min-width: 42px !important;
+            min-height: 42px !important;
+        }
+    }
+    </style>
+    """
+
     st.markdown(
-        f"""
-        <style>
-        .st-key-top_avatar_popover {{
-            position: fixed !important;
-            top: 18px !important;
-            right: 28px !important;
-            z-index: 999999 !important;
-            width: 46px !important;
-            height: 46px !important;
-        }}
-
-        .st-key-top_avatar_popover button {{
-            width: 46px !important;
-            height: 46px !important;
-            min-width: 46px !important;
-            min-height: 46px !important;
-            padding: 0 !important;
-            border-radius: 50% !important;
-            background-image: url("{current_avatar_src}") !important;
-            background-size: cover !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
-            background-color: #FFFFFF !important;
-            border: 2px solid #F5C542 !important;
-            box-shadow: 0 10px 26px rgba(15,23,42,0.16) !important;
-            color: transparent !important;
-            font-size: 0 !important;
-            overflow: hidden !important;
-        }}
-
-        .st-key-top_avatar_popover button:hover {{
-            border-color: #00B4D8 !important;
-            transform: translateY(-1px) !important;
-            box-shadow: 0 12px 30px rgba(15,23,42,0.20) !important;
-        }}
-
-        .st-key-top_avatar_popover button p {{
-            display: none !important;
-        }}
-
-        .wc-avatar-picker-title {{
-            color: #07111F;
-            font-weight: 950;
-            font-size: 17px;
-            line-height: 1.2;
-            margin-bottom: 4px;
-        }}
-
-        .wc-avatar-picker-subtitle {{
-            color: #64748B;
-            font-size: 13px;
-            line-height: 1.4;
-            margin-bottom: 14px;
-        }}
-
-        .wc-avatar-picker-item {{
-            text-align: center;
-            padding: 10px 8px;
-            border-radius: 16px;
-            background: rgba(255,255,255,0.92);
-            border: 1px solid rgba(15,23,42,0.08);
-            margin-bottom: 8px;
-        }}
-
-        .wc-avatar-picker-item img {{
-            width: 68px;
-            height: 68px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: #FFFFFF;
-            border: 3px solid rgba(15,23,42,0.08);
-        }}
-
-        .wc-avatar-picker-current img {{
-            border-color: #F5C542;
-            box-shadow: 0 0 0 5px rgba(245,197,66,0.18);
-        }}
-
-        @media (max-width: 900px) {{
-            .st-key-top_avatar_popover {{
-                top: 14px !important;
-                right: 16px !important;
-                width: 42px !important;
-                height: 42px !important;
-            }}
-
-            .st-key-top_avatar_popover button {{
-                width: 42px !important;
-                height: 42px !important;
-                min-width: 42px !important;
-                min-height: 42px !important;
-            }}
-        }}
-        </style>
-        """,
+        avatar_css.replace("__CURRENT_AVATAR_SRC__", safe_avatar_src),
         unsafe_allow_html=True
     )
 
@@ -925,6 +934,7 @@ def render_top_avatar(user: dict):
 
                 with cols[idx]:
                     current_class = "wc-avatar-picker-current" if is_current else ""
+                    avatar_label = "Đang dùng" if is_current else "Avatar"
 
                     st.markdown(
                         f"""
@@ -936,7 +946,7 @@ def render_top_avatar(user: dict):
                                 font-size: 12px;
                                 font-weight: 800;
                             ">
-                                {"Đang dùng" if is_current else "Avatar"}
+                                {avatar_label}
                             </div>
                         </div>
                         """,
