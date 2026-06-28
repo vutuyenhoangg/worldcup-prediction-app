@@ -2548,6 +2548,12 @@ def save_prediction(
 ):
     star_type = normalize_star_type(star_type)
 
+    predicted_home_score = int(predicted_home_score)
+    predicted_away_score = int(predicted_away_score)
+
+    if predicted_winner_team_id is not None:
+        predicted_winner_team_id = int(predicted_winner_team_id)
+
     match = get_match_by_id(match_id)
 
     if match is None:
@@ -2555,6 +2561,29 @@ def save_prediction(
 
     if not can_edit_prediction(match["kickoff_time_utc"]):
         raise ValueError("Trận đấu đã khóa dự đoán.")
+
+    is_knockout = to_bool(match.get("is_knockout"))
+
+    if is_knockout:
+        home_team_id = to_optional_int(match.get("home_team_id"))
+        away_team_id = to_optional_int(match.get("away_team_id"))
+
+        if predicted_home_score > predicted_away_score:
+            predicted_winner_team_id = home_team_id
+
+        elif predicted_away_score > predicted_home_score:
+            predicted_winner_team_id = away_team_id
+
+        else:
+            valid_winner_ids = [
+                home_team_id,
+                away_team_id
+            ]
+
+            if predicted_winner_team_id not in valid_winner_ids:
+                raise ValueError(
+                    "Trận knockout hòa. Bạn cần chọn đội thắng chung cuộc."
+                )
 
     validate_star_quota(
         user_id=user_id,
@@ -3201,35 +3230,49 @@ def render_match_card(row, user_id: int):
             predicted_winner_team_name = None
 
             if is_knockout:
+                winner_options = {
+                    home_name: home_team_id,
+                    away_name: away_team_id
+                }
+
+                winner_option_names = list(winner_options.keys())
+
                 if input_home > input_away:
-                    predicted_winner_team_id = home_team_id
-                    predicted_winner_team_name = home_name
-                    st.info(f"Đội thắng chung cuộc tự động xác nhận: {home_name}")
+                    default_index = 0
+                    winner_radio_disabled = True
+                    winner_radio_key = f"winner_{match_id}_forced_home"
 
                 elif input_away > input_home:
-                    predicted_winner_team_id = away_team_id
-                    predicted_winner_team_name = away_name
-                    st.info(f"Đội thắng chung cuộc tự động xác nhận: {away_name}")
+                    default_index = 1
+                    winner_radio_disabled = True
+                    winner_radio_key = f"winner_{match_id}_forced_away"
 
                 else:
-                    winner_options = {
-                        home_name: home_team_id,
-                        away_name: away_team_id
-                    }
-
                     default_index = 0
+                    winner_radio_disabled = False
+                    winner_radio_key = f"winner_{match_id}_draw"
 
                     if pred_winner_team_id == away_team_id:
                         default_index = 1
 
-                    selected_winner_name = st.radio(
-                        "Dự đoán hòa trong thời gian thi đấu chính thức. Chọn đội thắng chung cuộc:",
-                        options=list(winner_options.keys()),
-                        index=default_index,
-                        horizontal=True,
-                        key=f"winner_{match_id}"
-                    )
+                selected_winner_name = st.radio(
+                    "Chọn đội thắng chung cuộc:",
+                    options=winner_option_names,
+                    index=default_index,
+                    horizontal=True,
+                    key=winner_radio_key,
+                    disabled=winner_radio_disabled
+                )
 
+                if input_home > input_away:
+                    predicted_winner_team_id = home_team_id
+                    predicted_winner_team_name = home_name
+
+                elif input_away > input_home:
+                    predicted_winner_team_id = away_team_id
+                    predicted_winner_team_name = away_name
+
+                else:
                     predicted_winner_team_id = winner_options[selected_winner_name]
                     predicted_winner_team_name = selected_winner_name
 
