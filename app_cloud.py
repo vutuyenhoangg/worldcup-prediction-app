@@ -3372,7 +3372,7 @@ def render_match_card(row, user_id: int):
             delete_submitted = False
             
             if existing:
-                save_col, spacer_col, delete_col = st.columns([1.45, 8, 1.45])
+                save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
                 with save_col:
                     submitted = st.form_submit_button(
