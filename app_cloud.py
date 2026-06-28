@@ -3368,8 +3368,58 @@ def render_match_card(row, user_id: int):
                 key=star_radio_key
             )
 
-            submitted = st.form_submit_button("Lưu / cập nhật dự đoán")
-
+            submitted = False
+            delete_submitted = False
+            
+            if existing:
+                save_col, delete_col, _ = st.columns([1.35, 0.95, 6.7])
+            
+                with save_col:
+                    submitted = st.form_submit_button(
+                        "Lưu / cập nhật dự đoán"
+                    )
+            
+                with delete_col:
+                    with stylable_container(
+                        key=f"delete_prediction_button_shell_{match_id}",
+                        css_styles="""
+                        button {
+                            width: 100% !important;
+                            background: rgba(255, 255, 255, 0.72) !important;
+                            color: #DC2626 !important;
+                            border: 1px solid rgba(220, 38, 38, 0.42) !important;
+                            box-shadow: none !important;
+                            font-size: 12px !important;
+                            font-weight: 750 !important;
+                            padding: 6px 10px !important;
+                            min-height: 34px !important;
+                            border-radius: 999px !important;
+                        }
+            
+                        button:hover {
+                            color: #B91C1C !important;
+                            border-color: rgba(185, 28, 28, 0.72) !important;
+                            background: rgba(254, 226, 226, 0.48) !important;
+                            transform: none !important;
+                            box-shadow: none !important;
+                        }
+            
+                        button:active {
+                            transform: none !important;
+                            box-shadow: none !important;
+                        }
+                        """
+                    ):
+                        delete_submitted = st.form_submit_button(
+                            "Hủy",
+                            help="Xóa dự đoán đã lưu cho trận này."
+                        )
+            
+            else:
+                submitted = st.form_submit_button(
+                    "Lưu / cập nhật dự đoán"
+                )
+            
             if submitted:
                 try:
                     save_prediction(
@@ -3380,72 +3430,28 @@ def render_match_card(row, user_id: int):
                         predicted_winner_team_id=predicted_winner_team_id,
                         star_type=selected_star_type
                     )
-
+            
                     st.success(
-                        "Đã lưu dự đoán. Bạn vẫn có thể chỉnh sửa dự đoán cho đến trước giờ bóng lăn."
+                        "Đã lưu dự đoán. Bạn vẫn có thể cập nhật dự đoán cho đến trước giờ bóng lăn."
                     )
                     st.rerun()
-
+            
+                except ValueError as e:
+                    st.error(str(e))
+            
+            if delete_submitted:
+                try:
+                    delete_prediction(
+                        user_id=user_id,
+                        match_id=match_id
+                    )
+            
+                    st.success("Đã hủy dự đoán.")
+                    st.rerun()
+            
                 except ValueError as e:
                     st.error(str(e))
 
-        if existing and editable:
-            st.markdown(
-                """
-                <div style="height: 10px;"></div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            delete_spacer_col, delete_button_col = st.columns([8.6, 1.4])
-
-            with delete_button_col:
-                with stylable_container(
-                    key=f"delete_prediction_button_shell_{match_id}",
-                    css_styles="""
-                    button {
-                        width: 100% !important;
-                        background: rgba(255, 255, 255, 0.88) !important;
-                        color: #B91C1C !important;
-                        border: 1px solid rgba(185, 28, 28, 0.55) !important;
-                        box-shadow: 0 7px 18px rgba(185, 28, 28, 0.08) !important;
-                        font-size: 13px !important;
-                        font-weight: 850 !important;
-                        padding: 8px 13px !important;
-                        min-height: 38px !important;
-                        border-radius: 999px !important;
-                    }
-
-                    button:hover {
-                        color: #991B1B !important;
-                        border-color: rgba(153, 27, 27, 0.88) !important;
-                        background: rgba(254, 226, 226, 0.78) !important;
-                        transform: translateY(-1px) !important;
-                        box-shadow: 0 9px 22px rgba(185, 28, 28, 0.13) !important;
-                    }
-
-                    button:active {
-                        transform: translateY(0px) !important;
-                    }
-                    """
-                ):
-                    if st.button(
-                        "Hủy dự đoán",
-                        key=f"delete_prediction_{match_id}",
-                        type="secondary",
-                        help="Xóa dự đoán đã lưu cho trận này."
-                    ):
-                        try:
-                            delete_prediction(
-                                user_id=user_id,
-                                match_id=match_id
-                            )
-
-                            st.success("Đã hủy dự đoán.")
-                            st.rerun()
-
-                        except ValueError as e:
-                            st.error(str(e))
 # ============================================================
 # 10. PAGES
 # ============================================================
