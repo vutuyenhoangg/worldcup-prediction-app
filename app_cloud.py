@@ -3287,17 +3287,25 @@ def render_match_card(row, user_id: int):
                 usage=star_usage_for_card
             )
 
+            star_radio_index = (
+                star_options.index(current_star_type)
+                if current_star_type in star_options
+                else 0
+            )
+            
+            star_radio_key = f"star_type_{match_id}_{current_star_type}"
+            
             selected_star_type = st.radio(
                 "Chọn bổ trợ cho trận này:",
                 options=star_options,
-                index=star_options.index(current_star_type) if current_star_type in star_options else 0,
+                index=star_radio_index,
                 format_func=lambda star: format_star_option_label(
                     star,
                     current_star_type=current_star_type,
                     usage=star_usage_for_card
                 ),
                 horizontal=False,
-                key=f"star_type_{match_id}"
+                key=star_radio_key
             )
 
             submitted = st.form_submit_button("Lưu / cập nhật dự đoán")
