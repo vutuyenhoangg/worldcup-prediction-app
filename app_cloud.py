@@ -23,6 +23,7 @@ import plotly.express as px
 from streamlit_extras.stylable_container import stylable_container
 import secrets
 from streamlit_cookies_controller import CookieController
+import textwrap
 
 
 # ============================================================
@@ -4624,19 +4625,19 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
         else:
             rank_style = ""
 
-        rows_html += f"""
+        rows_html += textwrap.dedent(f"""
         <div class="wc-lb-row {row_class}">
             <div class="wc-lb-rank">
                 <span class="wc-lb-rank-pill" style="{rank_style}">#{rank}</span>
             </div>
-
+        
             <div>
                 <div class="wc-lb-player-cell">
                     <img src="{avatar_src}" alt="Avatar">
                     <span class="wc-lb-player-name">{display_name}</span>
                 </div>
             </div>
-
+        
             <div class="wc-lb-points">{total_points}</div>
             <div>{base_points}</div>
             <div style="font-weight:900;color:#B45309;">{star_bonus_points}</div>
@@ -4649,9 +4650,9 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
             <div class="wc-lb-center">{exact_rate}</div>
             <div class="wc-lb-center">{result_rate}</div>
         </div>
-        """
+        """).strip()
 
-    leaderboard_html = f"""
+    leaderboard_html = textwrap.dedent(f"""
     <div class="wc-lb-wrap">
         <div class="wc-lb-grid">
             <div class="wc-lb-head">
@@ -4669,11 +4670,11 @@ def render_leaderboard_with_avatars(leaderboard: pd.DataFrame, current_display_n
                 <div>% Đúng tỉ số</div>
                 <div>% Đúng kết quả</div>
             </div>
-
+    
             {rows_html}
         </div>
     </div>
-    """
+    """).strip()
 
     st.markdown(leaderboard_html, unsafe_allow_html=True)
 
