@@ -39,6 +39,33 @@ SESSION_DAYS = 30
 HOPE_STARS_PER_USER = 5
 SUPER_STARS_PER_USER = 1
 
+# ============================================================
+# AVATAR CONFIG
+# ============================================================
+
+DEFAULT_AVATAR = "avatar_11.png"
+
+AVATAR_DIR = "data/static/avatars"
+
+AVATAR_OPTIONS = [
+    "avatar_11.png",
+    "avatar_12.png",
+    "avatar_21.png",
+    "avatar_22.png",
+    "avatar_31.png",
+    "avatar_32.png",
+    "avatar_41.png",
+    "avatar_42.png",
+    "avatar_51.png",
+    "avatar_52.png",
+    "avatar_61.png",
+    "avatar_62.png",
+    "avatar_71.png",
+    "avatar_72.png",
+    "avatar_81.png",
+    "avatar_82.png",
+]
+
 STAR_TYPE_NONE = "none"
 STAR_TYPE_HOPE = "hope"
 STAR_TYPE_SUPER = "super"
