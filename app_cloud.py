@@ -559,7 +559,95 @@ def inject_worldcup_theme():
             font-weight: 800;
             text-decoration: none;
         }}
+        /* =========================
+           Sidebar toggle handle
+           Biến nút thu/phóng sidebar mặc định thành tay nắm lớn
+           ========================= */
 
+        section[data-testid="stSidebar"] {{
+            position: relative !important;
+            overflow: visible !important;
+        }}
+
+        /* Nút khi sidebar đang mở */
+        section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] {{
+            position: absolute !important;
+            top: 20px !important;
+            right: -18px !important;
+            z-index: 1000 !important;
+        }}
+
+        section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button {{
+            width: 36px !important;
+            height: 96px !important;
+            min-width: 36px !important;
+            min-height: 96px !important;
+            border-radius: 0 18px 18px 0 !important;
+            border: 1px solid rgba(15,23,42,0.10) !important;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.98)) !important;
+            box-shadow: 0 10px 24px rgba(15,23,42,0.14) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            transition: 0.18s ease !important;
+        }}
+
+        section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button:hover {{
+            transform: translateX(2px) !important;
+            border-color: rgba(245,197,66,0.72) !important;
+            box-shadow: 0 14px 30px rgba(15,23,42,0.18) !important;
+            background:
+                linear-gradient(180deg, #FFFFFF, #FFF7ED) !important;
+        }}
+
+        section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] svg {{
+            width: 22px !important;
+            height: 22px !important;
+            color: #07111F !important;
+            stroke: #07111F !important;
+        }}
+
+        /* Nút khi sidebar đang đóng */
+        [data-testid="collapsedControl"] {{
+            position: fixed !important;
+            top: 20px !important;
+            left: 0 !important;
+            z-index: 1000 !important;
+        }}
+
+        [data-testid="collapsedControl"] button {{
+            width: 36px !important;
+            height: 96px !important;
+            min-width: 36px !important;
+            min-height: 96px !important;
+            border-radius: 0 18px 18px 0 !important;
+            border: 1px solid rgba(15,23,42,0.10) !important;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.98)) !important;
+            box-shadow: 0 10px 24px rgba(15,23,42,0.14) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            transition: 0.18s ease !important;
+        }}
+
+        [data-testid="collapsedControl"] button:hover {{
+            transform: translateX(2px) !important;
+            border-color: rgba(245,197,66,0.72) !important;
+            box-shadow: 0 14px 30px rgba(15,23,42,0.18) !important;
+            background:
+                linear-gradient(180deg, #FFFFFF, #FFF7ED) !important;
+        }}
+
+        [data-testid="collapsedControl"] svg {{
+            width: 22px !important;
+            height: 22px !important;
+            color: #07111F !important;
+            stroke: #07111F !important;
+        }}
         @media (max-width: 900px) {{
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
