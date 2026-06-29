@@ -4479,7 +4479,7 @@ def build_leaderboard_df():
 
     summary = (
         df
-        .groupby(["user_id", "username", "display_name", "role", "avatar_key"], as_index=False)
+        .groupby(["user_id", "username", "display_name", "role"], as_index=False)
         .agg(
             total_points=("points", "sum"),
             base_points=("base_points", "sum"),
@@ -4568,7 +4568,6 @@ def page_leaderboard():
     display_df = leaderboard[
         [
             "rank",
-            "avatar_key",
             "display_name",
             "total_points",
             "base_points",
@@ -4586,7 +4585,6 @@ def page_leaderboard():
 
     display_df = display_df.rename(columns={
         "rank": "Hạng",
-        "avatar_key": "Avatar",
         "display_name": "Người chơi",
         "total_points": "Điểm",
         "base_points": "Điểm gốc",
@@ -4609,192 +4607,157 @@ def page_leaderboard():
     for col in percent_cols:
         display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.1f}%")
 
-    def get_rank_cell_style(rank_value: int) -> str:
-        if rank_value == 1:
-            return "background:#F5C542;color:#78350F;font-weight:950;"
+    def style_leaderboard_row(row):
+        styles = []
 
-        if rank_value == 2:
-            return "background:#CBD5E1;color:#334155;font-weight:950;"
-
-        if rank_value == 3:
-            return "background:#CD7F32;color:#431407;font-weight:950;"
-
-        return "font-weight:950;color:#07111F;"
-
-    rows_html = ""
-
-    for _, row in display_df.iterrows():
+        is_current_user = str(row["Người chơi"]).strip() == current_display_name
         rank_value = int(row["Hạng"])
-        player_name = str(row["Người chơi"]).strip()
-        is_current_user = player_name == current_display_name
 
-        avatar_src = get_avatar_src(row.get("Avatar"))
+        for col in row.index:
+            style = ""
 
-        row_bg = "#E0F2FE" if is_current_user else "rgba(255,255,255,0.76)"
-        row_font_weight = "800" if is_current_user else "500"
+            if is_current_user:
+                style += (
+                    "background-color: #E0F2FE !important; "
+                    "font-weight: 800 !important; "
+                )
 
-        safe_player_name = html.escape(player_name)
+            if col == "Điểm":
+                style += (
+                    "font-weight: 1390 !important; "
+                    "color: #07111F !important; "
+                )
 
-        player_cell_html = f"""
-            <div class="wc-leaderboard-player-cell">
-                <img
-                    src="{avatar_src}"
-                    class="wc-leaderboard-avatar"
-                    alt="Avatar của {safe_player_name}"
-                >
-                <span>{safe_player_name}</span>
-            </div>
-        """
+            if col == "Thưởng sao":
+                style += (
+                    "font-weight: 900 !important; "
+                    "color: #B45309 !important; "
+                )
 
-        rows_html += f"""
-        <tr style="background:{row_bg};font-weight:{row_font_weight};">
-            <td class="wc-rank-cell" style="{get_rank_cell_style(rank_value)}">{rank_value}</td>
-            <td>{player_cell_html}</td>
-            <td class="wc-score-cell">{int(row["Điểm"])}</td>
-            <td>{int(row["Điểm gốc"])}</td>
-            <td class="wc-bonus-cell">{int(row["Thưởng sao"])}</td>
-            <td class="wc-star-cell">{html.escape(str(row["⭐"]))}</td>
-            <td class="wc-star-cell">{html.escape(str(row["✨"]))}</td>
-            <td>{int(row["Số dự đoán"])}</td>
-            <td>{int(row["Số trận đã chấm"])}</td>
-            <td>{int(row["Đúng tỉ số"])}</td>
-            <td>{int(row["Đúng kết quả"])}</td>
-            <td>{html.escape(str(row["% Đúng tỉ số"]))}</td>
-            <td>{html.escape(str(row["% Đúng kết quả"]))}</td>
-        </tr>
-        """
+            if col in ["⭐", "✨"]:
+                style += (
+                    "text-align: center !important; "
+                    "font-weight: 900 !important; "
+                    "color: #78350F !important; "
+                )
 
-    leaderboard_html = f"""
-    <style>
-        .wc-leaderboard-table-wrapper {{
-            width: 100%;
-            overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid rgba(15,23,42,0.08);
-            box-shadow: 0 10px 28px rgba(15,23,42,0.06);
-            background: rgba(255,255,255,0.82);
-        }}
+            if col == "Hạng":
+                style += (
+                    "font-weight: 950 !important; "
+                    "text-align: center !important; "
+                )
 
-        .wc-leaderboard-table {{
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            color: #07111F;
-        }}
+                if rank_value == 1:
+                    style += (
+                        "background-color: #F5C542 !important; "
+                        "color: #78350F !important; "
+                    )
 
-        .wc-leaderboard-table thead th {{
-            background: #07111F;
-            color: #F8FAFC;
-            font-weight: 900;
-            text-align: left;
-            padding: 11px 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.16);
-            white-space: nowrap;
-        }}
+                elif rank_value == 2:
+                    style += (
+                        "background-color: #CBD5E1 !important; "
+                        "color: #334155 !important; "
+                    )
 
-        .wc-leaderboard-table tbody td {{
-            padding: 10px 12px;
-            border-bottom: 1px solid rgba(15,23,42,0.08);
-            vertical-align: middle;
-            white-space: nowrap;
-        }}
+                elif rank_value == 3:
+                    style += (
+                        "background-color: #CD7F32 !important; "
+                        "color: #431407 !important; "
+                    )
 
-        .wc-leaderboard-table tbody tr:last-child td {{
-            border-bottom: none;
-        }}
+            styles.append(style)
 
-        .wc-rank-cell {{
-            text-align: center;
-            min-width: 56px;
-        }}
+        return styles
 
-        .wc-score-cell {{
-            font-weight: 950;
-            color: #07111F;
-        }}
-
-        .wc-bonus-cell {{
-            font-weight: 900;
-            color: #B45309;
-        }}
-
-        .wc-star-cell {{
-            text-align: center;
-            font-weight: 900;
-            color: #78350F;
-        }}
-
-        .wc-leaderboard-player-cell {{
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 150px;
-        }}
-
-        .wc-leaderboard-avatar {{
-            width: 30px;
-            height: 30px;
-            min-width: 30px;
-            border-radius: 999px;
-            object-fit: cover;
-            border: 2px solid #FFFFFF;
-            box-shadow: 0 4px 10px rgba(15,23,42,0.16);
-            background: #FFFFFF;
-        }}
-
-        @media (max-width: 768px) {{
-            .wc-leaderboard-table {{
-                font-size: 13px;
-            }}
-
-            .wc-leaderboard-table thead th,
-            .wc-leaderboard-table tbody td {{
-                padding: 9px 10px;
-            }}
-
-            .wc-leaderboard-avatar {{
-                width: 28px;
-                height: 28px;
-                min-width: 28px;
-            }}
-
-            .wc-leaderboard-player-cell {{
-                gap: 8px;
-                min-width: 135px;
-            }}
-        }}
-    </style>
-
-    <div class="wc-leaderboard-table-wrapper">
-        <table class="wc-leaderboard-table">
-            <thead>
-                <tr>
-                    <th>Hạng</th>
-                    <th>Người chơi</th>
-                    <th>Điểm</th>
-                    <th>Điểm gốc</th>
-                    <th>Thưởng sao</th>
-                    <th>⭐</th>
-                    <th>✨</th>
-                    <th>Số dự đoán</th>
-                    <th>Số trận đã chấm</th>
-                    <th>Đúng tỉ số</th>
-                    <th>Đúng kết quả</th>
-                    <th>% Đúng tỉ số</th>
-                    <th>% Đúng kết quả</th>
-                </tr>
-            </thead>
-            <tbody>
-                {rows_html}
-            </tbody>
-        </table>
-    </div>
-    """
-
-    st.markdown(
-        leaderboard_html,
-        unsafe_allow_html=True
+    styled_df = (
+        display_df
+        .style
+        .apply(style_leaderboard_row, axis=1)
+        .set_properties(
+            subset=["Điểm"],
+            **{
+                "font-weight": "1390 !important",
+                "color": "#07111F !important"
+            }
+        )
+        .set_properties(
+            subset=["Thưởng sao"],
+            **{
+                "font-weight": "900 !important",
+                "color": "#B45309 !important"
+            }
+        )
+        .set_properties(
+            subset=["⭐", "✨"],
+            **{
+                "text-align": "center !important",
+                "font-weight": "900 !important",
+                "color": "#78350F !important"
+            }
+        )
+        .set_table_styles(
+            [
+                {
+                    "selector": "thead th",
+                    "props": [
+                        ("background-color", "#07111F"),
+                        ("color", "#F8FAFC"),
+                        ("font-weight", "900"),
+                        ("text-align", "left"),
+                        ("border-bottom", "1px solid rgba(255,255,255,0.16)"),
+                        ("padding", "11px 12px")
+                    ]
+                },
+                {
+                    "selector": "thead th:nth-child(6)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-size", "18px")
+                    ]
+                },
+                {
+                    "selector": "thead th:nth-child(7)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-size", "18px")
+                    ]
+                },
+                {
+                    "selector": "tbody td",
+                    "props": [
+                        ("border-bottom", "1px solid rgba(15,23,42,0.08)"),
+                        ("padding", "10px 12px")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(6)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-weight", "900"),
+                        ("color", "#78350F")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(7)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-weight", "900"),
+                        ("color", "#78350F")
+                    ]
+                },
+                {
+                    "selector": "table",
+                    "props": [
+                        ("width", "100%"),
+                        ("border-collapse", "collapse"),
+                        ("font-size", "14px")
+                    ]
+                }
+            ]
+        )
     )
+
+    st.table(styled_df)
 
 def page_dashboard():
     render_page_title(
