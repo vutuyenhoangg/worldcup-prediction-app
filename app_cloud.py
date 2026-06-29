@@ -1851,6 +1851,25 @@ def init_app_tables():
 
     execute_sql(
         """
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS avatar_key TEXT DEFAULT 'avatar_01.png'
+        """
+    )
+
+    execute_sql(
+        """
+        UPDATE users
+        SET avatar_key = :default_avatar_key
+        WHERE avatar_key IS NULL
+           OR TRIM(avatar_key) = ''
+        """,
+        {
+            "default_avatar_key": DEFAULT_AVATAR_KEY
+        }
+    )
+
+    execute_sql(
+        """
         CREATE TABLE IF NOT EXISTS predictions (
             prediction_id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
