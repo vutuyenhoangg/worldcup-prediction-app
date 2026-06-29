@@ -42,6 +42,40 @@ SUPER_STARS_PER_USER = 1
 AVATAR_FOLDER = "data/static/avatars"
 DEFAULT_AVATAR_KEY = "avatar_default_1.png"
 AVATAR_EXTENSIONS = {".png"}
+AVATAR_ORDER = [
+    "avatar_default_1.png",
+    "avatar_default_2.png",
+    "avatar_1.png",
+    "avatar_2.png",
+    "avatar_3.png",
+    "avatar_4.png",
+    "avatar_5.png",
+    "avatar_6.png",
+    "avatar_7.png",
+    "avatar_8.png",
+    "avatar_9.png",
+    "avatar_10.png",
+    "avatar_11.png",
+    "avatar_12.png",
+    "avatar_13.png",
+    "avatar_14.png",
+    "avatar_15.png",
+    "avatar_16.png",
+    "avatar_17.png",
+    "avatar_18.png",
+    "avatar_19.png",
+    "avatar_20.png",
+    "avatar_21.png",
+    "avatar_22.png",
+    "avatar_23.png",
+    "avatar_24.png",
+    "avatar_25.png",
+    "avatar_26.png",
+    "avatar_27.png",
+    "avatar_28.png",
+    "avatar_29.png",
+    "avatar_30.png"
+]
 
 STAR_TYPE_NONE = "none"
 STAR_TYPE_HOPE = "hope"
@@ -146,8 +180,8 @@ def load_avatar_keys() -> list[str]:
     """
     Load danh sách avatar có sẵn trong folder data/static/avatars.
 
-    App chỉ cho người chơi chọn trong danh sách này, không cho nhập đường dẫn tự do.
-    Như vậy sẽ an toàn hơn và tránh lỗi file không tồn tại.
+    Nếu AVATAR_ORDER có khai báo thứ tự, app sẽ ưu tiên hiển thị theo thứ tự đó.
+    Các file avatar chưa có trong AVATAR_ORDER sẽ được xếp phía sau theo tên file.
     """
     avatar_dir = BASE_DIR / AVATAR_FOLDER
 
@@ -163,7 +197,21 @@ def load_avatar_keys() -> list[str]:
         ):
             avatar_keys.append(file_path.name)
 
-    return sorted(avatar_keys)
+    available_avatar_keys = set(avatar_keys)
+
+    ordered_avatar_keys = [
+        avatar_key
+        for avatar_key in AVATAR_ORDER
+        if avatar_key in available_avatar_keys
+    ]
+
+    remaining_avatar_keys = sorted(
+        avatar_key
+        for avatar_key in avatar_keys
+        if avatar_key not in set(ordered_avatar_keys)
+    )
+
+    return ordered_avatar_keys + remaining_avatar_keys
 
 
 def normalize_avatar_key(avatar_key) -> str:
@@ -1212,6 +1260,10 @@ def render_avatar_popover(user: dict):
             background: #F5C542;
             border: 2px solid #FFFFFF;
         }}
+        div[data-testid="stPopoverBody"] {{
+            min-width: 460px !important;
+            max-width: 520px !important;
+        }}
         """
     ):
         with st.popover(" ", use_container_width=False):
@@ -1237,7 +1289,7 @@ def render_avatar_popover(user: dict):
                 unsafe_allow_html=True
             )
 
-            avatars_per_row = 3
+            avatars_per_row = 4
 
             for start_idx in range(0, len(avatar_keys), avatars_per_row):
                 row_avatar_keys = avatar_keys[start_idx:start_idx + avatars_per_row]
