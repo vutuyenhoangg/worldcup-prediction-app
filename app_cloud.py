@@ -4593,7 +4593,7 @@ def page_leaderboard():
 
     display_df = display_df.rename(columns={
         "rank": "Hạng",
-        "avatar_key": " "
+        "avatar_key": "Avatar"
         "display_name": "Người chơi",
         "total_points": "Điểm",
         "base_points": "Điểm gốc",
@@ -4631,7 +4631,7 @@ def page_leaderboard():
                     "font-weight: 800 !important; "
                 )
 
-            if col == " ":
+            if col == "Avatar":
                 style += (
                     "text-align: center !important; "
                     "vertical-align: middle !important; "
