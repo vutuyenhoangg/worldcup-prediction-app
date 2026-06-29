@@ -1652,7 +1652,7 @@ def render_avatar_popover(user: dict):
                     margin-bottom: 14px;
                     line-height: 1.4;
                 ">
-                    Bấm vào một avatar bên dưới để đổi ảnh đại diện của bạn.
+                    Chọn ảnh đại diện của bạn.
                 </div>
                 """,
                 unsafe_allow_html=True
