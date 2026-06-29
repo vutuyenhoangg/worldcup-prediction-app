@@ -4619,27 +4619,27 @@ def page_leaderboard():
 
     scope_info_map = {
         "overall": {
-            "title": "🏆 Bảng xếp hạng tổng",
+            "title": "BXH TỔNG",
             "badge": "BXH chính",
-            "select_label": "🏆 Bảng xếp hạng tổng  ·  BXH chính",
-            "description": "Tính điểm từ toàn bộ các trận đã được chấm. Đây là bảng xếp hạng chính của cuộc đua.",
+            "select_label": "BXH TỔNG  ·  BXH chính",
+            "description": "Tính điểm từ toàn bộ các trận đã được chấm.",
             "border_color": "#F5C542",
             "card_bg": "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.94))",
             "text_color": "#07111F"
         },
         "group": {
-            "title": "Bảng xếp hạng vòng bảng",
+            "title": "BXH vòng bảng",
             "badge": "BXH phụ",
-            "select_label": "Vòng bảng  ·  BXH phụ",
+            "select_label": "BXH vòng bảng  ·  BXH phụ",
             "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng bảng.",
             "border_color": "#94A3B8",
             "card_bg": "rgba(255,255,255,0.90)",
             "text_color": "#07111F"
         },
         "knockout": {
-            "title": "Bảng xếp hạng vòng knockout",
+            "title": "BXH vòng knockout",
             "badge": "BXH phụ",
-            "select_label": "Knockout  ·  BXH phụ",
+            "select_label": "BXH vòng knockout  ·  BXH phụ",
             "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng knockout.",
             "border_color": "#94A3B8",
             "card_bg": "rgba(255,255,255,0.90)",
