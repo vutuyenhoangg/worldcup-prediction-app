@@ -1431,7 +1431,7 @@ def render_avatar_popover(user: dict):
             content: "✎";
             position: absolute;
             left: 50%;
-            bottom: -4px;
+            bottom: -10px;
             right: auto;
             top: auto;
             width: 15px;
@@ -1576,7 +1576,7 @@ def render_avatar_popover(user: dict):
             div[data-testid="stPopover"] > button::after,
             div[data-testid="stPopover"] > div > button::after {{
                 left: 50%;
-                bottom: -3px;
+                bottom: -8px;
                 right: auto;
                 top: auto;
                 width: 13px;
