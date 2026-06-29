@@ -1187,11 +1187,11 @@ def render_avatar_popover(user: dict):
     Bấm vào avatar để mở kho chọn avatar.
 
     Cập nhật UI:
-    - Avatar có viền vàng nhẹ để nổi bật hơn.
-    - Badge bút chì nhỏ hơn và được đặt ở chính giữa mép dưới avatar.
-    - Hover sẽ hiện tooltip "Đổi avatar" trên desktop.
-    - Popup chọn avatar vẫn giữ layout 4 ảnh / hàng trên desktop, 2 ảnh / hàng trên mobile.
+    - Avatar chính có viền vàng nhẹ và badge bút chì nhỏ ở chính giữa mép dưới.
+    - Popup desktop: 4 avatar mỗi hàng.
+    - Popup mobile: 2 avatar mỗi hàng, card cao hơn, ảnh avatar lớn hơn để dễ nhìn.
     - Người dùng chọn avatar bằng cách bấm trực tiếp vào khung avatar.
+    - CSS target theo key riêng để hạn chế ảnh hưởng các nút khác.
     """
     avatar_keys = load_avatar_keys()
 
@@ -1317,37 +1317,38 @@ def render_avatar_popover(user: dict):
 
                         @media (max-width: 768px) {{
                             .st-key-{avatar_button_key} button {{
-                                height: 72px !important;
-                                min-height: 72px !important;
-                                border-radius: 14px !important;
-                                margin-bottom: 6px !important;
+                                height: 112px !important;
+                                min-height: 112px !important;
+                                border-radius: 18px !important;
+                                margin-bottom: 10px !important;
                             }}
 
                             .st-key-{avatar_button_key} button::before {{
-                                width: 52px;
-                                height: 52px;
-                                border-width: 2px;
+                                width: 82px;
+                                height: 82px;
+                                border-width: 3px;
+                                box-shadow: 0 8px 20px rgba(15,23,42,0.18);
                             }}
 
                             .st-key-{avatar_button_key} button::after {{
-                                right: 10px;
-                                bottom: 10px;
-                                width: 19px;
-                                height: 19px;
-                                font-size: 11px;
+                                right: 12px;
+                                bottom: 12px;
+                                width: 22px;
+                                height: 22px;
+                                font-size: 12px;
                             }}
                         }}
 
                         @media (max-width: 390px) {{
                             .st-key-{avatar_button_key} button {{
-                                height: 66px !important;
-                                min-height: 66px !important;
-                                border-radius: 12px !important;
+                                height: 104px !important;
+                                min-height: 104px !important;
+                                border-radius: 16px !important;
                             }}
 
                             .st-key-{avatar_button_key} button::before {{
-                                width: 48px;
-                                height: 48px;
+                                width: 76px;
+                                height: 76px;
                             }}
                         }}
                         </style>
@@ -1425,13 +1426,13 @@ def render_avatar_popover(user: dict):
                 outline-color 0.18s ease !important;
         }}
 
-        /* Badge bút chì: nhỏ hơn và nằm chính giữa mép dưới */
+        /* Badge bút chì nhỏ, nằm chính giữa mép dưới avatar */
         div[data-testid="stPopover"] > button::after,
         div[data-testid="stPopover"] > div > button::after {{
             content: "✎";
             position: absolute;
             left: 50%;
-            bottom: -10px;
+            bottom: -7px;
             right: auto;
             top: auto;
             width: 15px;
@@ -1576,7 +1577,7 @@ def render_avatar_popover(user: dict):
             div[data-testid="stPopover"] > button::after,
             div[data-testid="stPopover"] > div > button::after {{
                 left: 50%;
-                bottom: -8px;
+                bottom: -6px;
                 right: auto;
                 top: auto;
                 width: 13px;
@@ -1598,14 +1599,14 @@ def render_avatar_popover(user: dict):
                 left: 50% !important;
                 right: auto !important;
                 transform: translateX(-50%) !important;
-                width: min(320px, calc(100vw - 44px)) !important;
+                width: min(360px, calc(100vw - 32px)) !important;
                 min-width: unset !important;
-                max-width: 320px !important;
-                max-height: 54vh !important;
+                max-width: 360px !important;
+                max-height: 64vh !important;
                 overflow-y: auto !important;
                 overflow-x: hidden !important;
-                padding: 14px 12px !important;
-                border-radius: 18px !important;
+                padding: 16px 14px !important;
+                border-radius: 20px !important;
             }}
 
             .wc-avatar-grid-desktop-shell {{
@@ -1618,8 +1619,8 @@ def render_avatar_popover(user: dict):
 
             div[data-testid="stPopoverBody"] [data-testid="column"],
             div[data-testid="stPopoverContent"] [data-testid="column"] {{
-                padding-left: 4px !important;
-                padding-right: 4px !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
             }}
         }}
 
@@ -1627,10 +1628,10 @@ def render_avatar_popover(user: dict):
             div[data-testid="stPopoverBody"],
             div[data-testid="stPopoverContent"] {{
                 top: 78px !important;
-                width: min(300px, calc(100vw - 40px)) !important;
-                max-width: 300px !important;
-                max-height: 50vh !important;
-                padding: 12px 10px !important;
+                width: min(340px, calc(100vw - 28px)) !important;
+                max-width: 340px !important;
+                max-height: 62vh !important;
+                padding: 14px 12px !important;
             }}
         }}
         """
@@ -1652,7 +1653,7 @@ def render_avatar_popover(user: dict):
                     margin-bottom: 14px;
                     line-height: 1.4;
                 ">
-                    Chọn ảnh đại diện của bạn.
+                    Bấm vào một avatar bên dưới để đổi ảnh đại diện của bạn.
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1690,6 +1691,26 @@ def render_avatar_popover(user: dict):
                     {
                         display: block !important;
                     }
+
+                    div[data-testid="stHorizontalBlock"] {
+                        display: grid !important;
+                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                        gap: 10px !important;
+                        align-items: stretch !important;
+                        width: 100% !important;
+                    }
+
+                    div[data-testid="column"] {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        flex: unset !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+
+                    div[data-testid="stButton"] {
+                        width: 100% !important;
+                    }
                 }
                 """
             ):
@@ -1699,7 +1720,6 @@ def render_avatar_popover(user: dict):
                 )
                 render_avatar_grid(avatars_per_row=2, key_prefix="mobile")
                 st.markdown("</div>", unsafe_allow_html=True)
-
 # ============================================================
 # 3. BASIC UTILITIES
 # ============================================================
