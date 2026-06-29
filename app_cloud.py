@@ -4573,6 +4573,7 @@ def page_leaderboard():
     display_df = leaderboard[
         [
             "rank",
+            "avatar_key",
             "display_name",
             "total_points",
             "base_points",
@@ -4588,8 +4589,11 @@ def page_leaderboard():
         ]
     ].copy()
 
+    display_df["avatar_key"] = display_df["avatar_key"].apply(get_avatar_src)
+
     display_df = display_df.rename(columns={
         "rank": "Hạng",
+        "avatar_key": " "
         "display_name": "Người chơi",
         "total_points": "Điểm",
         "base_points": "Điểm gốc",
@@ -4625,6 +4629,12 @@ def page_leaderboard():
                 style += (
                     "background-color: #E0F2FE !important; "
                     "font-weight: 800 !important; "
+                )
+
+            if col == " ":
+                style += (
+                    "text-align: center !important; "
+                    "vertical-align: middle !important; "
                 )
         
             if col == "Người chơi":
@@ -4746,14 +4756,14 @@ def page_leaderboard():
                 },
                 
                 {
-                    "selector": "thead th:nth-child(6)",
+                    "selector": "thead th:nth-child(7)",
                     "props": [
                         ("text-align", "center"),
                         ("font-size", "18px")
                     ]
                 },
                 {
-                    "selector": "thead th:nth-child(7)",
+                    "selector": "thead th:nth-child(8)",
                     "props": [
                         ("text-align", "center"),
                         ("font-size", "18px")
@@ -4767,7 +4777,7 @@ def page_leaderboard():
                     ]
                 },
                 {
-                    "selector": "tbody td:nth-child(6)",
+                    "selector": "tbody td:nth-child(7)",
                     "props": [
                         ("text-align", "center"),
                         ("font-weight", "900"),
@@ -4775,7 +4785,7 @@ def page_leaderboard():
                     ]
                 },
                 {
-                    "selector": "tbody td:nth-child(7)",
+                    "selector": "tbody td:nth-child(8)",
                     "props": [
                         ("text-align", "center"),
                         ("font-weight", "900"),
@@ -4794,7 +4804,19 @@ def page_leaderboard():
         )
     )
 
-    st.table(styled_df)
+    st.dataframe(
+        styled_df,
+        use_container_width=True,
+        hide_index=True,
+        row_height=44,
+        column_config={
+            "Avatar": st.column_config.ImageColumn(
+                label="",
+                width="small",
+                help=None
+            )
+        }
+    )
 
 def page_dashboard():
     render_page_title(
