@@ -4619,9 +4619,9 @@ def page_leaderboard():
 
     scope_info_map = {
         "overall": {
-            "title": "BXH TỔNG",
+            "title": "BẢNG XẾP HẠNG TỔNG",
             "badge": "BXH CHÍNH",
-            "select_label": "BXH TỔNG  ·  BXH CHÍNH",
+            "select_label": "BẢNG XẾP HẠNG TỔNG",
             "description": "Tính điểm từ toàn bộ các trận đấu đã dự đoán.",
             "border_color": "#F5C542",
             "card_bg": "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.94))",
