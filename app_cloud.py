@@ -4479,7 +4479,7 @@ def build_leaderboard_df():
 
     summary = (
         df
-        .groupby(["user_id", "username", "display_name", "role"], as_index=False)
+        .groupby(["user_id", "username", "display_name", "role", "avatar_key"], as_index=False)
         .agg(
             total_points=("points", "sum"),
             base_points=("base_points", "sum"),
@@ -4565,6 +4565,11 @@ def page_leaderboard():
         lambda x: f"{max(0, SUPER_STARS_PER_USER - int(x))}/{SUPER_STARS_PER_USER}"
     )
 
+    avatar_src_by_display_name = {
+        str(row["display_name"]).strip(): get_avatar_src(row.get("avatar_key"))
+        for _, row in leaderboard.iterrows()
+    }
+
     display_df = leaderboard[
         [
             "rank",
@@ -4621,6 +4626,23 @@ def page_leaderboard():
                     "background-color: #E0F2FE !important; "
                     "font-weight: 800 !important; "
                 )
+        
+            if col == "Người chơi":
+                player_name = str(row["Người chơi"]).strip()
+                avatar_src = avatar_src_by_display_name.get(player_name, "")
+        
+                if avatar_src:
+                    safe_avatar_src = str(avatar_src).replace('"', '\\"')
+        
+                    style += (
+                        f'background-image: url("{safe_avatar_src}") !important; '
+                        "background-repeat: no-repeat !important; "
+                        "background-size: 28px 28px !important; "
+                        "background-position: 12px center !important; "
+                        "padding-left: 50px !important; "
+                        "min-width: 155px !important; "
+                        "vertical-align: middle !important; "
+                    )
 
             if col == "Điểm":
                 style += (
@@ -4708,6 +4730,21 @@ def page_leaderboard():
                         ("padding", "11px 12px")
                     ]
                 },
+
+                {
+                    "selector": "thead th:nth-child(2)",
+                    "props": [
+                        ("min-width", "155px")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(2)",
+                    "props": [
+                        ("min-width", "155px"),
+                        ("height", "44px")
+                    ]
+                },
+                
                 {
                     "selector": "thead th:nth-child(6)",
                     "props": [
