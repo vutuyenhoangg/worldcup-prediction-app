@@ -4625,200 +4625,165 @@ def page_leaderboard():
     )
 
     score_all_predictions()
-    
+
+    # =========================
+    # Leaderboard scope dropdown
+    # =========================
+    leaderboard_scope_options = [
+        "overall",
+        "group",
+        "knockout"
+    ]
+
+    scope_info_map = {
+        "overall": {
+            "title": "Bảng xếp hạng tổng",
+            "select_label": "🏆 Bảng xếp hạng tổng",
+            "badge": "BXH chính",
+            "description": "Tính điểm từ toàn bộ các trận đã được chấm. Đây là bảng xếp hạng chính của cuộc đua.",
+            "border_color": "#F5C542",
+            "badge_bg": "#FEF3C7",
+            "badge_text": "#92400E",
+            "card_bg": "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.94))"
+        },
+        "group": {
+            "title": "Bảng xếp hạng vòng bảng",
+            "select_label": "Vòng bảng",
+            "badge": "BXH phụ",
+            "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng bảng.",
+            "border_color": "#94A3B8",
+            "badge_bg": "#E2E8F0",
+            "badge_text": "#475569",
+            "card_bg": "rgba(255,255,255,0.88)"
+        },
+        "knockout": {
+            "title": "Bảng xếp hạng vòng knockout",
+            "select_label": "Knockout",
+            "badge": "BXH phụ",
+            "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng knockout.",
+            "border_color": "#94A3B8",
+            "badge_bg": "#E2E8F0",
+            "badge_text": "#475569",
+            "card_bg": "rgba(255,255,255,0.88)"
+        }
+    }
+
     if "leaderboard_scope" not in st.session_state:
         st.session_state["leaderboard_scope"] = "overall"
-    
-    leaderboard_scope = st.session_state["leaderboard_scope"]
-    
-    if "leaderboard_scope" not in st.session_state:
+
+    if st.session_state["leaderboard_scope"] not in leaderboard_scope_options:
         st.session_state["leaderboard_scope"] = "overall"
-    
+
     leaderboard_scope = st.session_state["leaderboard_scope"]
-    
-    overall_bg = "#FDE68A" if leaderboard_scope == "overall" else "#FFF7D6"
-    overall_border = "#F5C542" if leaderboard_scope == "overall" else "rgba(245,197,66,0.65)"
-    overall_text = "#78350F"
-    
-    group_bg = "#2563EB" if leaderboard_scope == "group" else "#FFFFFF"
-    group_border = "#2563EB" if leaderboard_scope == "group" else "rgba(15,23,42,0.12)"
-    group_text = "#FFFFFF" if leaderboard_scope == "group" else "#334155"
-    
-    knockout_bg = "#FF4D4F" if leaderboard_scope == "knockout" else "#FFFFFF"
-    knockout_border = "#FF4D4F" if leaderboard_scope == "knockout" else "rgba(15,23,42,0.12)"
-    knockout_text = "#FFFFFF" if leaderboard_scope == "knockout" else "#334155"
-    
+    scope_info = scope_info_map[leaderboard_scope]
+
     with stylable_container(
-        key="leaderboard_scope_switcher",
+        key="leaderboard_scope_dropdown_card",
         css_styles=f"""
         {{
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-            margin: 6px 0 14px 0 !important;
+            margin: 8px 0 18px 0;
+            padding: 16px 18px;
+            border-radius: 20px;
+            background: {scope_info["card_bg"]};
+            border: 1px solid rgba(15,23,42,0.08);
+            border-left: 5px solid {scope_info["border_color"]};
+            box-shadow: 0 10px 26px rgba(15,23,42,0.06);
         }}
-    
-        .st-key-leaderboard_scope_overall_btn button,
-        .st-key-leaderboard_scope_group_btn button,
-        .st-key-leaderboard_scope_knockout_btn button {{
-            min-height: 40px !important;
-            height: 40px !important;
-            border-radius: 999px !important;
+
+        div[data-testid="stSelectbox"] {{
+            margin-bottom: 0 !important;
+        }}
+
+        div[data-testid="stSelectbox"] label {{
+            color: #334155 !important;
             font-weight: 850 !important;
-            font-size: 14px !important;
-            padding: 0 10px !important;
-            white-space: nowrap !important;
+            font-size: 13px !important;
+            margin-bottom: 6px !important;
+        }}
+
+        div[data-baseweb="select"] > div {{
+            background: #FFFFFF !important;
+            border: 1px solid rgba(15,23,42,0.12) !important;
+            border-radius: 999px !important;
+            min-height: 42px !important;
             box-shadow: none !important;
         }}
-    
-        .st-key-leaderboard_scope_overall_btn button {{
-            background: {overall_bg} !important;
-            color: {overall_text} !important;
-            border: 1px solid {overall_border} !important;
+
+        div[data-baseweb="select"] > div:hover {{
+            border-color: {scope_info["border_color"]} !important;
         }}
-    
-        .st-key-leaderboard_scope_overall_btn button:hover {{
-            border-color: #F5C542 !important;
-            background: #FDE68A !important;
-            color: #78350F !important;
-            transform: none !important;
-        }}
-    
-        .st-key-leaderboard_scope_group_btn button {{
-            background: {group_bg} !important;
-            color: {group_text} !important;
-            border: 1px solid {group_border} !important;
-        }}
-    
-        .st-key-leaderboard_scope_group_btn button:hover {{
-            border-color: #2563EB !important;
-            transform: none !important;
-        }}
-    
-        .st-key-leaderboard_scope_knockout_btn button {{
-            background: {knockout_bg} !important;
-            color: {knockout_text} !important;
-            border: 1px solid {knockout_border} !important;
-        }}
-    
-        .st-key-leaderboard_scope_knockout_btn button:hover {{
-            border-color: #FF4D4F !important;
-            transform: none !important;
-        }}
-    
+
         @media (max-width: 768px) {{
-            .st-key-leaderboard_scope_overall_btn button,
-            .st-key-leaderboard_scope_group_btn button,
-            .st-key-leaderboard_scope_knockout_btn button {{
-                min-height: 34px !important;
-                height: 34px !important;
-                font-size: 12px !important;
-                padding: 0 6px !important;
-                letter-spacing: -0.01em !important;
+            {{
+                padding: 14px 14px;
+                margin: 6px 0 16px 0;
             }}
-        }}
-    
-        @media (max-width: 420px) {{
-            .st-key-leaderboard_scope_overall_btn button,
-            .st-key-leaderboard_scope_group_btn button,
-            .st-key-leaderboard_scope_knockout_btn button {{
-                min-height: 32px !important;
-                height: 32px !important;
-                font-size: 11px !important;
-                padding: 0 4px !important;
+
+            div[data-baseweb="select"] > div {{
+                min-height: 38px !important;
+                border-radius: 16px !important;
             }}
         }}
         """
     ):
-        col_total, col_group, col_knockout = st.columns([1.05, 0.95, 0.95], gap="small")
-    
-        with col_total:
-            total_clicked = st.button(
-                "🏆 Tổng",
-                key="leaderboard_scope_overall_btn",
-                use_container_width=True,
-                help="Bảng xếp hạng tổng"
+        col_info, col_select = st.columns([2.2, 1], gap="large")
+
+        with col_info:
+            st.markdown(
+                f"""
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    gap:10px;
+                    flex-wrap:wrap;
+                    margin-bottom:6px;
+                ">
+                    <span style="
+                        color:#07111F;
+                        font-size:18px;
+                        font-weight:950;
+                        letter-spacing:-0.02em;
+                    ">
+                        {scope_info["title"]}
+                    </span>
+
+                    <span style="
+                        padding:4px 9px;
+                        border-radius:999px;
+                        background:{scope_info["badge_bg"]};
+                        color:{scope_info["badge_text"]};
+                        font-size:12px;
+                        font-weight:900;
+                    ">
+                        {scope_info["badge"]}
+                    </span>
+                </div>
+
+                <div style="
+                    color:#64748B;
+                    font-size:13px;
+                    line-height:1.45;
+                ">
+                    {scope_info["description"]}
+                </div>
+                """,
+                unsafe_allow_html=True
             )
-    
-        with col_group:
-            group_clicked = st.button(
-                "Vòng bảng",
-                key="leaderboard_scope_group_btn",
-                use_container_width=True,
-                help="Bảng xếp hạng vòng bảng"
+
+        with col_select:
+            selected_scope = st.selectbox(
+                "Chọn bảng xếp hạng",
+                options=leaderboard_scope_options,
+                index=leaderboard_scope_options.index(leaderboard_scope),
+                format_func=lambda scope: scope_info_map[scope]["select_label"],
+                key="leaderboard_scope_dropdown"
             )
-    
-        with col_knockout:
-            knockout_clicked = st.button(
-                "Knockout",
-                key="leaderboard_scope_knockout_btn",
-                use_container_width=True,
-                help="Bảng xếp hạng vòng knockout"
-            )
-    
-        if total_clicked:
-            st.session_state["leaderboard_scope"] = "overall"
-            st.rerun()
-    
-        if group_clicked:
-            st.session_state["leaderboard_scope"] = "group"
-            st.rerun()
-    
-        if knockout_clicked:
-            st.session_state["leaderboard_scope"] = "knockout"
-            st.rerun()
+
+    if selected_scope != st.session_state["leaderboard_scope"]:
+        st.session_state["leaderboard_scope"] = selected_scope
+        st.rerun()
 
     leaderboard_scope = st.session_state.get("leaderboard_scope", "overall")
-    scope_info = get_leaderboard_scope_info(leaderboard_scope)
-    
-    st.markdown(
-        f"""
-        <div style="
-            margin: 2px 0 16px 0;
-            padding: 13px 16px;
-            border-radius: 18px;
-            background: {'linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.94))' if leaderboard_scope == 'overall' else 'rgba(255,255,255,0.74)'};
-            border: 1px solid {'rgba(245,197,66,0.55)' if leaderboard_scope == 'overall' else 'rgba(15,23,42,0.08)'};
-            border-left: 5px solid {'#F5C542' if leaderboard_scope == 'overall' else '#94A3B8'};
-        ">
-            <div style="
-                display:flex;
-                align-items:center;
-                gap:10px;
-                flex-wrap:wrap;
-                margin-bottom:4px;
-            ">
-                <span style="
-                    color:#07111F;
-                    font-size:17px;
-                    font-weight:950;
-                ">
-                    {scope_info["title"]}
-                </span>
-                <span style="
-                    padding:4px 9px;
-                    border-radius:999px;
-                    background:{'#FEF3C7' if leaderboard_scope == 'overall' else '#E2E8F0'};
-                    color:{'#92400E' if leaderboard_scope == 'overall' else '#475569'};
-                    font-size:12px;
-                    font-weight:900;
-                ">
-                    {scope_info["badge"]}
-                </span>
-            </div>
-            <div style="
-                color:#64748B;
-                font-size:13px;
-                line-height:1.35;
-            ">
-                {scope_info["description"]}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
     leaderboard = build_leaderboard_df(leaderboard_scope)
 
     if leaderboard.empty:
@@ -4880,6 +4845,9 @@ def page_leaderboard():
     for col in percent_cols:
         display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.1f}%")
 
+    # =========================
+    # Avatar style beside player name
+    # =========================
     avatar_row_styles = []
 
     for row_position, avatar_key in enumerate(leaderboard["avatar_key"].tolist(), start=1):
@@ -5074,8 +5042,6 @@ def page_dashboard():
     )
 
     score_all_predictions()
-
-    leaderboard = build_leaderboard_df()
     predictions = load_predictions()
     matches = load_matches()
 
