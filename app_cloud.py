@@ -254,6 +254,22 @@ def get_avatar_src(avatar_key: str) -> str:
 
     return resolve_asset_src(f"{AVATAR_FOLDER}/{avatar_key}")
 
+def make_leaderboard_player_cell(display_name, avatar_key) -> str:
+    """
+    Render avatar + tên người chơi trong bảng xếp hạng.
+    Chỉ dùng để hiển thị, không có thao tác chỉnh sửa.
+    """
+    safe_name = html.escape(str(display_name).strip(), quote=False)
+    avatar_src = get_avatar_src(avatar_key)
+    safe_avatar_src = html.escape(str(avatar_src), quote=True)
+
+    return f"""
+    <div class="wc-lb-player">
+        <img class="wc-lb-avatar" src="{safe_avatar_src}" alt="">
+        <span>{safe_name}</span>
+    </div>
+    """
+
 # ============================================================
 # 2. THEME + UI HELPERS
 # ============================================================
@@ -4479,7 +4495,7 @@ def build_leaderboard_df():
 
     summary = (
         df
-        .groupby(["user_id", "username", "display_name", "role"], as_index=False)
+        .groupby(["user_id", "username", "display_name", "role", "avatar_key"], as_index=False)
         .agg(
             total_points=("points", "sum"),
             base_points=("base_points", "sum"),
@@ -4565,38 +4581,32 @@ def page_leaderboard():
         lambda x: f"{max(0, SUPER_STARS_PER_USER - int(x))}/{SUPER_STARS_PER_USER}"
     )
 
-    display_df = leaderboard[
-        [
-            "rank",
-            "display_name",
-            "total_points",
-            "base_points",
-            "star_bonus_points",
-            "hope_star_display",
-            "super_star_display",
-            "num_predictions",
-            "num_scored",
-            "exact_score_count",
-            "correct_outcome_count",
-            "exact_score_rate",
-            "result_prediction_rate"
-        ]
-    ].copy()
-
-    display_df = display_df.rename(columns={
-        "rank": "Hạng",
-        "display_name": "Người chơi",
-        "total_points": "Điểm",
-        "base_points": "Điểm gốc",
-        "star_bonus_points": "Thưởng sao",
-        "hope_star_display": "⭐",
-        "super_star_display": "✨",
-        "num_predictions": "Số dự đoán",
-        "num_scored": "Số trận đã chấm",
-        "exact_score_count": "Đúng tỉ số",
-        "correct_outcome_count": "Đúng kết quả",
-        "exact_score_rate": "% Đúng tỉ số",
-        "result_prediction_rate": "% Đúng kết quả"
+    if "avatar_key" not in leaderboard.columns:
+        leaderboard["avatar_key"] = DEFAULT_AVATAR_KEY
+    
+    display_df = pd.DataFrame({
+        "Hạng": leaderboard["rank"],
+        "Người chơi": leaderboard.apply(
+            lambda row: make_leaderboard_player_cell(
+                row["display_name"],
+                row["avatar_key"]
+            ),
+            axis=1
+        ),
+        "Điểm": leaderboard["total_points"],
+        "Điểm gốc": leaderboard["base_points"],
+        "Thưởng sao": leaderboard["star_bonus_points"],
+        "⭐": leaderboard["hope_star_display"],
+        "✨": leaderboard["super_star_display"],
+        "Số dự đoán": leaderboard["num_predictions"],
+        "Số trận đã chấm": leaderboard["num_scored"],
+        "Đúng tỉ số": leaderboard["exact_score_count"],
+        "Đúng kết quả": leaderboard["correct_outcome_count"],
+        "% Đúng tỉ số": leaderboard["exact_score_rate"],
+        "% Đúng kết quả": leaderboard["result_prediction_rate"],
+    
+        # Cột phụ để highlight user hiện tại, sẽ ẩn khi render
+        "_player_name": leaderboard["display_name"].astype(str).str.strip()
     })
 
     percent_cols = [
@@ -4610,7 +4620,7 @@ def page_leaderboard():
     def style_leaderboard_row(row):
         styles = []
 
-        is_current_user = str(row["Người chơi"]).strip() == current_display_name
+        is_current_user = str(row["_player_name"]).strip() == current_display_name
         rank_value = int(row["Hạng"])
 
         for col in row.index:
@@ -4672,6 +4682,13 @@ def page_leaderboard():
     styled_df = (
         display_df
         .style
+        .format(
+            {
+                "Người chơi": lambda value: value
+            },
+            escape=None
+        )
+        .hide(axis="columns", subset=["_player_name"])
         .apply(style_leaderboard_row, axis=1)
         .set_properties(
             subset=["Điểm"],
@@ -4706,6 +4723,35 @@ def page_leaderboard():
                         ("text-align", "left"),
                         ("border-bottom", "1px solid rgba(255,255,255,0.16)"),
                         ("padding", "11px 12px")
+                    ]
+                },
+                {
+                    "selector": ".wc-lb-player",
+                    "props": [
+                        ("display", "flex"),
+                        ("align-items", "center"),
+                        ("gap", "10px"),
+                        ("white-space", "nowrap"),
+                        ("font-weight", "850")
+                    ]
+                },
+                {
+                    "selector": ".wc-lb-avatar",
+                    "props": [
+                        ("width", "30px"),
+                        ("height", "30px"),
+                        ("border-radius", "999px"),
+                        ("object-fit", "cover"),
+                        ("border", "2px solid #FFFFFF"),
+                        ("box-shadow", "0 4px 12px rgba(15,23,42,0.18)"),
+                        ("background", "#F8FAFC"),
+                        ("flex-shrink", "0")
+                    ]
+                },
+                {
+                    "selector": "thead th:nth-child(2), tbody td:nth-child(2)",
+                    "props": [
+                        ("min-width", "190px")
                     ]
                 },
                 {
@@ -4757,7 +4803,10 @@ def page_leaderboard():
         )
     )
 
-    st.table(styled_df)
+    st.markdown(
+        styled_df.to_html(),
+        unsafe_allow_html=True
+    )
 
 def page_dashboard():
     render_page_title(
