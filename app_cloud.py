@@ -4631,50 +4631,130 @@ def page_leaderboard():
     
     leaderboard_scope = st.session_state["leaderboard_scope"]
     
+    if "leaderboard_scope" not in st.session_state:
+        st.session_state["leaderboard_scope"] = "overall"
+    
+    leaderboard_scope = st.session_state["leaderboard_scope"]
+    
+    overall_bg = "#FDE68A" if leaderboard_scope == "overall" else "#FFF7D6"
+    overall_border = "#F5C542" if leaderboard_scope == "overall" else "rgba(245,197,66,0.65)"
+    overall_text = "#78350F"
+    
+    group_bg = "#2563EB" if leaderboard_scope == "group" else "#FFFFFF"
+    group_border = "#2563EB" if leaderboard_scope == "group" else "rgba(15,23,42,0.12)"
+    group_text = "#FFFFFF" if leaderboard_scope == "group" else "#334155"
+    
+    knockout_bg = "#FF4D4F" if leaderboard_scope == "knockout" else "#FFFFFF"
+    knockout_border = "#FF4D4F" if leaderboard_scope == "knockout" else "rgba(15,23,42,0.12)"
+    knockout_text = "#FFFFFF" if leaderboard_scope == "knockout" else "#334155"
+    
     with stylable_container(
         key="leaderboard_scope_switcher",
-        css_styles="""
-        {
-            background: rgba(255,255,255,0.92);
-            border: 1px solid rgba(15,23,42,0.08);
-            border-radius: 22px;
-            padding: 16px 18px;
-            box-shadow: 0 12px 30px rgba(15,23,42,0.07);
-            margin: 6px 0 18px 0;
-        }
+        css_styles=f"""
+        {{
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 6px 0 14px 0 !important;
+        }}
     
-        div[data-testid="stButton"] button {
-            min-height: 42px !important;
-            font-weight: 900 !important;
+        .st-key-leaderboard_scope_overall_btn button,
+        .st-key-leaderboard_scope_group_btn button,
+        .st-key-leaderboard_scope_knockout_btn button {{
+            min-height: 40px !important;
+            height: 40px !important;
             border-radius: 999px !important;
+            font-weight: 850 !important;
+            font-size: 14px !important;
+            padding: 0 10px !important;
             white-space: nowrap !important;
-        }
+            box-shadow: none !important;
+        }}
+    
+        .st-key-leaderboard_scope_overall_btn button {{
+            background: {overall_bg} !important;
+            color: {overall_text} !important;
+            border: 1px solid {overall_border} !important;
+        }}
+    
+        .st-key-leaderboard_scope_overall_btn button:hover {{
+            border-color: #F5C542 !important;
+            background: #FDE68A !important;
+            color: #78350F !important;
+            transform: none !important;
+        }}
+    
+        .st-key-leaderboard_scope_group_btn button {{
+            background: {group_bg} !important;
+            color: {group_text} !important;
+            border: 1px solid {group_border} !important;
+        }}
+    
+        .st-key-leaderboard_scope_group_btn button:hover {{
+            border-color: #2563EB !important;
+            transform: none !important;
+        }}
+    
+        .st-key-leaderboard_scope_knockout_btn button {{
+            background: {knockout_bg} !important;
+            color: {knockout_text} !important;
+            border: 1px solid {knockout_border} !important;
+        }}
+    
+        .st-key-leaderboard_scope_knockout_btn button:hover {{
+            border-color: #FF4D4F !important;
+            transform: none !important;
+        }}
+    
+        @media (max-width: 768px) {{
+            .st-key-leaderboard_scope_overall_btn button,
+            .st-key-leaderboard_scope_group_btn button,
+            .st-key-leaderboard_scope_knockout_btn button {{
+                min-height: 34px !important;
+                height: 34px !important;
+                font-size: 12px !important;
+                padding: 0 6px !important;
+                letter-spacing: -0.01em !important;
+            }}
+        }}
+    
+        @media (max-width: 420px) {{
+            .st-key-leaderboard_scope_overall_btn button,
+            .st-key-leaderboard_scope_group_btn button,
+            .st-key-leaderboard_scope_knockout_btn button {{
+                min-height: 32px !important;
+                height: 32px !important;
+                font-size: 11px !important;
+                padding: 0 4px !important;
+            }}
+        }}
         """
     ):
-        col_total, col_group, col_knockout = st.columns([1.45, 1, 1])
+        col_total, col_group, col_knockout = st.columns([1.05, 0.95, 0.95], gap="small")
     
         with col_total:
             total_clicked = st.button(
-                "Bảng xếp hạng tổng",
+                "🏆 Tổng",
                 key="leaderboard_scope_overall_btn",
-                type="primary" if leaderboard_scope == "overall" else "secondary",
-                use_container_width=True
+                use_container_width=True,
+                help="Bảng xếp hạng tổng"
             )
     
         with col_group:
             group_clicked = st.button(
                 "Vòng bảng",
                 key="leaderboard_scope_group_btn",
-                type="primary" if leaderboard_scope == "group" else "secondary",
-                use_container_width=True
+                use_container_width=True,
+                help="Bảng xếp hạng vòng bảng"
             )
     
         with col_knockout:
             knockout_clicked = st.button(
                 "Knockout",
                 key="leaderboard_scope_knockout_btn",
-                type="primary" if leaderboard_scope == "knockout" else "secondary",
-                use_container_width=True
+                use_container_width=True,
+                help="Bảng xếp hạng vòng knockout"
             )
     
         if total_clicked:
