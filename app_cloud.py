@@ -1202,26 +1202,26 @@ def render_avatar_popover(user: dict):
         css_styles=f"""
         {{
             position: fixed;
-            top: 72px;
+            top: 76px;
             right: 28px;
             z-index: 999999;
-            width: 52px !important;
-            height: 52px !important;
+            width: 62px !important;
+            height: 62px !important;
         }}
 
         div[data-testid="stPopover"] {{
-            width: 52px !important;
-            height: 52px !important;
+            width: 62px !important;
+            height: 62px !important;
         }}
 
         div[data-testid="stPopover"] button {{
             position: relative !important;
-            width: 48px !important;
-            height: 48px !important;
-            min-width: 48px !important;
-            min-height: 48px !important;
-            max-width: 48px !important;
-            max-height: 48px !important;
+            width: 56px !important;
+            height: 56px !important;
+            min-width: 56px !important;
+            min-height: 56px !important;
+            max-width: 56px !important;
+            max-height: 56px !important;
             padding: 0 !important;
             margin: 0 !important;
             border-radius: 999px !important;
@@ -1250,8 +1250,8 @@ def render_avatar_popover(user: dict):
         }}
 
         div[data-testid="stPopoverBody"] {{
-            min-width: 460px !important;
-            max-width: 520px !important;
+            min-width: 520px !important;
+            max-width: 560px !important;
         }}
         """
     ):
