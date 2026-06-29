@@ -1185,6 +1185,14 @@ def render_avatar_popover(user: dict):
     """
     Hiển thị avatar tròn ở góc trên bên phải.
     Bấm vào avatar để mở kho chọn avatar.
+
+    Desktop:
+    - Avatar góc phải lớn hơn một chút.
+    - Kho avatar hiển thị 4 ảnh / hàng.
+
+    Mobile:
+    - Popover tự co theo chiều rộng màn hình.
+    - Giảm size avatar trong kho để không bị tràn/lệch.
     """
     avatar_keys = load_avatar_keys()
 
@@ -1249,9 +1257,115 @@ def render_avatar_popover(user: dict):
             color: transparent !important;
         }}
 
-        div[data-testid="stPopoverBody"] {{
+        div[data-testid="stPopoverBody"],
+        div[data-testid="stPopoverContent"] {{
             min-width: 520px !important;
             max-width: 560px !important;
+            max-height: calc(100vh - 110px) !important;
+            overflow-y: auto !important;
+        }}
+
+        .wc-avatar-option-card {{
+            border-radius: 18px;
+            padding: 10px 8px;
+            text-align: center;
+            margin-bottom: 8px;
+            box-shadow: 0 8px 20px rgba(15,23,42,0.06);
+        }}
+
+        .wc-avatar-option-img {{
+            width: 64px;
+            height: 64px;
+            border-radius: 999px;
+            object-fit: cover;
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 7px 18px rgba(15,23,42,0.16);
+        }}
+
+        div[data-testid="stPopoverBody"] .stButton > button,
+        div[data-testid="stPopoverContent"] .stButton > button {{
+            min-height: 34px !important;
+            padding: 6px 8px !important;
+            font-size: 13px !important;
+            border-radius: 999px !important;
+        }}
+
+        @media (max-width: 768px) {{
+            {{
+                top: 64px;
+                right: 12px;
+                width: 52px !important;
+                height: 52px !important;
+            }}
+
+            div[data-testid="stPopover"] {{
+                width: 52px !important;
+                height: 52px !important;
+            }}
+
+            div[data-testid="stPopover"] button {{
+                width: 48px !important;
+                height: 48px !important;
+                min-width: 48px !important;
+                min-height: 48px !important;
+                max-width: 48px !important;
+                max-height: 48px !important;
+                border-width: 2px !important;
+            }}
+
+            div[data-testid="stPopoverBody"],
+            div[data-testid="stPopoverContent"] {{
+                position: fixed !important;
+                top: 74px !important;
+                left: 10px !important;
+                right: 10px !important;
+                width: calc(100vw - 20px) !important;
+                min-width: unset !important;
+                max-width: unset !important;
+                max-height: calc(100vh - 92px) !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                padding: 16px 14px !important;
+                border-radius: 18px !important;
+            }}
+
+            .wc-avatar-option-card {{
+                padding: 7px 5px !important;
+                border-radius: 14px !important;
+                margin-bottom: 6px !important;
+            }}
+
+            .wc-avatar-option-img {{
+                width: 48px !important;
+                height: 48px !important;
+                border-width: 2px !important;
+            }}
+
+            div[data-testid="stPopoverBody"] .stButton > button,
+            div[data-testid="stPopoverContent"] .stButton > button {{
+                min-height: 30px !important;
+                padding: 4px 5px !important;
+                font-size: 12px !important;
+            }}
+        }}
+
+        @media (max-width: 390px) {{
+            div[data-testid="stPopoverBody"],
+            div[data-testid="stPopoverContent"] {{
+                left: 8px !important;
+                right: 8px !important;
+                width: calc(100vw - 16px) !important;
+                padding: 14px 10px !important;
+            }}
+
+            .wc-avatar-option-img {{
+                width: 44px !important;
+                height: 44px !important;
+            }}
+
+            .wc-avatar-option-card {{
+                padding: 6px 4px !important;
+            }}
         }}
         """
     ):
@@ -1282,7 +1396,7 @@ def render_avatar_popover(user: dict):
 
             for start_idx in range(0, len(avatar_keys), avatars_per_row):
                 row_avatar_keys = avatar_keys[start_idx:start_idx + avatars_per_row]
-                cols = st.columns(avatars_per_row)
+                cols = st.columns(avatars_per_row, gap="small")
 
                 for col, avatar_key in zip(cols, row_avatar_keys):
                     with col:
@@ -1294,25 +1408,13 @@ def render_avatar_popover(user: dict):
 
                         st.markdown(
                             f"""
-                            <div style="
+                            <div class="wc-avatar-option-card" style="
                                 background: {bg_color};
                                 border: 2px solid {border_color};
-                                border-radius: 18px;
-                                padding: 10px 8px;
-                                text-align: center;
-                                margin-bottom: 8px;
-                                box-shadow: 0 8px 20px rgba(15,23,42,0.06);
                             ">
                                 <img
                                     src="{avatar_src}"
-                                    style="
-                                        width: 64px;
-                                        height: 64px;
-                                        border-radius: 999px;
-                                        object-fit: cover;
-                                        border: 3px solid #FFFFFF;
-                                        box-shadow: 0 7px 18px rgba(15,23,42,0.16);
-                                    "
+                                    class="wc-avatar-option-img"
                                 >
                             </div>
                             """,
@@ -1343,6 +1445,7 @@ def render_avatar_popover(user: dict):
 
                                 except ValueError as e:
                                     st.error(str(e))
+
 # ============================================================
 # 3. BASIC UTILITIES
 # ============================================================
