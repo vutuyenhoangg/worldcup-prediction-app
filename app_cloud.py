@@ -1186,13 +1186,11 @@ def render_avatar_popover(user: dict):
     Hiển thị avatar tròn ở góc trên bên phải.
     Bấm vào avatar để mở kho chọn avatar.
 
-    Desktop:
-    - Kho avatar hiển thị 4 ảnh / hàng.
-
-    Mobile:
-    - Popup căn giữa, hẹp hơn, ngắn hơn.
-    - Kho avatar hiển thị 2 ảnh / hàng.
-    - Còn khoảng trống bên ngoài popup để người dùng bấm thoát.
+    Cập nhật:
+    - Giữ layout popup avatar 4 ảnh / hàng trên desktop, 2 ảnh / hàng trên mobile.
+    - Không còn nút chữ "Chọn" / "Đang dùng" dưới mỗi avatar.
+    - Người dùng chọn avatar bằng cách bấm trực tiếp vào khung avatar.
+    - CSS được target theo key riêng để không ảnh hưởng nút Đăng xuất hoặc các nút khác.
     """
     avatar_keys = load_avatar_keys()
 
@@ -1204,6 +1202,16 @@ def render_avatar_popover(user: dict):
 
     display_name_raw = str(user.get("display_name", "User")).strip()
     display_name = html.escape(display_name_raw)
+
+    def make_safe_key(text: str) -> str:
+        return (
+            str(text)
+            .replace(".", "_")
+            .replace("-", "_")
+            .replace(" ", "_")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
 
     def render_avatar_grid(avatars_per_row: int, key_prefix: str):
         for start_idx in range(0, len(avatar_keys), avatars_per_row):
@@ -1218,15 +1226,9 @@ def render_avatar_popover(user: dict):
                     border_color = "#F5C542" if is_selected else "rgba(15,23,42,0.10)"
                     bg_color = "#FFF7ED" if is_selected else "#FFFFFF"
 
-                    safe_avatar_key = (
-                        avatar_key
-                        .replace(".", "_")
-                        .replace("-", "_")
-                        .replace(" ", "_")
-                    )
-                    
+                    safe_avatar_key = make_safe_key(avatar_key)
                     avatar_button_key = f"{key_prefix}_avatar_pick_{safe_avatar_key}"
-                    
+
                     st.markdown(
                         f"""
                         <style>
@@ -1247,14 +1249,18 @@ def render_avatar_popover(user: dict):
                             font-size: 0 !important;
                             line-height: 0 !important;
                         }}
-                    
+
                         .st-key-{avatar_button_key} button:hover {{
                             border-color: #F5C542 !important;
                             background: #FFF7ED !important;
                             transform: translateY(-1px) !important;
                             box-shadow: 0 10px 24px rgba(15,23,42,0.10) !important;
                         }}
-                    
+
+                        .st-key-{avatar_button_key} button:active {{
+                            transform: translateY(0) scale(0.98) !important;
+                        }}
+
                         .st-key-{avatar_button_key} button::before {{
                             content: "";
                             position: absolute;
@@ -1271,7 +1277,7 @@ def render_avatar_popover(user: dict):
                             border: 3px solid #FFFFFF;
                             box-shadow: 0 7px 18px rgba(15,23,42,0.16);
                         }}
-                    
+
                         .st-key-{avatar_button_key} button * {{
                             display: none !important;
                             visibility: hidden !important;
@@ -1279,7 +1285,7 @@ def render_avatar_popover(user: dict):
                             font-size: 0 !important;
                             line-height: 0 !important;
                         }}
-                    
+
                         @media (max-width: 768px) {{
                             .st-key-{avatar_button_key} button {{
                                 height: 72px !important;
@@ -1287,21 +1293,21 @@ def render_avatar_popover(user: dict):
                                 border-radius: 14px !important;
                                 margin-bottom: 6px !important;
                             }}
-                    
+
                             .st-key-{avatar_button_key} button::before {{
                                 width: 52px;
                                 height: 52px;
                                 border-width: 2px;
                             }}
                         }}
-                    
+
                         @media (max-width: 390px) {{
                             .st-key-{avatar_button_key} button {{
                                 height: 66px !important;
                                 min-height: 66px !important;
                                 border-radius: 12px !important;
                             }}
-                    
+
                             .st-key-{avatar_button_key} button::before {{
                                 width: 48px;
                                 height: 48px;
@@ -1311,24 +1317,24 @@ def render_avatar_popover(user: dict):
                         """,
                         unsafe_allow_html=True
                     )
-                    
+
                     avatar_clicked = st.button(
                         "Chọn avatar",
                         key=avatar_button_key,
                         use_container_width=True,
                         help="Bấm để chọn avatar này."
                     )
-                    
+
                     if avatar_clicked and not is_selected:
                         try:
                             update_user_avatar(
                                 user_id=int(user["user_id"]),
                                 avatar_key=avatar_key
                             )
-                    
+
                             st.session_state["user"]["avatar_key"] = avatar_key
                             st.rerun()
-                    
+
                         except ValueError as e:
                             st.error(str(e))
 
@@ -1349,7 +1355,8 @@ def render_avatar_popover(user: dict):
             height: 62px !important;
         }}
 
-        div[data-testid="stPopover"] > button {{
+        div[data-testid="stPopover"] > button,
+        div[data-testid="stPopover"] > div > button {{
             position: relative !important;
             width: 56px !important;
             height: 56px !important;
@@ -1370,13 +1377,15 @@ def render_avatar_popover(user: dict):
             color: transparent !important;
         }}
 
-        div[data-testid="stPopover"] > button:hover {{
+        div[data-testid="stPopover"] > button:hover,
+        div[data-testid="stPopover"] > div > button:hover {{
             transform: translateY(-1px) scale(1.03) !important;
             border-color: #F5C542 !important;
             box-shadow: 0 14px 34px rgba(7, 17, 31, 0.30) !important;
         }}
 
-        div[data-testid="stPopover"] > button * {{
+        div[data-testid="stPopover"] > button *,
+        div[data-testid="stPopover"] > div > button * {{
             display: none !important;
             visibility: hidden !important;
             font-size: 0 !important;
@@ -1391,31 +1400,6 @@ def render_avatar_popover(user: dict):
             max-height: calc(100vh - 110px) !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
-        }}
-
-        .wc-avatar-option-card {{
-            border-radius: 18px;
-            padding: 10px 8px;
-            text-align: center;
-            margin-bottom: 8px;
-            box-shadow: 0 8px 20px rgba(15,23,42,0.06);
-        }}
-
-        .wc-avatar-option-img {{
-            width: 64px;
-            height: 64px;
-            border-radius: 999px;
-            object-fit: cover;
-            border: 3px solid #FFFFFF;
-            box-shadow: 0 7px 18px rgba(15,23,42,0.16);
-        }}
-
-        div[data-testid="stPopoverBody"] .stButton > button,
-        div[data-testid="stPopoverContent"] .stButton > button {{
-            min-height: 34px !important;
-            padding: 6px 8px !important;
-            font-size: 13px !important;
-            border-radius: 999px !important;
         }}
 
         .wc-avatar-grid-desktop-shell {{
@@ -1439,7 +1423,8 @@ def render_avatar_popover(user: dict):
                 height: 52px !important;
             }}
 
-            div[data-testid="stPopover"] > button {{
+            div[data-testid="stPopover"] > button,
+            div[data-testid="stPopover"] > div > button {{
                 width: 48px !important;
                 height: 48px !important;
                 min-width: 48px !important;
@@ -1474,25 +1459,6 @@ def render_avatar_popover(user: dict):
                 display: block !important;
             }}
 
-            .wc-avatar-option-card {{
-                padding: 8px 6px !important;
-                border-radius: 14px !important;
-                margin-bottom: 6px !important;
-            }}
-
-            .wc-avatar-option-img {{
-                width: 52px !important;
-                height: 52px !important;
-                border-width: 2px !important;
-            }}
-
-            div[data-testid="stPopoverBody"] .stButton > button,
-            div[data-testid="stPopoverContent"] .stButton > button {{
-                min-height: 30px !important;
-                padding: 4px 6px !important;
-                font-size: 12px !important;
-            }}
-
             div[data-testid="stPopoverBody"] [data-testid="column"],
             div[data-testid="stPopoverContent"] [data-testid="column"] {{
                 padding-left: 4px !important;
@@ -1508,23 +1474,6 @@ def render_avatar_popover(user: dict):
                 max-width: 300px !important;
                 max-height: 50vh !important;
                 padding: 12px 10px !important;
-            }}
-
-            .wc-avatar-option-img {{
-                width: 48px !important;
-                height: 48px !important;
-            }}
-
-            .wc-avatar-option-card {{
-                padding: 7px 5px !important;
-                border-radius: 12px !important;
-            }}
-
-            div[data-testid="stPopoverBody"] .stButton > button,
-            div[data-testid="stPopoverContent"] .stButton > button {{
-                min-height: 28px !important;
-                padding: 3px 4px !important;
-                font-size: 11px !important;
             }}
         }}
         """
