@@ -2599,6 +2599,35 @@ def get_user_star_usage_from_db(user_id: int, exclude_match_id: int | None = Non
         "super_left": max(0, SUPER_STARS_PER_USER - super_used)
     }
 
+def update_user_avatar(user_id: int, avatar_key: str):
+    """
+    Cập nhật avatar cho user hiện tại.
+
+    Chỉ lưu tên file avatar vào database, ví dụ: avatar_01.png.
+    Không lưu ảnh trực tiếp vào database để app nhẹ và dễ deploy hơn.
+    """
+    avatar_key = normalize_avatar_key(avatar_key)
+
+    if not avatar_key:
+        raise ValueError("Chưa có avatar hợp lệ để chọn.")
+
+    execute_sql(
+        """
+        UPDATE users
+        SET avatar_key = :avatar_key
+        WHERE user_id = :user_id
+        """,
+        {
+            "avatar_key": avatar_key,
+            "user_id": int(user_id)
+        }
+    )
+
+    try:
+        load_users.clear()
+    except Exception:
+        pass
+
 def get_user_prediction(user_id: int, match_id: int):
     """
     Dùng cho UI.
