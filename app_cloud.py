@@ -5187,8 +5187,6 @@ def page_leaderboard():
         )
     )
 
-    st.table(styled_df)
-
 def page_dashboard():
     render_page_title(
         "Bảng phân tích tổng quan",
