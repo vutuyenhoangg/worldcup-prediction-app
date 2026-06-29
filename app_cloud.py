@@ -4981,6 +4981,8 @@ def main():
 
     user = st.session_state["user"]
 
+    render_avatar_popover(user)
+
     with st.sidebar:
         render_sidebar_brand()
 
