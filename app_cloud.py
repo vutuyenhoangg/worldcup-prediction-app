@@ -1186,11 +1186,12 @@ def render_avatar_popover(user: dict):
     Hiển thị avatar tròn ở góc trên bên phải.
     Bấm vào avatar để mở kho chọn avatar.
 
-    Cập nhật:
-    - Giữ layout popup avatar 4 ảnh / hàng trên desktop, 2 ảnh / hàng trên mobile.
-    - Không còn nút chữ "Chọn" / "Đang dùng" dưới mỗi avatar.
+    Cập nhật UI:
+    - Avatar có viền vàng nhẹ để nổi bật hơn.
+    - Có badge bút chì nhỏ ở góc avatar để gợi ý có thể chỉnh sửa.
+    - Hover sẽ hiện tooltip "Đổi avatar" trên desktop.
+    - Popup chọn avatar vẫn giữ layout 4 ảnh / hàng trên desktop, 2 ảnh / hàng trên mobile.
     - Người dùng chọn avatar bằng cách bấm trực tiếp vào khung avatar.
-    - CSS được target theo key riêng để không ảnh hưởng nút Đăng xuất hoặc các nút khác.
     """
     avatar_keys = load_avatar_keys()
 
@@ -1199,9 +1200,6 @@ def render_avatar_popover(user: dict):
 
     current_avatar_key = normalize_avatar_key(user.get("avatar_key"))
     current_avatar_src = get_avatar_src(current_avatar_key)
-
-    display_name_raw = str(user.get("display_name", "User")).strip()
-    display_name = html.escape(display_name_raw)
 
     def make_safe_key(text: str) -> str:
         return (
@@ -1225,6 +1223,11 @@ def render_avatar_popover(user: dict):
 
                     border_color = "#F5C542" if is_selected else "rgba(15,23,42,0.10)"
                     bg_color = "#FFF7ED" if is_selected else "#FFFFFF"
+                    selected_shadow = (
+                        "0 0 0 4px rgba(245,197,66,0.20), 0 10px 24px rgba(15,23,42,0.10)"
+                        if is_selected
+                        else "0 8px 20px rgba(15,23,42,0.06)"
+                    )
 
                     safe_avatar_key = make_safe_key(avatar_key)
                     avatar_button_key = f"{key_prefix}_avatar_pick_{safe_avatar_key}"
@@ -1242,19 +1245,24 @@ def render_avatar_popover(user: dict):
                             border-radius: 18px !important;
                             border: 2px solid {border_color} !important;
                             background: {bg_color} !important;
-                            box-shadow: 0 8px 20px rgba(15,23,42,0.06) !important;
+                            box-shadow: {selected_shadow} !important;
                             overflow: hidden !important;
                             cursor: pointer !important;
                             color: transparent !important;
                             font-size: 0 !important;
                             line-height: 0 !important;
+                            transition:
+                                transform 0.18s ease,
+                                box-shadow 0.18s ease,
+                                border-color 0.18s ease,
+                                background 0.18s ease !important;
                         }}
 
                         .st-key-{avatar_button_key} button:hover {{
                             border-color: #F5C542 !important;
                             background: #FFF7ED !important;
                             transform: translateY(-1px) !important;
-                            box-shadow: 0 10px 24px rgba(15,23,42,0.10) !important;
+                            box-shadow: 0 0 0 4px rgba(245,197,66,0.18), 0 12px 28px rgba(15,23,42,0.13) !important;
                         }}
 
                         .st-key-{avatar_button_key} button:active {{
@@ -1278,6 +1286,27 @@ def render_avatar_popover(user: dict):
                             box-shadow: 0 7px 18px rgba(15,23,42,0.16);
                         }}
 
+                        .st-key-{avatar_button_key} button::after {{
+                            content: {"'✓'" if is_selected else "''"};
+                            position: absolute;
+                            right: 13px;
+                            bottom: 13px;
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 999px;
+                            background: #F5C542;
+                            color: #07111F;
+                            border: 2px solid #FFFFFF;
+                            display: {"flex" if is_selected else "none"};
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 13px;
+                            font-weight: 950;
+                            line-height: 1;
+                            box-shadow: 0 5px 12px rgba(15,23,42,0.18);
+                            pointer-events: none;
+                        }}
+
                         .st-key-{avatar_button_key} button * {{
                             display: none !important;
                             visibility: hidden !important;
@@ -1298,6 +1327,14 @@ def render_avatar_popover(user: dict):
                                 width: 52px;
                                 height: 52px;
                                 border-width: 2px;
+                            }}
+
+                            .st-key-{avatar_button_key} button::after {{
+                                right: 10px;
+                                bottom: 10px;
+                                width: 19px;
+                                height: 19px;
+                                font-size: 11px;
                             }}
                         }}
 
@@ -1588,7 +1625,7 @@ def render_avatar_popover(user: dict):
     ):
         with st.popover("Đổi avatar", use_container_width=False):
             st.markdown(
-                f"""
+                """
                 <div style="
                     font-weight: 950;
                     font-size: 17px;
@@ -1603,7 +1640,7 @@ def render_avatar_popover(user: dict):
                     margin-bottom: 14px;
                     line-height: 1.4;
                 ">
-                    Chọn avatar của bạn. Ảnh sẽ hiển thị ở góc phải màn hình.
+                    Chọn ảnh đại diện của bạn. Ảnh sẽ hiển thị ở góc phải màn hình.
                 </div>
                 """,
                 unsafe_allow_html=True
