@@ -4620,26 +4620,23 @@ def page_leaderboard():
     scope_info_map = {
         "overall": {
             "title": "BẢNG XẾP HẠNG TỔNG",
-            "badge": "BXH CHÍNH",
             "select_label": "BẢNG XẾP HẠNG TỔNG",
-            "description": "Tính điểm từ toàn bộ các trận đấu đã dự đoán.",
+            "description": "Tính điểm từ toàn bộ các trận đã được chấm. Đây là bảng xếp hạng chính của cuộc đua.",
             "border_color": "#F5C542",
             "card_bg": "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.94))",
             "text_color": "#07111F"
         },
         "group": {
-            "title": "BXH vòng bảng",
-            "badge": "BXH phụ",
-            "select_label": "BXH vòng bảng  ·  BXH phụ",
+            "title": "BẢNG XẾP HẠNG VÒNG BẢNG",
+            "select_label": "BẢNG XẾP HẠNG VÒNG BẢNG",
             "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng bảng.",
             "border_color": "#94A3B8",
             "card_bg": "rgba(255,255,255,0.90)",
             "text_color": "#07111F"
         },
         "knockout": {
-            "title": "BXH vòng knockout",
-            "badge": "BXH phụ",
-            "select_label": "BXH vòng knockout  ·  BXH phụ",
+            "title": "BẢNG XẾP HẠNG VÒNG KNOCKOUT",
+            "select_label": "BẢNG XẾP HẠNG VÒNG KNOCKOUT",
             "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng knockout.",
             "border_color": "#94A3B8",
             "card_bg": "rgba(255,255,255,0.90)",
@@ -4691,7 +4688,7 @@ def page_leaderboard():
             border-left: 5px solid {scope_info["border_color"]} !important;
             box-shadow: 0 10px 26px rgba(15,23,42,0.06) !important;
             padding-left: 16px !important;
-            padding-right: 44px !important;
+            padding-right: 60px !important;
             padding-top: 10px !important;
             padding-bottom: 30px !important;
             cursor: pointer !important;
@@ -4706,7 +4703,7 @@ def page_leaderboard():
             content: "{scope_description_css}";
             position: absolute;
             left: 16px;
-            right: 44px;
+            right: 60px;
             bottom: 12px;
             color: #64748B;
             font-size: 13px;
@@ -4720,16 +4717,15 @@ def page_leaderboard():
 
         div[data-baseweb="select"] > div > div:first-child,
         div[data-baseweb="select"] > div > div:first-child *,
-        div[data-baseweb="select"] span {
+        div[data-baseweb="select"] span {{
             color: {scope_info["text_color"]} !important;
             font-size: 18px !important;
             font-weight: 950 !important;
             letter-spacing: -0.02em !important;
             text-transform: none !important;
-        }
-        
-        /* Căn mũi tên dropdown vào giữa box theo chiều dọc */
-        div[data-baseweb="select"] svg {
+        }}
+
+        div[data-baseweb="select"] svg {{
             color: #64748B !important;
             width: 22px !important;
             height: 22px !important;
@@ -4737,64 +4733,61 @@ def page_leaderboard():
             right: 18px !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
-        }
-        
-        /* Nới vùng phải để chữ không đè vào mũi tên */
-        div[data-baseweb="select"] > div {
-            padding-right: 56px !important;
-        }
+        }}
 
         @media (max-width: 768px) {{
             div[data-baseweb="select"] > div {{
                 min-height: 72px !important;
                 border-radius: 18px !important;
                 padding-left: 14px !important;
-                padding-right: 40px !important;
+                padding-right: 52px !important;
                 padding-top: 9px !important;
                 padding-bottom: 28px !important;
             }}
 
             div[data-baseweb="select"] > div > div:first-child,
             div[data-baseweb="select"] > div > div:first-child *,
-            div[data-baseweb="select"] span {
+            div[data-baseweb="select"] span {{
                 font-size: 15px !important;
                 font-weight: 950 !important;
-            }
-            
-            div[data-baseweb="select"] svg {
-                width: 20px !important;
-                height: 20px !important;
-                right: 15px !important;
-            }
+            }}
 
             div[data-baseweb="select"] > div::after {{
                 left: 14px;
-                right: 40px;
+                right: 52px;
                 bottom: 10px;
                 font-size: 12px;
+            }}
+
+            div[data-baseweb="select"] svg {{
+                width: 20px !important;
+                height: 20px !important;
+                right: 15px !important;
             }}
         }}
 
         @media (max-width: 420px) {{
             div[data-baseweb="select"] > div {{
                 min-height: 68px !important;
+                padding-right: 48px !important;
             }}
 
             div[data-baseweb="select"] > div > div:first-child,
             div[data-baseweb="select"] > div > div:first-child *,
-            div[data-baseweb="select"] span {
+            div[data-baseweb="select"] span {{
                 font-size: 14px !important;
                 font-weight: 950 !important;
-            }
-            
-            div[data-baseweb="select"] svg {
+            }}
+
+            div[data-baseweb="select"] > div::after {{
+                right: 48px;
+                font-size: 11px;
+            }}
+
+            div[data-baseweb="select"] svg {{
                 width: 19px !important;
                 height: 19px !important;
                 right: 14px !important;
-            }
-
-            div[data-baseweb="select"] > div::after {{
-                font-size: 11px;
             }}
         }}
         """
