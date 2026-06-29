@@ -242,6 +242,7 @@ def normalize_avatar_key(avatar_key) -> str:
     return avatar_keys[0]
 
 
+@st.cache_data(show_spinner=False)
 def get_avatar_src(avatar_key: str) -> str:
     """
     Trả về src ảnh avatar để nhúng vào HTML/CSS.
@@ -253,7 +254,6 @@ def get_avatar_src(avatar_key: str) -> str:
         return ""
 
     return resolve_asset_src(f"{AVATAR_FOLDER}/{avatar_key}")
-
 # ============================================================
 # 2. THEME + UI HELPERS
 # ============================================================
@@ -3110,6 +3110,11 @@ def clear_data_cache():
     load_predictions.clear()
 
     try:
+        build_leaderboard_df.clear()
+    except NameError:
+        pass
+
+    try:
         load_goal_scorers_for_match.clear()
     except NameError:
         pass
@@ -3462,6 +3467,15 @@ def delete_prediction(user_id: int, match_id: int):
     clear_data_cache()
 
 def score_all_predictions():
+    """
+    Chấm điểm lại toàn bộ dự đoán đã có kết quả.
+
+    Tối ưu:
+    - Vẫn giữ nguyên logic tính điểm hiện tại.
+    - Vẫn kiểm tra toàn bộ prediction đã có kết quả.
+    - Chỉ UPDATE database khi điểm mới khác điểm đang lưu.
+    - Nếu không có gì thay đổi thì KHÔNG clear cache, giúp Bảng xếp hạng load nhanh hơn nhiều.
+    """
     matches = load_matches()
     predictions = load_predictions()
 
@@ -3492,11 +3506,28 @@ def score_all_predictions():
             star_type=row.get("star_type")
         )
 
+        new_base_points = int(point_info["base_points"])
+        new_star_bonus_points = int(point_info["star_bonus_points"])
+        new_points = int(point_info["points"])
+
+        current_base_points = to_optional_int(row.get("base_points"))
+        current_star_bonus_points = to_optional_int(row.get("star_bonus_points"))
+        current_points = to_optional_int(row.get("points"))
+
+        # Chỉ ghi DB nếu điểm thật sự thay đổi.
+        # Đây là phần giúp giảm loading mạnh nhất.
+        if (
+            current_base_points == new_base_points
+            and current_star_bonus_points == new_star_bonus_points
+            and current_points == new_points
+        ):
+            continue
+
         scored_rows.append(
             {
-                "base_points": point_info["base_points"],
-                "star_bonus_points": point_info["star_bonus_points"],
-                "points": point_info["points"],
+                "base_points": new_base_points,
+                "star_bonus_points": new_star_bonus_points,
+                "points": new_points,
                 "prediction_id": int(row["prediction_id"])
             }
         )
@@ -4519,6 +4550,7 @@ def page_my_predictions():
 
         st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 
+@st.cache_data(ttl=10, show_spinner=False)
 def build_leaderboard_df():
     users = load_users()
     predictions = load_predictions()
