@@ -1154,44 +1154,54 @@ def render_avatar_popover(user: dict):
         css_styles=f"""
         {{
             position: fixed;
-            top: 18px;
-            right: 24px;
+            top: 72px;
+            right: 28px;
             z-index: 999999;
-            width: 54px;
+            width: 52px !important;
+            height: 52px !important;
         }}
 
-        div[data-testid="stPopover"] > button {{
+        div[data-testid="stPopover"] {{
+            width: 52px !important;
+            height: 52px !important;
+        }}
+
+        div[data-testid="stPopover"] button {{
+            position: relative !important;
             width: 48px !important;
             height: 48px !important;
             min-width: 48px !important;
             min-height: 48px !important;
+            max-width: 48px !important;
+            max-height: 48px !important;
             padding: 0 !important;
+            margin: 0 !important;
             border-radius: 999px !important;
             border: 3px solid #FFFFFF !important;
-            background-image: url("{current_avatar_src}") !important;
-            background-size: cover !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
+            background: url("{current_avatar_src}") center center / cover no-repeat !important;
             box-shadow: 0 10px 28px rgba(7, 17, 31, 0.24) !important;
-            font-size: 0 !important;
-            color: transparent !important;
-            cursor: pointer !important;
             overflow: hidden !important;
+            cursor: pointer !important;
+            font-size: 0 !important;
+            line-height: 0 !important;
+            color: transparent !important;
         }}
 
-        div[data-testid="stPopover"] > button:hover {{
+        div[data-testid="stPopover"] button:hover {{
             transform: translateY(-1px) scale(1.03) !important;
             border-color: #F5C542 !important;
             box-shadow: 0 14px 34px rgba(7, 17, 31, 0.30) !important;
         }}
 
-        div[data-testid="stPopover"] > button p {{
+        div[data-testid="stPopover"] button * {{
             display: none !important;
+            visibility: hidden !important;
             font-size: 0 !important;
+            line-height: 0 !important;
             color: transparent !important;
         }}
 
-        div[data-testid="stPopover"] > button::after {{
+        div[data-testid="stPopover"] button::after {{
             content: "";
             position: absolute;
             right: -1px;
@@ -1204,7 +1214,7 @@ def render_avatar_popover(user: dict):
         }}
         """
     ):
-        with st.popover("Avatar", use_container_width=False):
+        with st.popover(" ", use_container_width=False):
             st.markdown(
                 f"""
                 <div style="
