@@ -1188,7 +1188,7 @@ def render_avatar_popover(user: dict):
 
     Cập nhật UI:
     - Avatar có viền vàng nhẹ để nổi bật hơn.
-    - Badge bút chì được thu nhỏ và đẩy ra mép ngoài để không che chi tiết quan trọng trên avatar.
+    - Badge bút chì được đặt ở góc trên bên phải để ít che chi tiết avatar hơn.
     - Hover sẽ hiện tooltip "Đổi avatar" trên desktop.
     - Popup chọn avatar vẫn giữ layout 4 ảnh / hàng trên desktop, 2 ảnh / hàng trên mobile.
     - Người dùng chọn avatar bằng cách bấm trực tiếp vào khung avatar.
@@ -1425,13 +1425,13 @@ def render_avatar_popover(user: dict):
                 outline-color 0.18s ease !important;
         }}
 
-        /* Badge bút chì đã được thu nhỏ và đẩy ra ngoài mép dưới-phải */
+        /* Badge bút chì ở góc trên bên phải */
         div[data-testid="stPopover"] > button::after,
         div[data-testid="stPopover"] > div > button::after {{
             content: "✎";
             position: absolute;
             right: -3px;
-            bottom: -3px;
+            top: -3px;
             width: 18px;
             height: 18px;
             border-radius: 999px;
@@ -1573,7 +1573,7 @@ def render_avatar_popover(user: dict):
             div[data-testid="stPopover"] > button::after,
             div[data-testid="stPopover"] > div > button::after {{
                 right: -2px;
-                bottom: -2px;
+                top: -2px;
                 width: 16px;
                 height: 16px;
                 font-size: 8px;
