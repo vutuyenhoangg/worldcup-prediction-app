@@ -4688,10 +4688,11 @@ def page_leaderboard():
             border-left: 5px solid {scope_info["border_color"]} !important;
             box-shadow: 0 10px 26px rgba(15,23,42,0.06) !important;
             padding-left: 16px !important;
-            padding-right: 60px !important;
+            padding-right: 64px !important;
             padding-top: 10px !important;
             padding-bottom: 30px !important;
             cursor: pointer !important;
+            overflow: visible !important;
         }}
 
         div[data-baseweb="select"] > div:hover {{
@@ -4703,7 +4704,7 @@ def page_leaderboard():
             content: "{scope_description_css}";
             position: absolute;
             left: 16px;
-            right: 60px;
+            right: 64px;
             bottom: 12px;
             color: #64748B;
             font-size: 13px;
@@ -4715,24 +4716,40 @@ def page_leaderboard():
             pointer-events: none;
         }}
 
-        div[data-baseweb="select"] > div > div:first-child,
+        /* Khối chứa chữ chính của dropdown */
+        div[data-baseweb="select"] > div > div:first-child {{
+            display: flex !important;
+            align-items: flex-start !important;
+            min-height: 30px !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }}
+
+        /* Chữ chính: tăng line-height để không bị cắt dấu tiếng Việt */
         div[data-baseweb="select"] > div > div:first-child *,
         div[data-baseweb="select"] span {{
             color: {scope_info["text_color"]} !important;
+            font-family: Arial, "Segoe UI", sans-serif !important;
             font-size: 18px !important;
             font-weight: 950 !important;
+            line-height: 1.45 !important;
             letter-spacing: -0.02em !important;
             text-transform: none !important;
+            overflow: visible !important;
+            padding-bottom: 3px !important;
         }}
 
+        /* Mũi tên dropdown: to hơn và căn giữa box theo chiều dọc */
         div[data-baseweb="select"] svg {{
             color: #64748B !important;
-            width: 22px !important;
-            height: 22px !important;
+            width: 30px !important;
+            height: 30px !important;
             position: absolute !important;
-            right: 18px !important;
+            right: 20px !important;
             top: 50% !important;
             transform: translateY(-50%) !important;
+            stroke-width: 2.4 !important;
         }}
 
         @media (max-width: 768px) {{
@@ -4740,54 +4757,73 @@ def page_leaderboard():
                 min-height: 72px !important;
                 border-radius: 18px !important;
                 padding-left: 14px !important;
-                padding-right: 52px !important;
+                padding-right: 58px !important;
                 padding-top: 9px !important;
                 padding-bottom: 28px !important;
-            }}
-
-            div[data-baseweb="select"] > div > div:first-child,
-            div[data-baseweb="select"] > div > div:first-child *,
-            div[data-baseweb="select"] span {{
-                font-size: 15px !important;
-                font-weight: 950 !important;
+                overflow: visible !important;
             }}
 
             div[data-baseweb="select"] > div::after {{
                 left: 14px;
-                right: 52px;
+                right: 58px;
                 bottom: 10px;
                 font-size: 12px;
             }}
 
+            div[data-baseweb="select"] > div > div:first-child {{
+                min-height: 26px !important;
+                overflow: visible !important;
+            }}
+
+            div[data-baseweb="select"] > div > div:first-child *,
+            div[data-baseweb="select"] span {{
+                font-size: 15px !important;
+                font-weight: 950 !important;
+                line-height: 1.45 !important;
+                overflow: visible !important;
+                padding-bottom: 3px !important;
+            }}
+
             div[data-baseweb="select"] svg {{
-                width: 20px !important;
-                height: 20px !important;
-                right: 15px !important;
+                width: 27px !important;
+                height: 27px !important;
+                right: 16px !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important;
             }}
         }}
 
         @media (max-width: 420px) {{
             div[data-baseweb="select"] > div {{
                 min-height: 68px !important;
-                padding-right: 48px !important;
+                padding-right: 54px !important;
             }}
 
-            div[data-baseweb="select"] > div > div:first-child,
+            div[data-baseweb="select"] > div::after {{
+                right: 54px;
+                font-size: 11px;
+            }}
+
+            div[data-baseweb="select"] > div > div:first-child {{
+                min-height: 25px !important;
+                overflow: visible !important;
+            }}
+
             div[data-baseweb="select"] > div > div:first-child *,
             div[data-baseweb="select"] span {{
                 font-size: 14px !important;
                 font-weight: 950 !important;
-            }}
-
-            div[data-baseweb="select"] > div::after {{
-                right: 48px;
-                font-size: 11px;
+                line-height: 1.45 !important;
+                overflow: visible !important;
+                padding-bottom: 3px !important;
             }}
 
             div[data-baseweb="select"] svg {{
-                width: 19px !important;
-                height: 19px !important;
-                right: 14px !important;
+                width: 25px !important;
+                height: 25px !important;
+                right: 15px !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important;
             }}
         }}
         """
@@ -4898,6 +4934,165 @@ def page_leaderboard():
                 ]
             }
         )
+
+    def style_leaderboard_row(row):
+        styles = []
+
+        is_current_user = str(row["Người chơi"]).strip() == current_display_name
+        rank_value = int(row["Hạng"])
+
+        for col in row.index:
+            style = ""
+
+            if is_current_user:
+                style += (
+                    "background-color: #E0F2FE !important; "
+                    "font-weight: 800 !important; "
+                )
+
+            if col == "Điểm":
+                style += (
+                    "font-weight: 1390 !important; "
+                    "color: #07111F !important; "
+                )
+
+            if col == "Thưởng sao":
+                style += (
+                    "font-weight: 900 !important; "
+                    "color: #B45309 !important; "
+                )
+
+            if col in ["⭐", "✨"]:
+                style += (
+                    "text-align: center !important; "
+                    "font-weight: 900 !important; "
+                    "color: #78350F !important; "
+                )
+
+            if col == "Hạng":
+                style += (
+                    "font-weight: 950 !important; "
+                    "text-align: center !important; "
+                )
+
+                if rank_value == 1:
+                    style += (
+                        "background-color: #F5C542 !important; "
+                        "color: #78350F !important; "
+                    )
+
+                elif rank_value == 2:
+                    style += (
+                        "background-color: #CBD5E1 !important; "
+                        "color: #334155 !important; "
+                    )
+
+                elif rank_value == 3:
+                    style += (
+                        "background-color: #CD7F32 !important; "
+                        "color: #431407 !important; "
+                    )
+
+            styles.append(style)
+
+        return styles
+
+    styled_df = (
+        display_df
+        .style
+        .apply(style_leaderboard_row, axis=1)
+        .set_properties(
+            subset=["Điểm"],
+            **{
+                "font-weight": "1390 !important",
+                "color": "#07111F !important"
+            }
+        )
+        .set_properties(
+            subset=["Thưởng sao"],
+            **{
+                "font-weight": "900 !important",
+                "color": "#B45309 !important"
+            }
+        )
+        .set_properties(
+            subset=["⭐", "✨"],
+            **{
+                "text-align": "center !important",
+                "font-weight": "900 !important",
+                "color": "#78350F !important"
+            }
+        )
+        .set_table_styles(
+            [
+                {
+                    "selector": "thead th",
+                    "props": [
+                        ("background-color", "#07111F"),
+                        ("color", "#F8FAFC"),
+                        ("font-weight", "900"),
+                        ("text-align", "left"),
+                        ("border-bottom", "1px solid rgba(255,255,255,0.16)"),
+                        ("padding", "11px 12px")
+                    ]
+                },
+                {
+                    "selector": "thead th:nth-child(6)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-size", "18px")
+                    ]
+                },
+                {
+                    "selector": "thead th:nth-child(7)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-size", "18px")
+                    ]
+                },
+                {
+                    "selector": "tbody td",
+                    "props": [
+                        ("border-bottom", "1px solid rgba(15,23,42,0.08)"),
+                        ("padding", "10px 12px")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(2)",
+                    "props": [
+                        ("white-space", "nowrap")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(6)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-weight", "900"),
+                        ("color", "#78350F")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(7)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-weight", "900"),
+                        ("color", "#78350F")
+                    ]
+                },
+                {
+                    "selector": "table",
+                    "props": [
+                        ("width", "100%"),
+                        ("border-collapse", "collapse"),
+                        ("font-size", "14px")
+                    ]
+                }
+            ] + avatar_row_styles
+        )
+    )
+
+    st.table(styled_df)
+    return
 
     def style_leaderboard_row(row):
         styles = []
