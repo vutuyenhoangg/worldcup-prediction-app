@@ -1249,17 +1249,6 @@ def render_avatar_popover(user: dict):
             color: transparent !important;
         }}
 
-        div[data-testid="stPopover"] button::after {{
-            content: "";
-            position: absolute;
-            right: -1px;
-            bottom: -1px;
-            width: 14px;
-            height: 14px;
-            border-radius: 999px;
-            background: #F5C542;
-            border: 2px solid #FFFFFF;
-        }}
         div[data-testid="stPopoverBody"] {{
             min-width: 460px !important;
             max-width: 520px !important;
