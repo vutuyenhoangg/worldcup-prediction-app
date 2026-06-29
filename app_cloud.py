@@ -1192,7 +1192,7 @@ def render_avatar_popover(user: dict):
     Mobile:
     - Popup căn giữa, hẹp hơn, ngắn hơn.
     - Kho avatar hiển thị 2 ảnh / hàng.
-    - Còn khoảng trống bên ngoài popup để người dùng bấm thoát.
+    - Người dùng bấm trực tiếp vào ảnh avatar để chọn.
     """
     avatar_keys = load_avatar_keys()
 
@@ -1215,36 +1215,102 @@ def render_avatar_popover(user: dict):
                     avatar_src = get_avatar_src(avatar_key)
                     is_selected = avatar_key == current_avatar_key
 
-                    border_color = "#F5C542" if is_selected else "rgba(15,23,42,0.10)"
-                    bg_color = "#FFF7ED" if is_selected else "#FFFFFF"
-
-                    st.markdown(
-                        f"""
-                        <div class="wc-avatar-option-card" style="
-                            background: {bg_color};
-                            border: 2px solid {border_color};
-                        ">
-                            <img
-                                src="{avatar_src}"
-                                class="wc-avatar-option-img"
-                            >
-                        </div>
-                        """,
-                        unsafe_allow_html=True
+                    border_color = "#F5C542" if is_selected else "rgba(255,255,255,0.95)"
+                    shadow_color = (
+                        "rgba(245,197,66,0.34)"
+                        if is_selected
+                        else "rgba(15,23,42,0.14)"
                     )
 
-                    if is_selected:
-                        st.button(
-                            "Đang dùng",
-                            key=f"{key_prefix}_avatar_current_{avatar_key}",
-                            use_container_width=True,
-                            disabled=True
-                        )
-                    else:
+                    with stylable_container(
+                        key=f"{key_prefix}_avatar_image_button_shell_{avatar_key}",
+                        css_styles=f"""
+                        {{
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            margin-bottom: 14px;
+                        }}
+
+                        div.stButton {{
+                            display: flex !important;
+                            justify-content: center !important;
+                            align-items: center !important;
+                        }}
+
+                        button {{
+                            width: 74px !important;
+                            height: 74px !important;
+                            min-width: 74px !important;
+                            min-height: 74px !important;
+                            max-width: 74px !important;
+                            max-height: 74px !important;
+                            padding: 0 !important;
+                            margin: 0 auto !important;
+                            border-radius: 999px !important;
+                            border: 3px solid {border_color} !important;
+                            background: url("{avatar_src}") center center / cover no-repeat !important;
+                            box-shadow: 0 8px 20px {shadow_color} !important;
+                            overflow: hidden !important;
+                            cursor: pointer !important;
+                            font-size: 0 !important;
+                            line-height: 0 !important;
+                            color: transparent !important;
+                        }}
+
+                        button:hover {{
+                            transform: translateY(-1px) scale(1.04) !important;
+                            border-color: #F5C542 !important;
+                            box-shadow: 0 12px 26px rgba(245,197,66,0.30) !important;
+                        }}
+
+                        button:disabled {{
+                            opacity: 1 !important;
+                            cursor: default !important;
+                        }}
+
+                        button:disabled:hover {{
+                            transform: none !important;
+                            border-color: #F5C542 !important;
+                        }}
+
+                        button * {{
+                            display: none !important;
+                            visibility: hidden !important;
+                            font-size: 0 !important;
+                            line-height: 0 !important;
+                            color: transparent !important;
+                        }}
+
+                        @media (max-width: 768px) {{
+                            button {{
+                                width: 68px !important;
+                                height: 68px !important;
+                                min-width: 68px !important;
+                                min-height: 68px !important;
+                                max-width: 68px !important;
+                                max-height: 68px !important;
+                                border-width: 2px !important;
+                            }}
+                        }}
+
+                        @media (max-width: 390px) {{
+                            button {{
+                                width: 64px !important;
+                                height: 64px !important;
+                                min-width: 64px !important;
+                                min-height: 64px !important;
+                                max-width: 64px !important;
+                                max-height: 64px !important;
+                            }}
+                        }}
+                        """
+                    ):
                         if st.button(
-                            "Chọn",
+                            " ",
                             key=f"{key_prefix}_avatar_choose_{avatar_key}",
-                            use_container_width=True
+                            help="Chọn avatar này",
+                            disabled=is_selected
                         ):
                             try:
                                 update_user_avatar(
@@ -1317,31 +1383,8 @@ def render_avatar_popover(user: dict):
             max-height: calc(100vh - 110px) !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
-        }}
-
-        .wc-avatar-option-card {{
-            border-radius: 18px;
-            padding: 10px 8px;
-            text-align: center;
-            margin-bottom: 8px;
-            box-shadow: 0 8px 20px rgba(15,23,42,0.06);
-        }}
-
-        .wc-avatar-option-img {{
-            width: 64px;
-            height: 64px;
-            border-radius: 999px;
-            object-fit: cover;
-            border: 3px solid #FFFFFF;
-            box-shadow: 0 7px 18px rgba(15,23,42,0.16);
-        }}
-
-        div[data-testid="stPopoverBody"] .stButton > button,
-        div[data-testid="stPopoverContent"] .stButton > button {{
-            min-height: 34px !important;
-            padding: 6px 8px !important;
-            font-size: 13px !important;
-            border-radius: 999px !important;
+            padding: 22px 24px !important;
+            border-radius: 20px !important;
         }}
 
         .wc-avatar-grid-desktop-shell {{
@@ -1388,7 +1431,7 @@ def render_avatar_popover(user: dict):
                 max-height: 54vh !important;
                 overflow-y: auto !important;
                 overflow-x: hidden !important;
-                padding: 14px 12px !important;
+                padding: 16px 18px !important;
                 border-radius: 18px !important;
             }}
 
@@ -1399,31 +1442,6 @@ def render_avatar_popover(user: dict):
             .wc-avatar-grid-mobile-shell {{
                 display: block !important;
             }}
-
-            .wc-avatar-option-card {{
-                padding: 8px 6px !important;
-                border-radius: 14px !important;
-                margin-bottom: 6px !important;
-            }}
-
-            .wc-avatar-option-img {{
-                width: 52px !important;
-                height: 52px !important;
-                border-width: 2px !important;
-            }}
-
-            div[data-testid="stPopoverBody"] .stButton > button,
-            div[data-testid="stPopoverContent"] .stButton > button {{
-                min-height: 30px !important;
-                padding: 4px 6px !important;
-                font-size: 12px !important;
-            }}
-
-            div[data-testid="stPopoverBody"] [data-testid="column"],
-            div[data-testid="stPopoverContent"] [data-testid="column"] {{
-                padding-left: 4px !important;
-                padding-right: 4px !important;
-            }}
         }}
 
         @media (max-width: 390px) {{
@@ -1433,24 +1451,7 @@ def render_avatar_popover(user: dict):
                 width: min(300px, calc(100vw - 40px)) !important;
                 max-width: 300px !important;
                 max-height: 50vh !important;
-                padding: 12px 10px !important;
-            }}
-
-            .wc-avatar-option-img {{
-                width: 48px !important;
-                height: 48px !important;
-            }}
-
-            .wc-avatar-option-card {{
-                padding: 7px 5px !important;
-                border-radius: 12px !important;
-            }}
-
-            div[data-testid="stPopoverBody"] .stButton > button,
-            div[data-testid="stPopoverContent"] .stButton > button {{
-                min-height: 28px !important;
-                padding: 3px 4px !important;
-                font-size: 11px !important;
+                padding: 14px 16px !important;
             }}
         }}
         """
@@ -1469,8 +1470,8 @@ def render_avatar_popover(user: dict):
                 <div style="
                     color: #64748B;
                     font-size: 13px;
-                    margin-bottom: 14px;
-                    line-height: 1.4;
+                    margin-bottom: 24px;
+                    line-height: 1.45;
                 ">
                     Avatar của <b>{display_name}</b> sẽ hiển thị ở góc phải màn hình.
                 </div>
