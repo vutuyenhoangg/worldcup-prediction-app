@@ -1181,19 +1181,58 @@ def render_sidebar_star_balance(user_id: int):
         unsafe_allow_html=True
     )
 
+def process_avatar_selection_from_query(user: dict):
+    """
+    Xử lý khi người dùng bấm trực tiếp vào ảnh avatar trong popup.
+
+    Cách hoạt động:
+    - Mỗi ảnh avatar là một link có query param avatar_select.
+    - Khi app rerun, hàm này đọc avatar_select.
+    - Nếu hợp lệ thì cập nhật avatar_key vào database.
+    - Sau đó xóa query param để URL sạch lại.
+    """
+    try:
+        avatar_param = st.query_params.get("avatar_select")
+    except Exception:
+        return
+
+    if not avatar_param:
+        return
+
+    if isinstance(avatar_param, list):
+        avatar_param = avatar_param[0]
+
+    avatar_key = normalize_avatar_key(avatar_param)
+
+    try:
+        if avatar_key:
+            update_user_avatar(
+                user_id=int(user["user_id"]),
+                avatar_key=avatar_key
+            )
+
+            st.session_state["user"]["avatar_key"] = avatar_key
+
+        try:
+            del st.query_params["avatar_select"]
+        except Exception:
+            st.query_params.clear()
+
+        st.rerun()
+
+    except ValueError as e:
+        st.error(str(e))
+
 def render_avatar_popover(user: dict):
     """
     Hiển thị avatar tròn ở góc trên bên phải.
     Bấm vào avatar để mở kho chọn avatar.
 
-    Desktop:
-    - Kho avatar hiển thị 4 ảnh / hàng.
-
-    Mobile:
-    - Popup căn giữa, hẹp hơn, ngắn hơn.
-    - Kho avatar hiển thị 2 ảnh / hàng.
-    - Người dùng bấm trực tiếp vào ảnh avatar để chọn.
+    Bản này không dùng st.button cho từng avatar để tránh CSS bị lan ra ngoài.
+    Người dùng bấm trực tiếp vào ảnh avatar để chọn.
     """
+    from urllib.parse import quote
+
     avatar_keys = load_avatar_keys()
 
     if not avatar_keys:
@@ -1205,124 +1244,34 @@ def render_avatar_popover(user: dict):
     display_name_raw = str(user.get("display_name", "User")).strip()
     display_name = html.escape(display_name_raw)
 
-    def render_avatar_grid(avatars_per_row: int, key_prefix: str):
-        for start_idx in range(0, len(avatar_keys), avatars_per_row):
-            row_avatar_keys = avatar_keys[start_idx:start_idx + avatars_per_row]
-            cols = st.columns(avatars_per_row, gap="small")
+    avatar_items_html = []
 
-            for col, avatar_key in zip(cols, row_avatar_keys):
-                with col:
-                    avatar_src = get_avatar_src(avatar_key)
-                    is_selected = avatar_key == current_avatar_key
+    for avatar_key in avatar_keys:
+        avatar_src = get_avatar_src(avatar_key)
+        safe_avatar_key = html.escape(avatar_key, quote=True)
+        avatar_href = f"?avatar_select={quote(avatar_key)}"
 
-                    border_color = "#F5C542" if is_selected else "rgba(255,255,255,0.95)"
-                    shadow_color = (
-                        "rgba(245,197,66,0.34)"
-                        if is_selected
-                        else "rgba(15,23,42,0.14)"
-                    )
+        is_selected = avatar_key == current_avatar_key
 
-                    with stylable_container(
-                        key=f"{key_prefix}_avatar_image_button_shell_{avatar_key}",
-                        css_styles=f"""
-                        {{
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                            margin-bottom: 14px;
-                        }}
+        selected_class = "is-selected" if is_selected else ""
 
-                        div.stButton {{
-                            display: flex !important;
-                            justify-content: center !important;
-                            align-items: center !important;
-                        }}
+        avatar_items_html.append(
+            f"""
+            <a
+                class="wc-avatar-choice {selected_class}"
+                href="{avatar_href}"
+                title="Chọn avatar"
+            >
+                <img
+                    src="{avatar_src}"
+                    alt="{safe_avatar_key}"
+                    class="wc-avatar-choice-img"
+                >
+            </a>
+            """
+        )
 
-                        button {{
-                            width: 74px !important;
-                            height: 74px !important;
-                            min-width: 74px !important;
-                            min-height: 74px !important;
-                            max-width: 74px !important;
-                            max-height: 74px !important;
-                            padding: 0 !important;
-                            margin: 0 auto !important;
-                            border-radius: 999px !important;
-                            border: 3px solid {border_color} !important;
-                            background: url("{avatar_src}") center center / cover no-repeat !important;
-                            box-shadow: 0 8px 20px {shadow_color} !important;
-                            overflow: hidden !important;
-                            cursor: pointer !important;
-                            font-size: 0 !important;
-                            line-height: 0 !important;
-                            color: transparent !important;
-                        }}
-
-                        button:hover {{
-                            transform: translateY(-1px) scale(1.04) !important;
-                            border-color: #F5C542 !important;
-                            box-shadow: 0 12px 26px rgba(245,197,66,0.30) !important;
-                        }}
-
-                        button:disabled {{
-                            opacity: 1 !important;
-                            cursor: default !important;
-                        }}
-
-                        button:disabled:hover {{
-                            transform: none !important;
-                            border-color: #F5C542 !important;
-                        }}
-
-                        button * {{
-                            display: none !important;
-                            visibility: hidden !important;
-                            font-size: 0 !important;
-                            line-height: 0 !important;
-                            color: transparent !important;
-                        }}
-
-                        @media (max-width: 768px) {{
-                            button {{
-                                width: 68px !important;
-                                height: 68px !important;
-                                min-width: 68px !important;
-                                min-height: 68px !important;
-                                max-width: 68px !important;
-                                max-height: 68px !important;
-                                border-width: 2px !important;
-                            }}
-                        }}
-
-                        @media (max-width: 390px) {{
-                            button {{
-                                width: 64px !important;
-                                height: 64px !important;
-                                min-width: 64px !important;
-                                min-height: 64px !important;
-                                max-width: 64px !important;
-                                max-height: 64px !important;
-                            }}
-                        }}
-                        """
-                    ):
-                        if st.button(
-                            " ",
-                            key=f"{key_prefix}_avatar_choose_{avatar_key}",
-                            help="Chọn avatar này",
-                            disabled=is_selected
-                        ):
-                            try:
-                                update_user_avatar(
-                                    user_id=int(user["user_id"]),
-                                    avatar_key=avatar_key
-                                )
-
-                                st.session_state["user"]["avatar_key"] = avatar_key
-                                st.rerun()
-
-                            except ValueError as e:
-                                st.error(str(e))
+    avatar_grid_html = "".join(avatar_items_html)
 
     with stylable_container(
         key="top_right_avatar_popover_shell",
@@ -1341,7 +1290,7 @@ def render_avatar_popover(user: dict):
             height: 62px !important;
         }}
 
-        div[data-testid="stPopover"] button {{
+        div[data-testid="stPopover"] > button {{
             position: relative !important;
             width: 56px !important;
             height: 56px !important;
@@ -1362,13 +1311,13 @@ def render_avatar_popover(user: dict):
             color: transparent !important;
         }}
 
-        div[data-testid="stPopover"] button:hover {{
+        div[data-testid="stPopover"] > button:hover {{
             transform: translateY(-1px) scale(1.03) !important;
             border-color: #F5C542 !important;
             box-shadow: 0 14px 34px rgba(7, 17, 31, 0.30) !important;
         }}
 
-        div[data-testid="stPopover"] button * {{
+        div[data-testid="stPopover"] > button * {{
             display: none !important;
             visibility: hidden !important;
             font-size: 0 !important;
@@ -1387,12 +1336,46 @@ def render_avatar_popover(user: dict):
             border-radius: 20px !important;
         }}
 
-        .wc-avatar-grid-desktop-shell {{
-            display: block;
+        .wc-avatar-grid {{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px 18px;
+            margin-top: 24px;
         }}
 
-        .wc-avatar-grid-mobile-shell {{
-            display: none;
+        .wc-avatar-choice {{
+            width: 76px;
+            height: 76px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            text-decoration: none !important;
+            background: transparent;
+            border: 3px solid rgba(255,255,255,0.95);
+            box-shadow: 0 8px 20px rgba(15,23,42,0.14);
+            transition: 0.16s ease;
+        }}
+
+        .wc-avatar-choice:hover {{
+            transform: translateY(-1px) scale(1.04);
+            border-color: #F5C542;
+            box-shadow: 0 12px 26px rgba(245,197,66,0.30);
+        }}
+
+        .wc-avatar-choice.is-selected {{
+            border-color: #F5C542;
+            box-shadow: 0 10px 26px rgba(245,197,66,0.36);
+            background: rgba(255,247,237,0.75);
+        }}
+
+        .wc-avatar-choice-img {{
+            width: 68px;
+            height: 68px;
+            border-radius: 999px;
+            object-fit: cover;
+            display: block;
         }}
 
         @media (max-width: 768px) {{
@@ -1408,7 +1391,7 @@ def render_avatar_popover(user: dict):
                 height: 52px !important;
             }}
 
-            div[data-testid="stPopover"] button {{
+            div[data-testid="stPopover"] > button {{
                 width: 48px !important;
                 height: 48px !important;
                 min-width: 48px !important;
@@ -1435,12 +1418,20 @@ def render_avatar_popover(user: dict):
                 border-radius: 18px !important;
             }}
 
-            .wc-avatar-grid-desktop-shell {{
-                display: none !important;
+            .wc-avatar-grid {{
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px 18px;
+                margin-top: 24px;
             }}
 
-            .wc-avatar-grid-mobile-shell {{
-                display: block !important;
+            .wc-avatar-choice {{
+                width: 78px;
+                height: 78px;
+            }}
+
+            .wc-avatar-choice-img {{
+                width: 70px;
+                height: 70px;
             }}
         }}
 
@@ -1452,6 +1443,20 @@ def render_avatar_popover(user: dict):
                 max-width: 300px !important;
                 max-height: 50vh !important;
                 padding: 14px 16px !important;
+            }}
+
+            .wc-avatar-grid {{
+                gap: 14px 16px;
+            }}
+
+            .wc-avatar-choice {{
+                width: 72px;
+                height: 72px;
+            }}
+
+            .wc-avatar-choice-img {{
+                width: 64px;
+                height: 64px;
             }}
         }}
         """
@@ -1470,56 +1475,18 @@ def render_avatar_popover(user: dict):
                 <div style="
                     color: #64748B;
                     font-size: 13px;
-                    margin-bottom: 24px;
+                    margin-bottom: 0;
                     line-height: 1.45;
                 ">
                     Avatar của <b>{display_name}</b> sẽ hiển thị ở góc phải màn hình.
                 </div>
+
+                <div class="wc-avatar-grid">
+                    {avatar_grid_html}
+                </div>
                 """,
                 unsafe_allow_html=True
             )
-
-            with stylable_container(
-                key="avatar_grid_desktop_shell",
-                css_styles="""
-                {
-                    display: block;
-                }
-
-                @media (max-width: 768px) {
-                    {
-                        display: none !important;
-                    }
-                }
-                """
-            ):
-                st.markdown(
-                    '<div class="wc-avatar-grid-desktop-shell">',
-                    unsafe_allow_html=True
-                )
-                render_avatar_grid(avatars_per_row=4, key_prefix="desktop")
-                st.markdown("</div>", unsafe_allow_html=True)
-
-            with stylable_container(
-                key="avatar_grid_mobile_shell",
-                css_styles="""
-                {
-                    display: none;
-                }
-
-                @media (max-width: 768px) {
-                    {
-                        display: block !important;
-                    }
-                }
-                """
-            ):
-                st.markdown(
-                    '<div class="wc-avatar-grid-mobile-shell">',
-                    unsafe_allow_html=True
-                )
-                render_avatar_grid(avatars_per_row=2, key_prefix="mobile")
-                st.markdown("</div>", unsafe_allow_html=True)
 
 # ============================================================
 # 3. BASIC UTILITIES
@@ -5209,6 +5176,8 @@ def main():
             st.stop()
 
     user = st.session_state["user"]
+
+    process_avatar_selection_from_query(user)
 
     render_avatar_popover(user)
 
