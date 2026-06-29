@@ -39,6 +39,10 @@ SESSION_DAYS = 30
 HOPE_STARS_PER_USER = 5
 SUPER_STARS_PER_USER = 1
 
+AVATAR_FOLDER = "data/static/avatars"
+DEFAULT_AVATAR_KEY = "avatar_default_1.png"
+AVATAR_EXTENSIONS = {".png"}
+
 STAR_TYPE_NONE = "none"
 STAR_TYPE_HOPE = "hope"
 STAR_TYPE_SUPER = "super"
