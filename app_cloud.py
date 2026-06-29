@@ -1343,45 +1343,130 @@ def render_avatar_popover(user: dict):
         css_styles=f"""
         {{
             position: fixed;
-            top: 76px;
-            right: 28px;
+            top: 72px;
+            right: 26px;
             z-index: 999999;
-            width: 62px !important;
-            height: 62px !important;
+            width: 72px !important;
+            height: 72px !important;
+            overflow: visible !important;
         }}
 
         div[data-testid="stPopover"] {{
-            width: 62px !important;
-            height: 62px !important;
+            width: 72px !important;
+            height: 72px !important;
+            overflow: visible !important;
         }}
 
         div[data-testid="stPopover"] > button,
         div[data-testid="stPopover"] > div > button {{
             position: relative !important;
-            width: 56px !important;
-            height: 56px !important;
-            min-width: 56px !important;
-            min-height: 56px !important;
-            max-width: 56px !important;
-            max-height: 56px !important;
+            width: 58px !important;
+            height: 58px !important;
+            min-width: 58px !important;
+            min-height: 58px !important;
+            max-width: 58px !important;
+            max-height: 58px !important;
             padding: 0 !important;
             margin: 0 !important;
             border-radius: 999px !important;
             border: 3px solid #FFFFFF !important;
+            outline: 2px solid rgba(245, 197, 66, 0.78) !important;
+            outline-offset: 3px !important;
             background: url("{current_avatar_src}") center center / cover no-repeat !important;
-            box-shadow: 0 10px 28px rgba(7, 17, 31, 0.24) !important;
-            overflow: hidden !important;
+            box-shadow:
+                0 12px 30px rgba(7, 17, 31, 0.24),
+                0 0 0 7px rgba(245, 197, 66, 0.10) !important;
+            overflow: visible !important;
             cursor: pointer !important;
             font-size: 0 !important;
             line-height: 0 !important;
             color: transparent !important;
+            transition:
+                transform 0.18s ease,
+                box-shadow 0.18s ease,
+                border-color 0.18s ease,
+                outline-color 0.18s ease !important;
+        }}
+
+        div[data-testid="stPopover"] > button::after,
+        div[data-testid="stPopover"] > div > button::after {{
+            content: "✎";
+            position: absolute;
+            right: -5px;
+            bottom: -5px;
+            width: 23px;
+            height: 23px;
+            border-radius: 999px;
+            background: #F5C542;
+            color: #07111F;
+            border: 2px solid #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 950;
+            line-height: 1;
+            box-shadow: 0 6px 14px rgba(7, 17, 31, 0.24);
+            pointer-events: none;
+            transition: transform 0.18s ease, background 0.18s ease;
+        }}
+
+        div[data-testid="stPopover"] > button::before,
+        div[data-testid="stPopover"] > div > button::before {{
+            content: "Đổi avatar";
+            position: absolute;
+            right: 70px;
+            top: 50%;
+            transform: translateY(-50%) translateX(8px);
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+            padding: 8px 11px;
+            border-radius: 999px;
+            background: rgba(7, 17, 31, 0.94);
+            color: #F8FAFC;
+            font-size: 12px;
+            font-weight: 850;
+            line-height: 1;
+            box-shadow: 0 10px 24px rgba(7, 17, 31, 0.22);
+            transition: opacity 0.18s ease, transform 0.18s ease;
         }}
 
         div[data-testid="stPopover"] > button:hover,
         div[data-testid="stPopover"] > div > button:hover {{
-            transform: translateY(-1px) scale(1.03) !important;
+            transform: translateY(-1px) scale(1.045) !important;
             border-color: #F5C542 !important;
-            box-shadow: 0 14px 34px rgba(7, 17, 31, 0.30) !important;
+            outline-color: rgba(245, 197, 66, 0.96) !important;
+            box-shadow:
+                0 16px 36px rgba(7, 17, 31, 0.30),
+                0 0 0 8px rgba(245, 197, 66, 0.16) !important;
+        }}
+
+        div[data-testid="stPopover"] > button:hover::before,
+        div[data-testid="stPopover"] > div > button:hover::before {{
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+        }}
+
+        div[data-testid="stPopover"] > button:hover::after,
+        div[data-testid="stPopover"] > div > button:hover::after {{
+            transform: scale(1.08) rotate(-8deg);
+            background: #FFD761;
+        }}
+
+        div[data-testid="stPopover"] > button:focus-visible,
+        div[data-testid="stPopover"] > div > button:focus-visible {{
+            outline: 3px solid rgba(37, 99, 235, 0.72) !important;
+            outline-offset: 4px !important;
+        }}
+
+        div[data-testid="stPopover"] > button[aria-expanded="true"],
+        div[data-testid="stPopover"] > div > button[aria-expanded="true"] {{
+            border-color: #F5C542 !important;
+            outline-color: rgba(245, 197, 66, 1) !important;
+            box-shadow:
+                0 16px 36px rgba(7, 17, 31, 0.30),
+                0 0 0 8px rgba(245, 197, 66, 0.18) !important;
         }}
 
         div[data-testid="stPopover"] > button *,
@@ -1400,6 +1485,9 @@ def render_avatar_popover(user: dict):
             max-height: calc(100vh - 110px) !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
+            border-radius: 22px !important;
+            box-shadow: 0 22px 56px rgba(7, 17, 31, 0.24) !important;
+            border: 1px solid rgba(15, 23, 42, 0.10) !important;
         }}
 
         .wc-avatar-grid-desktop-shell {{
@@ -1414,13 +1502,13 @@ def render_avatar_popover(user: dict):
             {{
                 top: 64px;
                 right: 12px;
-                width: 52px !important;
-                height: 52px !important;
+                width: 56px !important;
+                height: 56px !important;
             }}
 
             div[data-testid="stPopover"] {{
-                width: 52px !important;
-                height: 52px !important;
+                width: 56px !important;
+                height: 56px !important;
             }}
 
             div[data-testid="stPopover"] > button,
@@ -1432,6 +1520,26 @@ def render_avatar_popover(user: dict):
                 max-width: 48px !important;
                 max-height: 48px !important;
                 border-width: 2px !important;
+                outline-width: 2px !important;
+                outline-offset: 2px !important;
+                box-shadow:
+                    0 10px 24px rgba(7, 17, 31, 0.22),
+                    0 0 0 5px rgba(245, 197, 66, 0.12) !important;
+            }}
+
+            div[data-testid="stPopover"] > button::before,
+            div[data-testid="stPopover"] > div > button::before {{
+                display: none !important;
+            }}
+
+            div[data-testid="stPopover"] > button::after,
+            div[data-testid="stPopover"] > div > button::after {{
+                right: -4px;
+                bottom: -4px;
+                width: 19px;
+                height: 19px;
+                font-size: 11px;
+                border-width: 2px;
             }}
 
             div[data-testid="stPopoverBody"],
@@ -1478,7 +1586,7 @@ def render_avatar_popover(user: dict):
         }}
         """
     ):
-        with st.popover(" ", use_container_width=False):
+        with st.popover("Đổi avatar", use_container_width=False):
             st.markdown(
                 f"""
                 <div style="
@@ -1495,7 +1603,7 @@ def render_avatar_popover(user: dict):
                     margin-bottom: 14px;
                     line-height: 1.4;
                 ">
-                    Avatar của bạn sẽ hiển thị ở góc phải màn hình.
+                    Chọn avatar của bạn. Ảnh sẽ hiển thị ở góc phải màn hình.
                 </div>
                 """,
                 unsafe_allow_html=True
