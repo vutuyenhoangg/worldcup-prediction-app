@@ -1186,13 +1186,11 @@ def render_avatar_popover(user: dict):
     Hiển thị avatar tròn ở góc trên bên phải.
     Bấm vào avatar để mở kho chọn avatar.
 
-    Desktop:
-    - Kho avatar hiển thị 4 ảnh / hàng.
-
-    Mobile:
-    - Popup căn giữa, hẹp hơn, ngắn hơn.
-    - Kho avatar hiển thị 2 ảnh / hàng.
-    - Còn khoảng trống bên ngoài popup để người dùng bấm thoát.
+    Cập nhật:
+    - Giữ layout popup avatar 4 ảnh / hàng trên desktop, 2 ảnh / hàng trên mobile.
+    - Không còn nút chữ "Chọn" / "Đang dùng" dưới mỗi avatar.
+    - Người dùng chọn avatar bằng cách bấm trực tiếp vào khung avatar.
+    - CSS được target theo key riêng để không ảnh hưởng nút Đăng xuất hoặc các nút khác.
     """
     avatar_keys = load_avatar_keys()
 
@@ -1204,6 +1202,16 @@ def render_avatar_popover(user: dict):
 
     display_name_raw = str(user.get("display_name", "User")).strip()
     display_name = html.escape(display_name_raw)
+
+    def make_safe_key(text: str) -> str:
+        return (
+            str(text)
+            .replace(".", "_")
+            .replace("-", "_")
+            .replace(" ", "_")
+            .replace("/", "_")
+            .replace("\\", "_")
+        )
 
     def render_avatar_grid(avatars_per_row: int, key_prefix: str):
         for start_idx in range(0, len(avatar_keys), avatars_per_row):
@@ -1218,15 +1226,9 @@ def render_avatar_popover(user: dict):
                     border_color = "#F5C542" if is_selected else "rgba(15,23,42,0.10)"
                     bg_color = "#FFF7ED" if is_selected else "#FFFFFF"
 
-                    safe_avatar_key = (
-                        avatar_key
-                        .replace(".", "_")
-                        .replace("-", "_")
-                        .replace(" ", "_")
-                    )
-                    
+                    safe_avatar_key = make_safe_key(avatar_key)
                     avatar_button_key = f"{key_prefix}_avatar_pick_{safe_avatar_key}"
-                    
+
                     st.markdown(
                         f"""
                         <style>
@@ -1247,14 +1249,18 @@ def render_avatar_popover(user: dict):
                             font-size: 0 !important;
                             line-height: 0 !important;
                         }}
-                    
+
                         .st-key-{avatar_button_key} button:hover {{
                             border-color: #F5C542 !important;
                             background: #FFF7ED !important;
                             transform: translateY(-1px) !important;
                             box-shadow: 0 10px 24px rgba(15,23,42,0.10) !important;
                         }}
-                    
+
+                        .st-key-{avatar_button_key} button:active {{
+                            transform: translateY(0) scale(0.98) !important;
+                        }}
+
                         .st-key-{avatar_button_key} button::before {{
                             content: "";
                             position: absolute;
@@ -1271,7 +1277,7 @@ def render_avatar_popover(user: dict):
                             border: 3px solid #FFFFFF;
                             box-shadow: 0 7px 18px rgba(15,23,42,0.16);
                         }}
-                    
+
                         .st-key-{avatar_button_key} button * {{
                             display: none !important;
                             visibility: hidden !important;
@@ -1279,7 +1285,7 @@ def render_avatar_popover(user: dict):
                             font-size: 0 !important;
                             line-height: 0 !important;
                         }}
-                    
+
                         @media (max-width: 768px) {{
                             .st-key-{avatar_button_key} button {{
                                 height: 72px !important;
@@ -1287,21 +1293,21 @@ def render_avatar_popover(user: dict):
                                 border-radius: 14px !important;
                                 margin-bottom: 6px !important;
                             }}
-                    
+
                             .st-key-{avatar_button_key} button::before {{
                                 width: 52px;
                                 height: 52px;
                                 border-width: 2px;
                             }}
                         }}
-                    
+
                         @media (max-width: 390px) {{
                             .st-key-{avatar_button_key} button {{
                                 height: 66px !important;
                                 min-height: 66px !important;
                                 border-radius: 12px !important;
                             }}
-                    
+
                             .st-key-{avatar_button_key} button::before {{
                                 width: 48px;
                                 height: 48px;
@@ -1311,24 +1317,24 @@ def render_avatar_popover(user: dict):
                         """,
                         unsafe_allow_html=True
                     )
-                    
+
                     avatar_clicked = st.button(
                         "Chọn avatar",
                         key=avatar_button_key,
                         use_container_width=True,
                         help="Bấm để chọn avatar này."
                     )
-                    
+
                     if avatar_clicked and not is_selected:
                         try:
                             update_user_avatar(
                                 user_id=int(user["user_id"]),
                                 avatar_key=avatar_key
                             )
-                    
+
                             st.session_state["user"]["avatar_key"] = avatar_key
                             st.rerun()
-                    
+
                         except ValueError as e:
                             st.error(str(e))
 
@@ -1349,7 +1355,8 @@ def render_avatar_popover(user: dict):
             height: 62px !important;
         }}
 
-        div[data-testid="stPopover"] > button {{
+        div[data-testid="stPopover"] > button,
+        div[data-testid="stPopover"] > div > button {{
             position: relative !important;
             width: 56px !important;
             height: 56px !important;
@@ -1370,13 +1377,15 @@ def render_avatar_popover(user: dict):
             color: transparent !important;
         }}
 
-        div[data-testid="stPopover"] > button:hover {{
+        div[data-testid="stPopover"] > button:hover,
+        div[data-testid="stPopover"] > div > button:hover {{
             transform: translateY(-1px) scale(1.03) !important;
             border-color: #F5C542 !important;
             box-shadow: 0 14px 34px rgba(7, 17, 31, 0.30) !important;
         }}
 
-        div[data-testid="stPopover"] > button * {{
+        div[data-testid="stPopover"] > button *,
+        div[data-testid="stPopover"] > div > button * {{
             display: none !important;
             visibility: hidden !important;
             font-size: 0 !important;
@@ -1391,31 +1400,6 @@ def render_avatar_popover(user: dict):
             max-height: calc(100vh - 110px) !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
-        }}
-
-        .wc-avatar-option-card {{
-            border-radius: 18px;
-            padding: 10px 8px;
-            text-align: center;
-            margin-bottom: 8px;
-            box-shadow: 0 8px 20px rgba(15,23,42,0.06);
-        }}
-
-        .wc-avatar-option-img {{
-            width: 64px;
-            height: 64px;
-            border-radius: 999px;
-            object-fit: cover;
-            border: 3px solid #FFFFFF;
-            box-shadow: 0 7px 18px rgba(15,23,42,0.16);
-        }}
-
-        div[data-testid="stPopoverBody"] .stButton > button,
-        div[data-testid="stPopoverContent"] .stButton > button {{
-            min-height: 34px !important;
-            padding: 6px 8px !important;
-            font-size: 13px !important;
-            border-radius: 999px !important;
         }}
 
         .wc-avatar-grid-desktop-shell {{
@@ -1439,7 +1423,8 @@ def render_avatar_popover(user: dict):
                 height: 52px !important;
             }}
 
-            div[data-testid="stPopover"] > button {{
+            div[data-testid="stPopover"] > button,
+            div[data-testid="stPopover"] > div > button {{
                 width: 48px !important;
                 height: 48px !important;
                 min-width: 48px !important;
@@ -1474,25 +1459,6 @@ def render_avatar_popover(user: dict):
                 display: block !important;
             }}
 
-            .wc-avatar-option-card {{
-                padding: 8px 6px !important;
-                border-radius: 14px !important;
-                margin-bottom: 6px !important;
-            }}
-
-            .wc-avatar-option-img {{
-                width: 52px !important;
-                height: 52px !important;
-                border-width: 2px !important;
-            }}
-
-            div[data-testid="stPopoverBody"] .stButton > button,
-            div[data-testid="stPopoverContent"] .stButton > button {{
-                min-height: 30px !important;
-                padding: 4px 6px !important;
-                font-size: 12px !important;
-            }}
-
             div[data-testid="stPopoverBody"] [data-testid="column"],
             div[data-testid="stPopoverContent"] [data-testid="column"] {{
                 padding-left: 4px !important;
@@ -1508,23 +1474,6 @@ def render_avatar_popover(user: dict):
                 max-width: 300px !important;
                 max-height: 50vh !important;
                 padding: 12px 10px !important;
-            }}
-
-            .wc-avatar-option-img {{
-                width: 48px !important;
-                height: 48px !important;
-            }}
-
-            .wc-avatar-option-card {{
-                padding: 7px 5px !important;
-                border-radius: 12px !important;
-            }}
-
-            div[data-testid="stPopoverBody"] .stButton > button,
-            div[data-testid="stPopoverContent"] .stButton > button {{
-                min-height: 28px !important;
-                padding: 3px 4px !important;
-                font-size: 11px !important;
             }}
         }}
         """
@@ -4530,7 +4479,7 @@ def build_leaderboard_df():
 
     summary = (
         df
-        .groupby(["user_id", "username", "display_name", "role"], as_index=False)
+        .groupby(["user_id", "username", "display_name", "role", "avatar_key"], as_index=False)
         .agg(
             total_points=("points", "sum"),
             base_points=("base_points", "sum"),
@@ -4619,6 +4568,7 @@ def page_leaderboard():
     display_df = leaderboard[
         [
             "rank",
+            "avatar_key",
             "display_name",
             "total_points",
             "base_points",
@@ -4636,6 +4586,7 @@ def page_leaderboard():
 
     display_df = display_df.rename(columns={
         "rank": "Hạng",
+        "avatar_key": "Avatar",
         "display_name": "Người chơi",
         "total_points": "Điểm",
         "base_points": "Điểm gốc",
@@ -4658,157 +4609,192 @@ def page_leaderboard():
     for col in percent_cols:
         display_df[col] = display_df[col].apply(lambda x: f"{x * 100:.1f}%")
 
-    def style_leaderboard_row(row):
-        styles = []
+    def get_rank_cell_style(rank_value: int) -> str:
+        if rank_value == 1:
+            return "background:#F5C542;color:#78350F;font-weight:950;"
 
-        is_current_user = str(row["Người chơi"]).strip() == current_display_name
+        if rank_value == 2:
+            return "background:#CBD5E1;color:#334155;font-weight:950;"
+
+        if rank_value == 3:
+            return "background:#CD7F32;color:#431407;font-weight:950;"
+
+        return "font-weight:950;color:#07111F;"
+
+    rows_html = ""
+
+    for _, row in display_df.iterrows():
         rank_value = int(row["Hạng"])
+        player_name = str(row["Người chơi"]).strip()
+        is_current_user = player_name == current_display_name
 
-        for col in row.index:
-            style = ""
+        avatar_src = get_avatar_src(row.get("Avatar"))
 
-            if is_current_user:
-                style += (
-                    "background-color: #E0F2FE !important; "
-                    "font-weight: 800 !important; "
-                )
+        row_bg = "#E0F2FE" if is_current_user else "rgba(255,255,255,0.76)"
+        row_font_weight = "800" if is_current_user else "500"
 
-            if col == "Điểm":
-                style += (
-                    "font-weight: 1390 !important; "
-                    "color: #07111F !important; "
-                )
+        safe_player_name = html.escape(player_name)
 
-            if col == "Thưởng sao":
-                style += (
-                    "font-weight: 900 !important; "
-                    "color: #B45309 !important; "
-                )
+        player_cell_html = f"""
+            <div class="wc-leaderboard-player-cell">
+                <img
+                    src="{avatar_src}"
+                    class="wc-leaderboard-avatar"
+                    alt="Avatar của {safe_player_name}"
+                >
+                <span>{safe_player_name}</span>
+            </div>
+        """
 
-            if col in ["⭐", "✨"]:
-                style += (
-                    "text-align: center !important; "
-                    "font-weight: 900 !important; "
-                    "color: #78350F !important; "
-                )
+        rows_html += f"""
+        <tr style="background:{row_bg};font-weight:{row_font_weight};">
+            <td class="wc-rank-cell" style="{get_rank_cell_style(rank_value)}">{rank_value}</td>
+            <td>{player_cell_html}</td>
+            <td class="wc-score-cell">{int(row["Điểm"])}</td>
+            <td>{int(row["Điểm gốc"])}</td>
+            <td class="wc-bonus-cell">{int(row["Thưởng sao"])}</td>
+            <td class="wc-star-cell">{html.escape(str(row["⭐"]))}</td>
+            <td class="wc-star-cell">{html.escape(str(row["✨"]))}</td>
+            <td>{int(row["Số dự đoán"])}</td>
+            <td>{int(row["Số trận đã chấm"])}</td>
+            <td>{int(row["Đúng tỉ số"])}</td>
+            <td>{int(row["Đúng kết quả"])}</td>
+            <td>{html.escape(str(row["% Đúng tỉ số"]))}</td>
+            <td>{html.escape(str(row["% Đúng kết quả"]))}</td>
+        </tr>
+        """
 
-            if col == "Hạng":
-                style += (
-                    "font-weight: 950 !important; "
-                    "text-align: center !important; "
-                )
+    leaderboard_html = f"""
+    <style>
+        .wc-leaderboard-table-wrapper {{
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,42,0.08);
+            box-shadow: 0 10px 28px rgba(15,23,42,0.06);
+            background: rgba(255,255,255,0.82);
+        }}
 
-                if rank_value == 1:
-                    style += (
-                        "background-color: #F5C542 !important; "
-                        "color: #78350F !important; "
-                    )
+        .wc-leaderboard-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            color: #07111F;
+        }}
 
-                elif rank_value == 2:
-                    style += (
-                        "background-color: #CBD5E1 !important; "
-                        "color: #334155 !important; "
-                    )
+        .wc-leaderboard-table thead th {{
+            background: #07111F;
+            color: #F8FAFC;
+            font-weight: 900;
+            text-align: left;
+            padding: 11px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.16);
+            white-space: nowrap;
+        }}
 
-                elif rank_value == 3:
-                    style += (
-                        "background-color: #CD7F32 !important; "
-                        "color: #431407 !important; "
-                    )
+        .wc-leaderboard-table tbody td {{
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(15,23,42,0.08);
+            vertical-align: middle;
+            white-space: nowrap;
+        }}
 
-            styles.append(style)
+        .wc-leaderboard-table tbody tr:last-child td {{
+            border-bottom: none;
+        }}
 
-        return styles
+        .wc-rank-cell {{
+            text-align: center;
+            min-width: 56px;
+        }}
 
-    styled_df = (
-        display_df
-        .style
-        .apply(style_leaderboard_row, axis=1)
-        .set_properties(
-            subset=["Điểm"],
-            **{
-                "font-weight": "1390 !important",
-                "color": "#07111F !important"
-            }
-        )
-        .set_properties(
-            subset=["Thưởng sao"],
-            **{
-                "font-weight": "900 !important",
-                "color": "#B45309 !important"
-            }
-        )
-        .set_properties(
-            subset=["⭐", "✨"],
-            **{
-                "text-align": "center !important",
-                "font-weight": "900 !important",
-                "color": "#78350F !important"
-            }
-        )
-        .set_table_styles(
-            [
-                {
-                    "selector": "thead th",
-                    "props": [
-                        ("background-color", "#07111F"),
-                        ("color", "#F8FAFC"),
-                        ("font-weight", "900"),
-                        ("text-align", "left"),
-                        ("border-bottom", "1px solid rgba(255,255,255,0.16)"),
-                        ("padding", "11px 12px")
-                    ]
-                },
-                {
-                    "selector": "thead th:nth-child(6)",
-                    "props": [
-                        ("text-align", "center"),
-                        ("font-size", "18px")
-                    ]
-                },
-                {
-                    "selector": "thead th:nth-child(7)",
-                    "props": [
-                        ("text-align", "center"),
-                        ("font-size", "18px")
-                    ]
-                },
-                {
-                    "selector": "tbody td",
-                    "props": [
-                        ("border-bottom", "1px solid rgba(15,23,42,0.08)"),
-                        ("padding", "10px 12px")
-                    ]
-                },
-                {
-                    "selector": "tbody td:nth-child(6)",
-                    "props": [
-                        ("text-align", "center"),
-                        ("font-weight", "900"),
-                        ("color", "#78350F")
-                    ]
-                },
-                {
-                    "selector": "tbody td:nth-child(7)",
-                    "props": [
-                        ("text-align", "center"),
-                        ("font-weight", "900"),
-                        ("color", "#78350F")
-                    ]
-                },
-                {
-                    "selector": "table",
-                    "props": [
-                        ("width", "100%"),
-                        ("border-collapse", "collapse"),
-                        ("font-size", "14px")
-                    ]
-                }
-            ]
-        )
+        .wc-score-cell {{
+            font-weight: 950;
+            color: #07111F;
+        }}
+
+        .wc-bonus-cell {{
+            font-weight: 900;
+            color: #B45309;
+        }}
+
+        .wc-star-cell {{
+            text-align: center;
+            font-weight: 900;
+            color: #78350F;
+        }}
+
+        .wc-leaderboard-player-cell {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 150px;
+        }}
+
+        .wc-leaderboard-avatar {{
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            border-radius: 999px;
+            object-fit: cover;
+            border: 2px solid #FFFFFF;
+            box-shadow: 0 4px 10px rgba(15,23,42,0.16);
+            background: #FFFFFF;
+        }}
+
+        @media (max-width: 768px) {{
+            .wc-leaderboard-table {{
+                font-size: 13px;
+            }}
+
+            .wc-leaderboard-table thead th,
+            .wc-leaderboard-table tbody td {{
+                padding: 9px 10px;
+            }}
+
+            .wc-leaderboard-avatar {{
+                width: 28px;
+                height: 28px;
+                min-width: 28px;
+            }}
+
+            .wc-leaderboard-player-cell {{
+                gap: 8px;
+                min-width: 135px;
+            }}
+        }}
+    </style>
+
+    <div class="wc-leaderboard-table-wrapper">
+        <table class="wc-leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Hạng</th>
+                    <th>Người chơi</th>
+                    <th>Điểm</th>
+                    <th>Điểm gốc</th>
+                    <th>Thưởng sao</th>
+                    <th>⭐</th>
+                    <th>✨</th>
+                    <th>Số dự đoán</th>
+                    <th>Số trận đã chấm</th>
+                    <th>Đúng tỉ số</th>
+                    <th>Đúng kết quả</th>
+                    <th>% Đúng tỉ số</th>
+                    <th>% Đúng kết quả</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows_html}
+            </tbody>
+        </table>
+    </div>
+    """
+
+    st.markdown(
+        leaderboard_html,
+        unsafe_allow_html=True
     )
-
-    st.table(styled_df)
 
 def page_dashboard():
     render_page_title(
