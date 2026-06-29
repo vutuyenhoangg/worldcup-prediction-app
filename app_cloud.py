@@ -2103,7 +2103,8 @@ def get_user_by_session_token(token: str):
             u.username,
             u.display_name,
             u.role,
-            u.created_at
+            u.created_at,
+            COALESCE(u.avatar_key, :default_avatar_key) AS avatar_key
         FROM login_sessions s
         JOIN users u
           ON s.user_id = u.user_id
@@ -2111,7 +2112,8 @@ def get_user_by_session_token(token: str):
           AND s.expires_at > NOW()
         """,
         {
-            "token_hash": token_hash
+            "token_hash": token_hash,
+            "default_avatar_key": DEFAULT_AVATAR_KEY
         }
     )
 
@@ -2330,9 +2332,18 @@ def load_matches() -> pd.DataFrame:
 def load_users() -> pd.DataFrame:
     return read_sql(
         """
-        SELECT user_id, username, display_name, role, created_at
+        SELECT
+            user_id,
+            username,
+            display_name,
+            role,
+            created_at,
+            COALESCE(avatar_key, :default_avatar_key) AS avatar_key
         FROM users
-        """
+        """,
+        {
+            "default_avatar_key": DEFAULT_AVATAR_KEY
+        }
     )
 
 
