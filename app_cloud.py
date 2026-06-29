@@ -1225,86 +1225,99 @@ def render_avatar_popover(user: dict):
                         .replace(" ", "_")
                     )
                     
-                    with stylable_container(
-                        key=f"{key_prefix}_avatar_click_area_{safe_avatar_key}",
-                        css_styles="""
-                        {
-                            position: relative;
-                            margin-bottom: 8px;
-                        }
+                    avatar_button_key = f"{key_prefix}_avatar_pick_{safe_avatar_key}"
                     
-                        .stButton {
-                            position: absolute !important;
-                            inset: 0 !important;
-                            z-index: 10 !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                        }
-                    
-                        .stButton > button {
+                    st.markdown(
+                        f"""
+                        <style>
+                        .st-key-{avatar_button_key} button {{
+                            position: relative !important;
                             width: 100% !important;
-                            height: 100% !important;
-                            min-height: 100% !important;
+                            height: 88px !important;
+                            min-height: 88px !important;
                             padding: 0 !important;
-                            margin: 0 !important;
-                            border: none !important;
+                            margin: 0 0 8px 0 !important;
                             border-radius: 18px !important;
-                            background: transparent !important;
-                            box-shadow: none !important;
+                            border: 2px solid {border_color} !important;
+                            background: {bg_color} !important;
+                            box-shadow: 0 8px 20px rgba(15,23,42,0.06) !important;
+                            overflow: hidden !important;
+                            cursor: pointer !important;
                             color: transparent !important;
                             font-size: 0 !important;
                             line-height: 0 !important;
-                            cursor: pointer !important;
-                        }
+                        }}
                     
-                        .stButton > button:hover {
-                            background: rgba(245, 197, 66, 0.08) !important;
-                            border: none !important;
-                            box-shadow: none !important;
-                            transform: none !important;
-                        }
+                        .st-key-{avatar_button_key} button:hover {{
+                            border-color: #F5C542 !important;
+                            background: #FFF7ED !important;
+                            transform: translateY(-1px) !important;
+                            box-shadow: 0 10px 24px rgba(15,23,42,0.10) !important;
+                        }}
                     
-                        .stButton > button * {
+                        .st-key-{avatar_button_key} button::before {{
+                            content: "";
+                            position: absolute;
+                            left: 50%;
+                            top: 50%;
+                            width: 64px;
+                            height: 64px;
+                            transform: translate(-50%, -50%);
+                            border-radius: 999px;
+                            background-image: url("{avatar_src}");
+                            background-size: cover;
+                            background-position: center;
+                            background-repeat: no-repeat;
+                            border: 3px solid #FFFFFF;
+                            box-shadow: 0 7px 18px rgba(15,23,42,0.16);
+                        }}
+                    
+                        .st-key-{avatar_button_key} button * {{
                             display: none !important;
                             visibility: hidden !important;
                             color: transparent !important;
                             font-size: 0 !important;
                             line-height: 0 !important;
-                        }
+                        }}
                     
-                        @media (max-width: 768px) {
-                            .stButton > button {
+                        @media (max-width: 768px) {{
+                            .st-key-{avatar_button_key} button {{
+                                height: 72px !important;
+                                min-height: 72px !important;
                                 border-radius: 14px !important;
-                            }
-                        }
+                                margin-bottom: 6px !important;
+                            }}
                     
-                        @media (max-width: 390px) {
-                            .stButton > button {
+                            .st-key-{avatar_button_key} button::before {{
+                                width: 52px;
+                                height: 52px;
+                                border-width: 2px;
+                            }}
+                        }}
+                    
+                        @media (max-width: 390px) {{
+                            .st-key-{avatar_button_key} button {{
+                                height: 66px !important;
+                                min-height: 66px !important;
                                 border-radius: 12px !important;
-                            }
-                        }
-                        """
-                    ):
-                        st.markdown(
-                            f"""
-                            <div class="wc-avatar-option-card" style="
-                                background: {bg_color};
-                                border: 2px solid {border_color};
-                            ">
-                                <img
-                                    src="{avatar_src}"
-                                    class="wc-avatar-option-img"
-                                >
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
+                            }}
                     
-                        avatar_clicked = st.button(
-                            "Chọn",
-                            key=f"{key_prefix}_avatar_choose_{avatar_key}",
-                            use_container_width=True
-                        )
+                            .st-key-{avatar_button_key} button::before {{
+                                width: 48px;
+                                height: 48px;
+                            }}
+                        }}
+                        </style>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    
+                    avatar_clicked = st.button(
+                        "Chọn avatar",
+                        key=avatar_button_key,
+                        use_container_width=True,
+                        help="Bấm để chọn avatar này."
+                    )
                     
                     if avatar_clicked and not is_selected:
                         try:
