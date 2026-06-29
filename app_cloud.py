@@ -1191,8 +1191,8 @@ def render_avatar_popover(user: dict):
     - Kho avatar hiển thị 4 ảnh / hàng.
 
     Mobile:
-    - Popover tự co theo chiều rộng màn hình.
-    - Giảm size avatar trong kho để không bị tràn/lệch.
+    - Popup hẹp hơn và ngắn hơn để không chắn toàn màn hình.
+    - Người dùng vẫn còn khoảng trống bên ngoài popup để bấm thoát.
     """
     avatar_keys = load_avatar_keys()
 
@@ -1263,6 +1263,7 @@ def render_avatar_popover(user: dict):
             max-width: 560px !important;
             max-height: calc(100vh - 110px) !important;
             overflow-y: auto !important;
+            overflow-x: hidden !important;
         }}
 
         .wc-avatar-option-card {{
@@ -1316,55 +1317,71 @@ def render_avatar_popover(user: dict):
             div[data-testid="stPopoverBody"],
             div[data-testid="stPopoverContent"] {{
                 position: fixed !important;
-                top: 74px !important;
-                left: 10px !important;
-                right: 10px !important;
-                width: calc(100vw - 20px) !important;
+                top: 82px !important;
+                right: 12px !important;
+                left: auto !important;
+                width: min(340px, calc(100vw - 52px)) !important;
                 min-width: unset !important;
-                max-width: unset !important;
-                max-height: calc(100vh - 92px) !important;
+                max-width: 340px !important;
+                max-height: 58vh !important;
                 overflow-y: auto !important;
                 overflow-x: hidden !important;
-                padding: 16px 14px !important;
+                padding: 14px 12px !important;
                 border-radius: 18px !important;
             }}
 
             .wc-avatar-option-card {{
-                padding: 7px 5px !important;
+                padding: 6px 4px !important;
                 border-radius: 14px !important;
                 margin-bottom: 6px !important;
             }}
 
             .wc-avatar-option-img {{
-                width: 48px !important;
-                height: 48px !important;
+                width: 42px !important;
+                height: 42px !important;
                 border-width: 2px !important;
             }}
 
             div[data-testid="stPopoverBody"] .stButton > button,
             div[data-testid="stPopoverContent"] .stButton > button {{
-                min-height: 30px !important;
-                padding: 4px 5px !important;
-                font-size: 12px !important;
+                min-height: 28px !important;
+                padding: 4px 4px !important;
+                font-size: 11px !important;
+            }}
+
+            div[data-testid="stPopoverBody"] [data-testid="column"],
+            div[data-testid="stPopoverContent"] [data-testid="column"] {{
+                padding-left: 3px !important;
+                padding-right: 3px !important;
             }}
         }}
 
         @media (max-width: 390px) {{
             div[data-testid="stPopoverBody"],
             div[data-testid="stPopoverContent"] {{
-                left: 8px !important;
-                right: 8px !important;
-                width: calc(100vw - 16px) !important;
-                padding: 14px 10px !important;
+                top: 78px !important;
+                right: 10px !important;
+                width: min(320px, calc(100vw - 46px)) !important;
+                max-width: 320px !important;
+                max-height: 54vh !important;
+                padding: 12px 9px !important;
             }}
 
             .wc-avatar-option-img {{
-                width: 44px !important;
-                height: 44px !important;
+                width: 38px !important;
+                height: 38px !important;
             }}
 
             .wc-avatar-option-card {{
-                padding: 6px 4px !important;
+                padding: 5px 3px !important;
+                border-radius: 12px !important;
+            }}
+
+            div[data-testid="stPopoverBody"] .stButton > button,
+            div[data-testid="stPopoverContent"] .stButton > button {{
+                min-height: 27px !important;
+                padding: 3px 3px !important;
+                font-size: 10.5px !important;
             }}
         }}
         """
