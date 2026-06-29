@@ -1275,7 +1275,7 @@ def render_avatar_popover(user: dict):
             height: 62px !important;
         }}
 
-        div[data-testid="stPopover"] > button {{
+        div[data-testid="stPopover"] button {{
             position: relative !important;
             width: 56px !important;
             height: 56px !important;
@@ -1296,13 +1296,13 @@ def render_avatar_popover(user: dict):
             color: transparent !important;
         }}
 
-        div[data-testid="stPopover"] > button:hover {{
+        div[data-testid="stPopover"] button:hover {{
             transform: translateY(-1px) scale(1.03) !important;
             border-color: #F5C542 !important;
             box-shadow: 0 14px 34px rgba(7, 17, 31, 0.30) !important;
         }}
 
-        div[data-testid="stPopover"] > button * {{
+        div[data-testid="stPopover"] button * {{
             display: none !important;
             visibility: hidden !important;
             font-size: 0 !important;
@@ -1365,7 +1365,7 @@ def render_avatar_popover(user: dict):
                 height: 52px !important;
             }}
 
-            div[data-testid="stPopover"] > button {{
+            div[data-testid="stPopover"] button {{
                 width: 48px !important;
                 height: 48px !important;
                 min-width: 48px !important;
