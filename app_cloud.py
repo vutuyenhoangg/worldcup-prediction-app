@@ -4718,16 +4718,31 @@ def page_leaderboard():
             pointer-events: none;
         }}
 
-        div[data-baseweb="select"] span {{
+        div[data-baseweb="select"] > div > div:first-child,
+        div[data-baseweb="select"] > div > div:first-child *,
+        div[data-baseweb="select"] span {
             color: {scope_info["text_color"]} !important;
             font-size: 18px !important;
             font-weight: 950 !important;
             letter-spacing: -0.02em !important;
-        }}
-
-        div[data-baseweb="select"] svg {{
+            text-transform: none !important;
+        }
+        
+        /* Căn mũi tên dropdown vào giữa box theo chiều dọc */
+        div[data-baseweb="select"] svg {
             color: #64748B !important;
-        }}
+            width: 22px !important;
+            height: 22px !important;
+            position: absolute !important;
+            right: 18px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+        }
+        
+        /* Nới vùng phải để chữ không đè vào mũi tên */
+        div[data-baseweb="select"] > div {
+            padding-right: 56px !important;
+        }
 
         @media (max-width: 768px) {{
             div[data-baseweb="select"] > div {{
@@ -4739,9 +4754,18 @@ def page_leaderboard():
                 padding-bottom: 28px !important;
             }}
 
-            div[data-baseweb="select"] span {{
+            div[data-baseweb="select"] > div > div:first-child,
+            div[data-baseweb="select"] > div > div:first-child *,
+            div[data-baseweb="select"] span {
                 font-size: 15px !important;
-            }}
+                font-weight: 950 !important;
+            }
+            
+            div[data-baseweb="select"] svg {
+                width: 20px !important;
+                height: 20px !important;
+                right: 15px !important;
+            }
 
             div[data-baseweb="select"] > div::after {{
                 left: 14px;
@@ -4756,9 +4780,18 @@ def page_leaderboard():
                 min-height: 68px !important;
             }}
 
-            div[data-baseweb="select"] span {{
+            div[data-baseweb="select"] > div > div:first-child,
+            div[data-baseweb="select"] > div > div:first-child *,
+            div[data-baseweb="select"] span {
                 font-size: 14px !important;
-            }}
+                font-weight: 950 !important;
+            }
+            
+            div[data-baseweb="select"] svg {
+                width: 19px !important;
+                height: 19px !important;
+                right: 14px !important;
+            }
 
             div[data-baseweb="select"] > div::after {{
                 font-size: 11px;
