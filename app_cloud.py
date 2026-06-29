@@ -4362,36 +4362,16 @@ def page_my_predictions():
 
         st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 
-def get_leaderboard_scope_info(scope: str) -> dict:
-    scope = str(scope or "overall").strip().lower()
-
-    scope_info = {
-        "overall": {
-            "title": "Bảng xếp hạng tổng",
-            "label": "🏆 Tổng",
-            "badge": "BXH chính",
-            "description": "Tính điểm từ toàn bộ các trận đã được chấm. Đây là bảng xếp hạng chính của cuộc đua."
-        },
-        "group": {
-            "title": "Bảng xếp hạng vòng bảng",
-            "label": "Vòng bảng",
-            "badge": "BXH phụ",
-            "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng bảng."
-        },
-        "knockout": {
-            "title": "Bảng xếp hạng vòng knockout",
-            "label": "Knockout",
-            "badge": "BXH phụ",
-            "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng knockout."
-        }
-    }
-
-    return scope_info.get(scope, scope_info["overall"])
 
 def build_leaderboard_df(leaderboard_scope: str = "overall"):
     users = load_users()
     predictions = load_predictions()
     matches = load_matches()
+
+    leaderboard_scope = str(leaderboard_scope or "overall").strip().lower()
+
+    if leaderboard_scope not in ["overall", "group", "knockout"]:
+        leaderboard_scope = "overall"
 
     if users.empty:
         return pd.DataFrame()
@@ -4427,18 +4407,23 @@ def build_leaderboard_df(leaderboard_scope: str = "overall"):
     df = predictions.merge(users, on="user_id", how="left")
     df = df.merge(matches, on="match_id", how="left")
 
-    leaderboard_scope = str(leaderboard_scope or "overall").strip().lower()
-    
+    if "avatar_key" not in df.columns:
+        df["avatar_key"] = DEFAULT_AVATAR_KEY
+
+    # =========================
+    # Lọc phạm vi bảng xếp hạng
+    # =========================
     if leaderboard_scope == "group":
         df = df[
             ~df["is_knockout"].apply(to_bool)
         ].copy()
-    
+
     elif leaderboard_scope == "knockout":
         df = df[
             df["is_knockout"].apply(to_bool)
         ].copy()
-    
+
+    # Nếu phạm vi đang chọn chưa có dự đoán nào, vẫn hiển thị danh sách người chơi với điểm 0
     if df.empty:
         result = users.copy()
         result["total_points"] = 0
@@ -4458,17 +4443,14 @@ def build_leaderboard_df(leaderboard_scope: str = "overall"):
         result["result_prediction_checkable"] = 0
         result["result_prediction_correct"] = 0
         result["result_prediction_rate"] = 0.0
-    
+
         if "avatar_key" not in result.columns:
             result["avatar_key"] = DEFAULT_AVATAR_KEY
-    
+
         result = result.sort_values("display_name").reset_index(drop=True)
         result["rank"] = range(1, len(result) + 1)
-    
-        return result
 
-    if "avatar_key" not in df.columns:
-        df["avatar_key"] = DEFAULT_AVATAR_KEY
+        return result
 
     metrics = []
 
@@ -4627,7 +4609,7 @@ def page_leaderboard():
     score_all_predictions()
 
     # =========================
-    # Leaderboard scope dropdown
+    # Leaderboard scope as one dropdown card
     # =========================
     leaderboard_scope_options = [
         "overall",
@@ -4637,34 +4619,31 @@ def page_leaderboard():
 
     scope_info_map = {
         "overall": {
-            "title": "Bảng xếp hạng tổng",
-            "select_label": "🏆 Bảng xếp hạng tổng",
+            "title": "🏆 Bảng xếp hạng tổng",
             "badge": "BXH chính",
+            "select_label": "🏆 Bảng xếp hạng tổng  ·  BXH chính",
             "description": "Tính điểm từ toàn bộ các trận đã được chấm. Đây là bảng xếp hạng chính của cuộc đua.",
             "border_color": "#F5C542",
-            "badge_bg": "#FEF3C7",
-            "badge_text": "#92400E",
-            "card_bg": "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.94))"
+            "card_bg": "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.94))",
+            "text_color": "#07111F"
         },
         "group": {
             "title": "Bảng xếp hạng vòng bảng",
-            "select_label": "Vòng bảng",
             "badge": "BXH phụ",
+            "select_label": "Vòng bảng  ·  BXH phụ",
             "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng bảng.",
             "border_color": "#94A3B8",
-            "badge_bg": "#E2E8F0",
-            "badge_text": "#475569",
-            "card_bg": "rgba(255,255,255,0.88)"
+            "card_bg": "rgba(255,255,255,0.90)",
+            "text_color": "#07111F"
         },
         "knockout": {
             "title": "Bảng xếp hạng vòng knockout",
-            "select_label": "Knockout",
             "badge": "BXH phụ",
+            "select_label": "Knockout  ·  BXH phụ",
             "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng knockout.",
             "border_color": "#94A3B8",
-            "badge_bg": "#E2E8F0",
-            "badge_text": "#475569",
-            "card_bg": "rgba(255,255,255,0.88)"
+            "card_bg": "rgba(255,255,255,0.90)",
+            "text_color": "#07111F"
         }
     }
 
@@ -4677,17 +4656,22 @@ def page_leaderboard():
     leaderboard_scope = st.session_state["leaderboard_scope"]
     scope_info = scope_info_map[leaderboard_scope]
 
+    scope_description_css = (
+        scope_info["description"]
+        .replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", " ")
+    )
+
     with stylable_container(
         key="leaderboard_scope_dropdown_card",
         css_styles=f"""
         {{
             margin: 8px 0 18px 0;
-            padding: 16px 18px;
-            border-radius: 20px;
-            background: {scope_info["card_bg"]};
-            border: 1px solid rgba(15,23,42,0.08);
-            border-left: 5px solid {scope_info["border_color"]};
-            box-shadow: 0 10px 26px rgba(15,23,42,0.06);
+            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }}
 
         div[data-testid="stSelectbox"] {{
@@ -4695,89 +4679,101 @@ def page_leaderboard():
         }}
 
         div[data-testid="stSelectbox"] label {{
-            color: #334155 !important;
-            font-weight: 850 !important;
-            font-size: 13px !important;
-            margin-bottom: 6px !important;
+            display: none !important;
         }}
 
         div[data-baseweb="select"] > div {{
-            background: #FFFFFF !important;
-            border: 1px solid rgba(15,23,42,0.12) !important;
-            border-radius: 999px !important;
-            min-height: 42px !important;
-            box-shadow: none !important;
+            position: relative !important;
+            min-height: 78px !important;
+            border-radius: 20px !important;
+            background: {scope_info["card_bg"]} !important;
+            border: 1px solid rgba(15,23,42,0.08) !important;
+            border-left: 5px solid {scope_info["border_color"]} !important;
+            box-shadow: 0 10px 26px rgba(15,23,42,0.06) !important;
+            padding-left: 16px !important;
+            padding-right: 44px !important;
+            padding-top: 10px !important;
+            padding-bottom: 30px !important;
+            cursor: pointer !important;
         }}
 
         div[data-baseweb="select"] > div:hover {{
             border-color: {scope_info["border_color"]} !important;
+            box-shadow: 0 12px 30px rgba(15,23,42,0.09) !important;
+        }}
+
+        div[data-baseweb="select"] > div::after {{
+            content: "{scope_description_css}";
+            position: absolute;
+            left: 16px;
+            right: 44px;
+            bottom: 12px;
+            color: #64748B;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.35;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+        }}
+
+        div[data-baseweb="select"] span {{
+            color: {scope_info["text_color"]} !important;
+            font-size: 18px !important;
+            font-weight: 950 !important;
+            letter-spacing: -0.02em !important;
+        }}
+
+        div[data-baseweb="select"] svg {{
+            color: #64748B !important;
         }}
 
         @media (max-width: 768px) {{
-            {{
-                padding: 14px 14px;
-                margin: 6px 0 16px 0;
+            div[data-baseweb="select"] > div {{
+                min-height: 72px !important;
+                border-radius: 18px !important;
+                padding-left: 14px !important;
+                padding-right: 40px !important;
+                padding-top: 9px !important;
+                padding-bottom: 28px !important;
             }}
 
+            div[data-baseweb="select"] span {{
+                font-size: 15px !important;
+            }}
+
+            div[data-baseweb="select"] > div::after {{
+                left: 14px;
+                right: 40px;
+                bottom: 10px;
+                font-size: 12px;
+            }}
+        }}
+
+        @media (max-width: 420px) {{
             div[data-baseweb="select"] > div {{
-                min-height: 38px !important;
-                border-radius: 16px !important;
+                min-height: 68px !important;
+            }}
+
+            div[data-baseweb="select"] span {{
+                font-size: 14px !important;
+            }}
+
+            div[data-baseweb="select"] > div::after {{
+                font-size: 11px;
             }}
         }}
         """
     ):
-        col_info, col_select = st.columns([2.2, 1], gap="large")
-
-        with col_info:
-            st.markdown(
-                f"""
-                <div style="
-                    display:flex;
-                    align-items:center;
-                    gap:10px;
-                    flex-wrap:wrap;
-                    margin-bottom:6px;
-                ">
-                    <span style="
-                        color:#07111F;
-                        font-size:18px;
-                        font-weight:950;
-                        letter-spacing:-0.02em;
-                    ">
-                        {scope_info["title"]}
-                    </span>
-
-                    <span style="
-                        padding:4px 9px;
-                        border-radius:999px;
-                        background:{scope_info["badge_bg"]};
-                        color:{scope_info["badge_text"]};
-                        font-size:12px;
-                        font-weight:900;
-                    ">
-                        {scope_info["badge"]}
-                    </span>
-                </div>
-
-                <div style="
-                    color:#64748B;
-                    font-size:13px;
-                    line-height:1.45;
-                ">
-                    {scope_info["description"]}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        with col_select:
-            selected_scope = st.selectbox(
-                "Chọn bảng xếp hạng",
-                options=leaderboard_scope_options,
-                index=leaderboard_scope_options.index(leaderboard_scope),
-                format_func=lambda scope: scope_info_map[scope]["select_label"],
-                key="leaderboard_scope_dropdown"
-            )
+        selected_scope = st.selectbox(
+            "Chọn bảng xếp hạng",
+            options=leaderboard_scope_options,
+            index=leaderboard_scope_options.index(leaderboard_scope),
+            format_func=lambda scope: scope_info_map[scope]["select_label"],
+            key="leaderboard_scope_dropdown",
+            label_visibility="collapsed"
+        )
 
     if selected_scope != st.session_state["leaderboard_scope"]:
         st.session_state["leaderboard_scope"] = selected_scope
@@ -5035,6 +5031,164 @@ def page_leaderboard():
 
     st.table(styled_df)
 
+    def style_leaderboard_row(row):
+        styles = []
+
+        is_current_user = str(row["Người chơi"]).strip() == current_display_name
+        rank_value = int(row["Hạng"])
+
+        for col in row.index:
+            style = ""
+
+            if is_current_user:
+                style += (
+                    "background-color: #E0F2FE !important; "
+                    "font-weight: 800 !important; "
+                )
+
+            if col == "Điểm":
+                style += (
+                    "font-weight: 1390 !important; "
+                    "color: #07111F !important; "
+                )
+
+            if col == "Thưởng sao":
+                style += (
+                    "font-weight: 900 !important; "
+                    "color: #B45309 !important; "
+                )
+
+            if col in ["⭐", "✨"]:
+                style += (
+                    "text-align: center !important; "
+                    "font-weight: 900 !important; "
+                    "color: #78350F !important; "
+                )
+
+            if col == "Hạng":
+                style += (
+                    "font-weight: 950 !important; "
+                    "text-align: center !important; "
+                )
+
+                if rank_value == 1:
+                    style += (
+                        "background-color: #F5C542 !important; "
+                        "color: #78350F !important; "
+                    )
+
+                elif rank_value == 2:
+                    style += (
+                        "background-color: #CBD5E1 !important; "
+                        "color: #334155 !important; "
+                    )
+
+                elif rank_value == 3:
+                    style += (
+                        "background-color: #CD7F32 !important; "
+                        "color: #431407 !important; "
+                    )
+
+            styles.append(style)
+
+        return styles
+
+    styled_df = (
+        display_df
+        .style
+        .apply(style_leaderboard_row, axis=1)
+        .set_properties(
+            subset=["Điểm"],
+            **{
+                "font-weight": "1390 !important",
+                "color": "#07111F !important"
+            }
+        )
+        .set_properties(
+            subset=["Thưởng sao"],
+            **{
+                "font-weight": "900 !important",
+                "color": "#B45309 !important"
+            }
+        )
+        .set_properties(
+            subset=["⭐", "✨"],
+            **{
+                "text-align": "center !important",
+                "font-weight": "900 !important",
+                "color": "#78350F !important"
+            }
+        )
+        .set_table_styles(
+            [
+                {
+                    "selector": "thead th",
+                    "props": [
+                        ("background-color", "#07111F"),
+                        ("color", "#F8FAFC"),
+                        ("font-weight", "900"),
+                        ("text-align", "left"),
+                        ("border-bottom", "1px solid rgba(255,255,255,0.16)"),
+                        ("padding", "11px 12px")
+                    ]
+                },
+                {
+                    "selector": "thead th:nth-child(6)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-size", "18px")
+                    ]
+                },
+                {
+                    "selector": "thead th:nth-child(7)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-size", "18px")
+                    ]
+                },
+                {
+                    "selector": "tbody td",
+                    "props": [
+                        ("border-bottom", "1px solid rgba(15,23,42,0.08)"),
+                        ("padding", "10px 12px")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(2)",
+                    "props": [
+                        ("white-space", "nowrap")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(6)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-weight", "900"),
+                        ("color", "#78350F")
+                    ]
+                },
+                {
+                    "selector": "tbody td:nth-child(7)",
+                    "props": [
+                        ("text-align", "center"),
+                        ("font-weight", "900"),
+                        ("color", "#78350F")
+                    ]
+                },
+                {
+                    "selector": "table",
+                    "props": [
+                        ("width", "100%"),
+                        ("border-collapse", "collapse"),
+                        ("font-size", "14px")
+                    ]
+                }
+            ] + avatar_row_styles
+        )
+    )
+
+    st.table(styled_df)
+
 def page_dashboard():
     render_page_title(
         "Bảng phân tích tổng quan",
@@ -5042,6 +5196,8 @@ def page_dashboard():
     )
 
     score_all_predictions()
+
+    leaderboard = build_leaderboard_df()
     predictions = load_predictions()
     matches = load_matches()
 
