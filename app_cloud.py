@@ -1218,45 +1218,106 @@ def render_avatar_popover(user: dict):
                     border_color = "#F5C542" if is_selected else "rgba(15,23,42,0.10)"
                     bg_color = "#FFF7ED" if is_selected else "#FFFFFF"
 
-                    st.markdown(
-                        f"""
-                        <div class="wc-avatar-option-card" style="
-                            background: {bg_color};
-                            border: 2px solid {border_color};
-                        ">
-                            <img
-                                src="{avatar_src}"
-                                class="wc-avatar-option-img"
-                            >
-                        </div>
-                        """,
-                        unsafe_allow_html=True
+                    safe_avatar_key = (
+                        avatar_key
+                        .replace(".", "_")
+                        .replace("-", "_")
+                        .replace(" ", "_")
                     )
-
-                    if is_selected:
-                        st.button(
-                            "Đang dùng",
-                            key=f"{key_prefix}_avatar_current_{avatar_key}",
-                            use_container_width=True,
-                            disabled=True
+                    
+                    with stylable_container(
+                        key=f"{key_prefix}_avatar_click_area_{safe_avatar_key}",
+                        css_styles="""
+                        {
+                            position: relative;
+                            margin-bottom: 8px;
+                        }
+                    
+                        .stButton {
+                            position: absolute !important;
+                            inset: 0 !important;
+                            z-index: 10 !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                    
+                        .stButton > button {
+                            width: 100% !important;
+                            height: 100% !important;
+                            min-height: 100% !important;
+                            padding: 0 !important;
+                            margin: 0 !important;
+                            border: none !important;
+                            border-radius: 18px !important;
+                            background: transparent !important;
+                            box-shadow: none !important;
+                            color: transparent !important;
+                            font-size: 0 !important;
+                            line-height: 0 !important;
+                            cursor: pointer !important;
+                        }
+                    
+                        .stButton > button:hover {
+                            background: rgba(245, 197, 66, 0.08) !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                            transform: none !important;
+                        }
+                    
+                        .stButton > button * {
+                            display: none !important;
+                            visibility: hidden !important;
+                            color: transparent !important;
+                            font-size: 0 !important;
+                            line-height: 0 !important;
+                        }
+                    
+                        @media (max-width: 768px) {
+                            .stButton > button {
+                                border-radius: 14px !important;
+                            }
+                        }
+                    
+                        @media (max-width: 390px) {
+                            .stButton > button {
+                                border-radius: 12px !important;
+                            }
+                        }
+                        """
+                    ):
+                        st.markdown(
+                            f"""
+                            <div class="wc-avatar-option-card" style="
+                                background: {bg_color};
+                                border: 2px solid {border_color};
+                            ">
+                                <img
+                                    src="{avatar_src}"
+                                    class="wc-avatar-option-img"
+                                >
+                            </div>
+                            """,
+                            unsafe_allow_html=True
                         )
-                    else:
-                        if st.button(
+                    
+                        avatar_clicked = st.button(
                             "Chọn",
                             key=f"{key_prefix}_avatar_choose_{avatar_key}",
                             use_container_width=True
-                        ):
-                            try:
-                                update_user_avatar(
-                                    user_id=int(user["user_id"]),
-                                    avatar_key=avatar_key
-                                )
-
-                                st.session_state["user"]["avatar_key"] = avatar_key
-                                st.rerun()
-
-                            except ValueError as e:
-                                st.error(str(e))
+                        )
+                    
+                    if avatar_clicked and not is_selected:
+                        try:
+                            update_user_avatar(
+                                user_id=int(user["user_id"]),
+                                avatar_key=avatar_key
+                            )
+                    
+                            st.session_state["user"]["avatar_key"] = avatar_key
+                            st.rerun()
+                    
+                        except ValueError as e:
+                            st.error(str(e))
 
     with stylable_container(
         key="top_right_avatar_popover_shell",
@@ -1275,7 +1336,7 @@ def render_avatar_popover(user: dict):
             height: 62px !important;
         }}
 
-        div[data-testid="stPopover"] button {{
+        div[data-testid="stPopover"] > button {{
             position: relative !important;
             width: 56px !important;
             height: 56px !important;
@@ -1296,13 +1357,13 @@ def render_avatar_popover(user: dict):
             color: transparent !important;
         }}
 
-        div[data-testid="stPopover"] button:hover {{
+        div[data-testid="stPopover"] > button:hover {{
             transform: translateY(-1px) scale(1.03) !important;
             border-color: #F5C542 !important;
             box-shadow: 0 14px 34px rgba(7, 17, 31, 0.30) !important;
         }}
 
-        div[data-testid="stPopover"] button * {{
+        div[data-testid="stPopover"] > button * {{
             display: none !important;
             visibility: hidden !important;
             font-size: 0 !important;
@@ -1365,7 +1426,7 @@ def render_avatar_popover(user: dict):
                 height: 52px !important;
             }}
 
-            div[data-testid="stPopover"] button {{
+            div[data-testid="stPopover"] > button {{
                 width: 48px !important;
                 height: 48px !important;
                 min-width: 48px !important;
