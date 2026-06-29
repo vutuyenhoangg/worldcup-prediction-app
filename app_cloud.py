@@ -1432,7 +1432,7 @@ def render_avatar_popover(user: dict):
             content: "✎";
             position: absolute;
             left: 50%;
-            bottom: -7px;
+            bottom: -10px;
             right: auto;
             top: auto;
             width: 15px;
@@ -1577,7 +1577,7 @@ def render_avatar_popover(user: dict):
             div[data-testid="stPopover"] > button::after,
             div[data-testid="stPopover"] > div > button::after {{
                 left: 50%;
-                bottom: -6px;
+                bottom: -8px;
                 right: auto;
                 top: auto;
                 width: 13px;
@@ -1653,7 +1653,7 @@ def render_avatar_popover(user: dict):
                     margin-bottom: 14px;
                     line-height: 1.4;
                 ">
-                    Bấm vào một avatar bên dưới để đổi ảnh đại diện của bạn.
+                    Chọn ảnh đại diện của bạn để hiển thị.
                 </div>
                 """,
                 unsafe_allow_html=True
