@@ -1133,6 +1133,165 @@ def render_sidebar_star_balance(user_id: int):
         unsafe_allow_html=True
     )
 
+def render_avatar_popover(user: dict):
+    """
+    Hiển thị avatar tròn ở góc trên bên phải.
+    Bấm vào avatar để mở kho chọn avatar.
+    """
+    avatar_keys = load_avatar_keys()
+
+    if not avatar_keys:
+        return
+
+    current_avatar_key = normalize_avatar_key(user.get("avatar_key"))
+    current_avatar_src = get_avatar_src(current_avatar_key)
+
+    display_name_raw = str(user.get("display_name", "User")).strip()
+    display_name = html.escape(display_name_raw)
+
+    with stylable_container(
+        key="top_right_avatar_popover_shell",
+        css_styles=f"""
+        {{
+            position: fixed;
+            top: 18px;
+            right: 24px;
+            z-index: 999999;
+            width: 54px;
+        }}
+
+        div[data-testid="stPopover"] > button {{
+            width: 48px !important;
+            height: 48px !important;
+            min-width: 48px !important;
+            min-height: 48px !important;
+            padding: 0 !important;
+            border-radius: 999px !important;
+            border: 3px solid #FFFFFF !important;
+            background-image: url("{current_avatar_src}") !important;
+            background-size: cover !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            box-shadow: 0 10px 28px rgba(7, 17, 31, 0.24) !important;
+            font-size: 0 !important;
+            color: transparent !important;
+            cursor: pointer !important;
+            overflow: hidden !important;
+        }}
+
+        div[data-testid="stPopover"] > button:hover {{
+            transform: translateY(-1px) scale(1.03) !important;
+            border-color: #F5C542 !important;
+            box-shadow: 0 14px 34px rgba(7, 17, 31, 0.30) !important;
+        }}
+
+        div[data-testid="stPopover"] > button p {{
+            display: none !important;
+            font-size: 0 !important;
+            color: transparent !important;
+        }}
+
+        div[data-testid="stPopover"] > button::after {{
+            content: "";
+            position: absolute;
+            right: -1px;
+            bottom: -1px;
+            width: 14px;
+            height: 14px;
+            border-radius: 999px;
+            background: #F5C542;
+            border: 2px solid #FFFFFF;
+        }}
+        """
+    ):
+        with st.popover("Avatar", use_container_width=False):
+            st.markdown(
+                f"""
+                <div style="
+                    font-weight: 950;
+                    font-size: 17px;
+                    color: #07111F;
+                    margin-bottom: 4px;
+                ">
+                    Chọn avatar
+                </div>
+                <div style="
+                    color: #64748B;
+                    font-size: 13px;
+                    margin-bottom: 14px;
+                    line-height: 1.4;
+                ">
+                    Avatar của <b>{display_name}</b> sẽ hiển thị ở góc phải màn hình.
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            avatars_per_row = 3
+
+            for start_idx in range(0, len(avatar_keys), avatars_per_row):
+                row_avatar_keys = avatar_keys[start_idx:start_idx + avatars_per_row]
+                cols = st.columns(avatars_per_row)
+
+                for col, avatar_key in zip(cols, row_avatar_keys):
+                    with col:
+                        avatar_src = get_avatar_src(avatar_key)
+                        is_selected = avatar_key == current_avatar_key
+
+                        border_color = "#F5C542" if is_selected else "rgba(15,23,42,0.10)"
+                        bg_color = "#FFF7ED" if is_selected else "#FFFFFF"
+
+                        st.markdown(
+                            f"""
+                            <div style="
+                                background: {bg_color};
+                                border: 2px solid {border_color};
+                                border-radius: 18px;
+                                padding: 10px 8px;
+                                text-align: center;
+                                margin-bottom: 8px;
+                                box-shadow: 0 8px 20px rgba(15,23,42,0.06);
+                            ">
+                                <img
+                                    src="{avatar_src}"
+                                    style="
+                                        width: 64px;
+                                        height: 64px;
+                                        border-radius: 999px;
+                                        object-fit: cover;
+                                        border: 3px solid #FFFFFF;
+                                        box-shadow: 0 7px 18px rgba(15,23,42,0.16);
+                                    "
+                                >
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                        if is_selected:
+                            st.button(
+                                "Đang dùng",
+                                key=f"avatar_current_{avatar_key}",
+                                use_container_width=True,
+                                disabled=True
+                            )
+                        else:
+                            if st.button(
+                                "Chọn",
+                                key=f"avatar_choose_{avatar_key}",
+                                use_container_width=True
+                            ):
+                                try:
+                                    update_user_avatar(
+                                        user_id=int(user["user_id"]),
+                                        avatar_key=avatar_key
+                                    )
+
+                                    st.session_state["user"]["avatar_key"] = avatar_key
+                                    st.rerun()
+
+                                except ValueError as e:
+                                    st.error(str(e))
 # ============================================================
 # 3. BASIC UTILITIES
 # ============================================================
