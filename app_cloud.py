@@ -4362,7 +4362,33 @@ def page_my_predictions():
 
         st.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 
-def build_leaderboard_df():
+def get_leaderboard_scope_info(scope: str) -> dict:
+    scope = str(scope or "overall").strip().lower()
+
+    scope_info = {
+        "overall": {
+            "title": "Bảng xếp hạng tổng",
+            "label": "🏆 Tổng",
+            "badge": "BXH chính",
+            "description": "Tính điểm từ toàn bộ các trận đã được chấm. Đây là bảng xếp hạng chính của cuộc đua."
+        },
+        "group": {
+            "title": "Bảng xếp hạng vòng bảng",
+            "label": "Vòng bảng",
+            "badge": "BXH phụ",
+            "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng bảng."
+        },
+        "knockout": {
+            "title": "Bảng xếp hạng vòng knockout",
+            "label": "Knockout",
+            "badge": "BXH phụ",
+            "description": "Chỉ tính điểm từ các dự đoán ở những trận vòng knockout."
+        }
+    }
+
+    return scope_info.get(scope, scope_info["overall"])
+
+def build_leaderboard_df(leaderboard_scope: str = "overall"):
     users = load_users()
     predictions = load_predictions()
     matches = load_matches()
@@ -4400,6 +4426,46 @@ def build_leaderboard_df():
 
     df = predictions.merge(users, on="user_id", how="left")
     df = df.merge(matches, on="match_id", how="left")
+
+    leaderboard_scope = str(leaderboard_scope or "overall").strip().lower()
+    
+    if leaderboard_scope == "group":
+        df = df[
+            ~df["is_knockout"].apply(to_bool)
+        ].copy()
+    
+    elif leaderboard_scope == "knockout":
+        df = df[
+            df["is_knockout"].apply(to_bool)
+        ].copy()
+    
+    if df.empty:
+        result = users.copy()
+        result["total_points"] = 0
+        result["base_points"] = 0
+        result["star_bonus_points"] = 0
+        result["hope_stars_used"] = 0
+        result["super_stars_used"] = 0
+        result["num_predictions"] = 0
+        result["num_scored"] = 0
+        result["exact_score_count"] = 0
+        result["correct_outcome_count"] = 0
+        result["knockout_winner_checkable"] = 0
+        result["knockout_winner_correct"] = 0
+        result["exact_score_rate"] = 0.0
+        result["outcome_rate"] = 0.0
+        result["knockout_winner_rate"] = 0.0
+        result["result_prediction_checkable"] = 0
+        result["result_prediction_correct"] = 0
+        result["result_prediction_rate"] = 0.0
+    
+        if "avatar_key" not in result.columns:
+            result["avatar_key"] = DEFAULT_AVATAR_KEY
+    
+        result = result.sort_values("display_name").reset_index(drop=True)
+        result["rank"] = range(1, len(result) + 1)
+    
+        return result
 
     if "avatar_key" not in df.columns:
         df["avatar_key"] = DEFAULT_AVATAR_KEY
@@ -4559,8 +4625,121 @@ def page_leaderboard():
     )
 
     score_all_predictions()
+    
+    if "leaderboard_scope" not in st.session_state:
+        st.session_state["leaderboard_scope"] = "overall"
+    
+    leaderboard_scope = st.session_state["leaderboard_scope"]
+    
+    with stylable_container(
+        key="leaderboard_scope_switcher",
+        css_styles="""
+        {
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(15,23,42,0.08);
+            border-radius: 22px;
+            padding: 16px 18px;
+            box-shadow: 0 12px 30px rgba(15,23,42,0.07);
+            margin: 6px 0 18px 0;
+        }
+    
+        div[data-testid="stButton"] button {
+            min-height: 42px !important;
+            font-weight: 900 !important;
+            border-radius: 999px !important;
+            white-space: nowrap !important;
+        }
+        """
+    ):
+        col_total, col_group, col_knockout = st.columns([1.45, 1, 1])
+    
+        with col_total:
+            total_clicked = st.button(
+                "Bảng xếp hạng tổng",
+                key="leaderboard_scope_overall_btn",
+                type="primary" if leaderboard_scope == "overall" else "secondary",
+                use_container_width=True
+            )
+    
+        with col_group:
+            group_clicked = st.button(
+                "Vòng bảng",
+                key="leaderboard_scope_group_btn",
+                type="primary" if leaderboard_scope == "group" else "secondary",
+                use_container_width=True
+            )
+    
+        with col_knockout:
+            knockout_clicked = st.button(
+                "Knockout",
+                key="leaderboard_scope_knockout_btn",
+                type="primary" if leaderboard_scope == "knockout" else "secondary",
+                use_container_width=True
+            )
+    
+        if total_clicked:
+            st.session_state["leaderboard_scope"] = "overall"
+            st.rerun()
+    
+        if group_clicked:
+            st.session_state["leaderboard_scope"] = "group"
+            st.rerun()
+    
+        if knockout_clicked:
+            st.session_state["leaderboard_scope"] = "knockout"
+            st.rerun()
 
-    leaderboard = build_leaderboard_df()
+    leaderboard_scope = st.session_state.get("leaderboard_scope", "overall")
+    scope_info = get_leaderboard_scope_info(leaderboard_scope)
+    
+    st.markdown(
+        f"""
+        <div style="
+            margin: 2px 0 16px 0;
+            padding: 13px 16px;
+            border-radius: 18px;
+            background: {'linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.94))' if leaderboard_scope == 'overall' else 'rgba(255,255,255,0.74)'};
+            border: 1px solid {'rgba(245,197,66,0.55)' if leaderboard_scope == 'overall' else 'rgba(15,23,42,0.08)'};
+            border-left: 5px solid {'#F5C542' if leaderboard_scope == 'overall' else '#94A3B8'};
+        ">
+            <div style="
+                display:flex;
+                align-items:center;
+                gap:10px;
+                flex-wrap:wrap;
+                margin-bottom:4px;
+            ">
+                <span style="
+                    color:#07111F;
+                    font-size:17px;
+                    font-weight:950;
+                ">
+                    {scope_info["title"]}
+                </span>
+                <span style="
+                    padding:4px 9px;
+                    border-radius:999px;
+                    background:{'#FEF3C7' if leaderboard_scope == 'overall' else '#E2E8F0'};
+                    color:{'#92400E' if leaderboard_scope == 'overall' else '#475569'};
+                    font-size:12px;
+                    font-weight:900;
+                ">
+                    {scope_info["badge"]}
+                </span>
+            </div>
+            <div style="
+                color:#64748B;
+                font-size:13px;
+                line-height:1.35;
+            ">
+                {scope_info["description"]}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    leaderboard = build_leaderboard_df(leaderboard_scope)
 
     if leaderboard.empty:
         st.info("Chưa có dữ liệu người chơi.")
