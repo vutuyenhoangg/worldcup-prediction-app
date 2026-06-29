@@ -1188,7 +1188,7 @@ def render_avatar_popover(user: dict):
 
     Cập nhật UI:
     - Avatar có viền vàng nhẹ để nổi bật hơn.
-    - Có badge bút chì nhỏ ở góc avatar để gợi ý có thể chỉnh sửa.
+    - Badge bút chì được thu nhỏ và đẩy ra mép ngoài để không che chi tiết quan trọng trên avatar.
     - Hover sẽ hiện tooltip "Đổi avatar" trên desktop.
     - Popup chọn avatar vẫn giữ layout 4 ảnh / hàng trên desktop, 2 ảnh / hàng trên mobile.
     - Người dùng chọn avatar bằng cách bấm trực tiếp vào khung avatar.
@@ -1412,7 +1412,7 @@ def render_avatar_popover(user: dict):
             background: url("{current_avatar_src}") center center / cover no-repeat !important;
             box-shadow:
                 0 12px 30px rgba(7, 17, 31, 0.24),
-                0 0 0 7px rgba(245, 197, 66, 0.10) !important;
+                0 0 0 6px rgba(245, 197, 66, 0.08) !important;
             overflow: visible !important;
             cursor: pointer !important;
             font-size: 0 !important;
@@ -1425,14 +1425,15 @@ def render_avatar_popover(user: dict):
                 outline-color 0.18s ease !important;
         }}
 
+        /* Badge bút chì đã được thu nhỏ và đẩy ra ngoài mép dưới-phải */
         div[data-testid="stPopover"] > button::after,
         div[data-testid="stPopover"] > div > button::after {{
             content: "✎";
             position: absolute;
-            right: -5px;
-            bottom: -5px;
-            width: 23px;
-            height: 23px;
+            right: -3px;
+            bottom: -3px;
+            width: 18px;
+            height: 18px;
             border-radius: 999px;
             background: #F5C542;
             color: #07111F;
@@ -1440,10 +1441,10 @@ def render_avatar_popover(user: dict):
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
+            font-size: 9px;
             font-weight: 950;
             line-height: 1;
-            box-shadow: 0 6px 14px rgba(7, 17, 31, 0.24);
+            box-shadow: 0 5px 12px rgba(7, 17, 31, 0.20);
             pointer-events: none;
             transition: transform 0.18s ease, background 0.18s ease;
         }}
@@ -1452,7 +1453,7 @@ def render_avatar_popover(user: dict):
         div[data-testid="stPopover"] > div > button::before {{
             content: "Đổi avatar";
             position: absolute;
-            right: 70px;
+            right: 68px;
             top: 50%;
             transform: translateY(-50%) translateX(8px);
             opacity: 0;
@@ -1476,7 +1477,7 @@ def render_avatar_popover(user: dict):
             outline-color: rgba(245, 197, 66, 0.96) !important;
             box-shadow:
                 0 16px 36px rgba(7, 17, 31, 0.30),
-                0 0 0 8px rgba(245, 197, 66, 0.16) !important;
+                0 0 0 7px rgba(245, 197, 66, 0.12) !important;
         }}
 
         div[data-testid="stPopover"] > button:hover::before,
@@ -1487,7 +1488,7 @@ def render_avatar_popover(user: dict):
 
         div[data-testid="stPopover"] > button:hover::after,
         div[data-testid="stPopover"] > div > button:hover::after {{
-            transform: scale(1.08) rotate(-8deg);
+            transform: scale(1.08);
             background: #FFD761;
         }}
 
@@ -1503,7 +1504,7 @@ def render_avatar_popover(user: dict):
             outline-color: rgba(245, 197, 66, 1) !important;
             box-shadow:
                 0 16px 36px rgba(7, 17, 31, 0.30),
-                0 0 0 8px rgba(245, 197, 66, 0.18) !important;
+                0 0 0 7px rgba(245, 197, 66, 0.14) !important;
         }}
 
         div[data-testid="stPopover"] > button *,
@@ -1561,7 +1562,7 @@ def render_avatar_popover(user: dict):
                 outline-offset: 2px !important;
                 box-shadow:
                     0 10px 24px rgba(7, 17, 31, 0.22),
-                    0 0 0 5px rgba(245, 197, 66, 0.12) !important;
+                    0 0 0 4px rgba(245, 197, 66, 0.10) !important;
             }}
 
             div[data-testid="stPopover"] > button::before,
@@ -1571,11 +1572,11 @@ def render_avatar_popover(user: dict):
 
             div[data-testid="stPopover"] > button::after,
             div[data-testid="stPopover"] > div > button::after {{
-                right: -4px;
-                bottom: -4px;
-                width: 19px;
-                height: 19px;
-                font-size: 11px;
+                right: -2px;
+                bottom: -2px;
+                width: 16px;
+                height: 16px;
+                font-size: 8px;
                 border-width: 2px;
             }}
 
@@ -1640,7 +1641,7 @@ def render_avatar_popover(user: dict):
                     margin-bottom: 14px;
                     line-height: 1.4;
                 ">
-                    Chọn ảnh đại diện của bạn. Ảnh sẽ hiển thị ở góc phải màn hình.
+                    Bấm vào một avatar bên dưới để đổi ảnh đại diện của bạn.
                 </div>
                 """,
                 unsafe_allow_html=True
