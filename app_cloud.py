@@ -254,6 +254,51 @@ def get_avatar_src(avatar_key: str) -> str:
 
     return resolve_asset_src(f"{AVATAR_FOLDER}/{avatar_key}")
 
+@st.cache_data(show_spinner=False)
+def get_avatar_thumbnail_src(avatar_key: str, size: int = 36) -> str:
+    """
+    Tạo ảnh avatar thumbnail nhỏ để nhúng vào bảng xếp hạng.
+
+    Lý do:
+    - get_avatar_src() trả về ảnh gốc base64 khá dài.
+    - Nếu nhúng ảnh gốc vào từng dòng leaderboard HTML, app rất dễ nặng/lỗi render.
+    - Hàm này resize avatar xuống size nhỏ rồi mới encode base64.
+    """
+    try:
+        from PIL import Image
+        import io
+
+        avatar_key = normalize_avatar_key(avatar_key)
+
+        if not avatar_key:
+            return ""
+
+        avatar_path = BASE_DIR / AVATAR_FOLDER / avatar_key
+
+        if not avatar_path.exists() or not avatar_path.is_file():
+            return get_avatar_src(avatar_key)
+
+        img = Image.open(avatar_path).convert("RGBA")
+        img.thumbnail((size, size), Image.LANCZOS)
+
+        canvas = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+
+        paste_x = (size - img.width) // 2
+        paste_y = (size - img.height) // 2
+
+        canvas.paste(img, (paste_x, paste_y), img)
+
+        buffer = io.BytesIO()
+        canvas.save(buffer, format="PNG", optimize=True)
+
+        encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+        return f"data:image/png;base64,{encoded}"
+
+    except Exception:
+        # Fallback để app không chết nếu có lỗi xử lý ảnh.
+        return get_avatar_src(avatar_key)
+
 # ============================================================
 # 2. THEME + UI HELPERS
 # ============================================================
@@ -4628,7 +4673,7 @@ def page_leaderboard():
         player_name = str(row["Người chơi"]).strip()
         is_current_user = player_name == current_display_name
 
-        avatar_src = get_avatar_src(row.get("Avatar"))
+        avatar_src = get_avatar_thumbnail_src(row.get("Avatar"), size=36)
 
         row_bg = "#E0F2FE" if is_current_user else "rgba(255,255,255,0.76)"
         row_font_weight = "800" if is_current_user else "500"
