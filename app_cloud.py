@@ -956,7 +956,7 @@ def render_star_balance(user_id: int):
                 font-size: 13px;
                 margin-top: 4px;
             ">
-                Sử dụng sao để nhân điểm cho những trận bạn tự tin nhất. Có thể chọn sử dụng khi dự đoán tỉ số từng trận phía dưới.
+                Sử dụng sao để nhân điểm cho những trận bạn tự tin nhất. Có thể chọn sử dụng khi dự đoán tỉ số từng trận phía dưới. Mỗi trận chỉ được dùng tối đa 1 sao.
             </div>
         </div>
         """,
@@ -1495,7 +1495,7 @@ def render_avatar_popover(user: dict):
                     margin-bottom: 14px;
                     line-height: 1.4;
                 ">
-                    Avatar của <b>{display_name}</b> sẽ hiển thị ở góc phải màn hình.
+                    Avatar của bạn sẽ hiển thị ở góc phải màn hình.
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -4002,7 +4002,7 @@ def page_matches():
 
     render_page_title(
         "Lịch thi đấu & dự đoán",
-        "Chọn ngày và trạng thái để nhập dự đoán cho từng trận."
+        "Cuộn xuống dưới để xem lịch thi đấu và nhập dự đoán cho từng trận."
     )
 
     matches = load_matches()
