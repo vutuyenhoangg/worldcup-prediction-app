@@ -1188,7 +1188,7 @@ def render_avatar_popover(user: dict):
 
     Cập nhật UI:
     - Avatar có viền vàng nhẹ để nổi bật hơn.
-    - Badge bút chì được đặt ở góc trên bên phải để ít che chi tiết avatar hơn.
+    - Badge bút chì nhỏ hơn và được đặt ở chính giữa mép dưới avatar.
     - Hover sẽ hiện tooltip "Đổi avatar" trên desktop.
     - Popup chọn avatar vẫn giữ layout 4 ảnh / hàng trên desktop, 2 ảnh / hàng trên mobile.
     - Người dùng chọn avatar bằng cách bấm trực tiếp vào khung avatar.
@@ -1425,15 +1425,17 @@ def render_avatar_popover(user: dict):
                 outline-color 0.18s ease !important;
         }}
 
-        /* Badge bút chì ở góc trên bên phải */
+        /* Badge bút chì: nhỏ hơn và nằm chính giữa mép dưới */
         div[data-testid="stPopover"] > button::after,
         div[data-testid="stPopover"] > div > button::after {{
             content: "✎";
             position: absolute;
-            right: -3px;
-            top: -3px;
-            width: 18px;
-            height: 18px;
+            left: 50%;
+            bottom: -4px;
+            right: auto;
+            top: auto;
+            width: 15px;
+            height: 15px;
             border-radius: 999px;
             background: #F5C542;
             color: #07111F;
@@ -1441,11 +1443,12 @@ def render_avatar_popover(user: dict):
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 9px;
+            font-size: 7px;
             font-weight: 950;
             line-height: 1;
-            box-shadow: 0 5px 12px rgba(7, 17, 31, 0.20);
+            box-shadow: 0 4px 10px rgba(7, 17, 31, 0.18);
             pointer-events: none;
+            transform: translateX(-50%);
             transition: transform 0.18s ease, background 0.18s ease;
         }}
 
@@ -1488,7 +1491,7 @@ def render_avatar_popover(user: dict):
 
         div[data-testid="stPopover"] > button:hover::after,
         div[data-testid="stPopover"] > div > button:hover::after {{
-            transform: scale(1.08);
+            transform: translateX(-50%) scale(1.08);
             background: #FFD761;
         }}
 
@@ -1572,12 +1575,20 @@ def render_avatar_popover(user: dict):
 
             div[data-testid="stPopover"] > button::after,
             div[data-testid="stPopover"] > div > button::after {{
-                right: -2px;
-                top: -2px;
-                width: 16px;
-                height: 16px;
-                font-size: 8px;
+                left: 50%;
+                bottom: -3px;
+                right: auto;
+                top: auto;
+                width: 13px;
+                height: 13px;
+                font-size: 6px;
                 border-width: 2px;
+                transform: translateX(-50%);
+            }}
+
+            div[data-testid="stPopover"] > button:hover::after,
+            div[data-testid="stPopover"] > div > button:hover::after {{
+                transform: translateX(-50%) scale(1.08);
             }}
 
             div[data-testid="stPopoverBody"],
