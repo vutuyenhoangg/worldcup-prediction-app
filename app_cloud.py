@@ -141,6 +141,70 @@ st.set_page_config(
 
 cookie_controller = CookieController()
 
+@st.cache_data(show_spinner=False)
+def load_avatar_keys() -> list[str]:
+    """
+    Load danh sách avatar có sẵn trong folder data/static/avatars.
+
+    App chỉ cho người chơi chọn trong danh sách này, không cho nhập đường dẫn tự do.
+    Như vậy sẽ an toàn hơn và tránh lỗi file không tồn tại.
+    """
+    avatar_dir = BASE_DIR / AVATAR_FOLDER
+
+    if not avatar_dir.exists() or not avatar_dir.is_dir():
+        return []
+
+    avatar_keys = []
+
+    for file_path in avatar_dir.iterdir():
+        if (
+            file_path.is_file()
+            and file_path.suffix.lower() in AVATAR_EXTENSIONS
+        ):
+            avatar_keys.append(file_path.name)
+
+    return sorted(avatar_keys)
+
+
+def normalize_avatar_key(avatar_key) -> str:
+    """
+    Chuẩn hóa avatar_key.
+
+    Mục tiêu:
+    - Nếu user chưa có avatar thì dùng avatar mặc định.
+    - Nếu avatar đang lưu trong DB không còn tồn tại thì fallback về avatar mặc định.
+    - Chỉ nhận tên file, không nhận path tùy ý.
+    """
+    avatar_keys = load_avatar_keys()
+
+    if not avatar_keys:
+        return ""
+
+    if avatar_key is None or pd.isna(avatar_key):
+        avatar_key = DEFAULT_AVATAR_KEY
+
+    avatar_key = Path(str(avatar_key).strip()).name
+
+    if avatar_key in avatar_keys:
+        return avatar_key
+
+    if DEFAULT_AVATAR_KEY in avatar_keys:
+        return DEFAULT_AVATAR_KEY
+
+    return avatar_keys[0]
+
+
+def get_avatar_src(avatar_key: str) -> str:
+    """
+    Trả về src ảnh avatar để nhúng vào HTML/CSS.
+    Tận dụng resolve_asset_src() hiện có của app.
+    """
+    avatar_key = normalize_avatar_key(avatar_key)
+
+    if not avatar_key:
+        return ""
+
+    return resolve_asset_src(f"{AVATAR_FOLDER}/{avatar_key}")
 
 # ============================================================
 # 2. THEME + UI HELPERS
