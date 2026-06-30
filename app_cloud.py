@@ -1211,206 +1211,125 @@ def render_star_balance(user_id: int):
         unsafe_allow_html=True
     )
 
-    with stylable_container(
-        key="star_balance_mobile_grid_shell",
-        css_styles="""
-        {
-            width: 100%;
-            margin: 0 0 28px 0;
-        }
+    col_hope, col_super = st.columns([1, 1], gap="large")
 
-        @media (max-width: 768px) {
-            div[data-testid="stHorizontalBlock"] {
-                display: grid !important;
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                gap: 768px) {
-            div[data-testid="stHorizontalBlock"] {
-                display: grid !important;
-                grid32px !important;
-                width: min(344px, calc(100vw - 28px)) !important;
-                max-width: min(344px, calc(100vw - 28px)) !important;
-                margin-left: auto !important;
-                margin-right: auto !important;
-                align-items: stretch !important;
+    with col_hope:
+        with stylable_container(
+            key="hope_star_balance_card",
+            css_styles="""
+            {
+                background: linear-gradient(135deg, #FFF7ED, #FFFFFF);
+                border: 1px solid rgba(245, 158, 11, 0.32);
+                border-radius: 22px;
+                padding: 24px 28px;
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+                margin: 0 0 28px 0;
+                min-height: 142px;
+                width: 100%;
             }
-
-            div[data-testid="column"] {
-                width: 100% !important;
-                min-width: 0 !important;
-                flex: unset !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
-            }
-
-            div[data-testid="column"] > div {
-                width: 100% !important;
-            }
-        }
-
-        @media (max-width: 350px) {
-            div[data-testid="stHorizontalBlock"] {
-                gap: 18px !important;
-                width: calc(100vw - 24px) !important;
-                max-width: calc(100vw - 24px) !important;
-            }
-        }
-        """
-    ):
-        col_hope, col_super = st.columns([1, 1], gap="large")
-
-        with col_hope:
-            with stylable_container(
-                key="hope_star_balance_card",
-                css_styles="""
-                {
-                    background: linear-gradient(135deg, #FFF7ED, #FFFFFF);
-                    border: 1px solid rgba(245, 158, 11, 0.32);
-                    border-radius: 22px;
-                    padding: 24px 28px;
-                    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
-                    margin: 0;
-                    min-height: 142px;
-                    width: 100%;
-                    box-sizing: border-box;
-                    overflow: hidden;
-                }
-
-                @media (max-width: 768px) {
-                    {
-                        height: 150px !important;
-                        min-height: 150px !important;
-                        max-height: 150px !important;
-                        padding: 18px 24px !important;
-                    }
-                }
-
-                @media (max-width: 350px) {
-                    {
-                        padding: 16px 18px !important;
-                    }
-                }
+            """
+        ):
+            st.markdown(
                 """
-            ):
-                st.markdown(
-                    """
-                    <div style="
-                        color:#92400E;
-                        font-weight:900;
-                        font-size:15px;
-                        line-height:1.2;
-                        margin-bottom:18px;
-                    ">
-                        ⭐ Ngôi sao hy vọng
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                <div style="
+                    color:#92400E;
+                    font-weight:900;
+                    font-size:15px;
+                    line-height:1.2;
+                    margin-bottom:24px;
+                ">
+                    ⭐ Ngôi sao hy vọng
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-                st.markdown(
-                    f"""
-                    <div style="
-                        color:#07111F;
-                        font-weight:950;
-                        font-size:30px;
-                        line-height:1;
-                        margin-bottom:14px;
-                    ">
-                        {usage["hope_left"]}/{HOPE_STARS_PER_USER}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            st.markdown(
+                f"""
+                <div style="
+                    color:#07111F;
+                    font-weight:950;
+                    font-size:36px;
+                    line-height:1;
+                    margin-bottom:16px;
+                ">
+                    {usage["hope_left"]}/{HOPE_STARS_PER_USER}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-                st.markdown(
-                    """
-                    <div style="
-                        color:#64748B;
-                        font-size:12.5px;
-                        line-height:1.35;
-                    ">
-                        x2 điểm dự đoán<br>
-                        của trận được chọn
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-        with col_super:
-            with stylable_container(
-                key="super_star_balance_card",
-                css_styles="""
-                {
-                    background: linear-gradient(135deg, #FEF3C7, #FFFFFF);
-                    border: 1px solid rgba(245, 197, 66, 0.50);
-                    border-radius: 22px;
-                    padding: 24px 28px;
-                    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
-                    margin: 0;
-                    min-height: 142px;
-                    width: 100%;
-                    box-sizing: border-box;
-                    overflow: hidden;
-                }
-
-                @media (max-width: 768px) {
-                    {
-                        height: 150px !important;
-                        min-height: 150px !important;
-                        max-height: 150px !important;
-                        padding: 18px 24px !important;
-                    }
-                }
-
-                @media (max-width: 350px) {
-                    {
-                        padding: 16px 18px !important;
-                    }
-                }
+            st.markdown(
                 """
-            ):
-                st.markdown(
-                    """
-                    <div style="
-                        color:#78350F;
-                        font-weight:900;
-                        font-size:15px;
-                        line-height:1.2;
-                        margin-bottom:18px;
-                    ">
-                        ✨ Siêu sao
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                <div style="
+                    color:#64748B;
+                    font-size:13px;
+                    line-height:1.35;
+                ">
+                    x2 điểm dự đoán của trận được chọn
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-                st.markdown(
-                    f"""
-                    <div style="
-                        color:#07111F;
-                        font-weight:950;
-                        font-size:30px;
-                        line-height:1;
-                        margin-bottom:14px;
-                    ">
-                        {usage["super_left"]}/{SUPER_STARS_PER_USER}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+    with col_super:
+        with stylable_container(
+            key="super_star_balance_card",
+            css_styles="""
+            {
+                background: linear-gradient(135deg, #FEF3C7, #FFFFFF);
+                border: 1px solid rgba(245, 197, 66, 0.50);
+                border-radius: 22px;
+                padding: 24px 28px;
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+                margin: 0 0 28px 0;
+                min-height: 142px;
+                width: 100%;
+            }
+            """
+        ):
+            st.markdown(
+                """
+                <div style="
+                    color:#78350F;
+                    font-weight:900;
+                    font-size:15px;
+                    line-height:1.2;
+                    margin-bottom:24px;
+                ">
+                    ✨ Siêu sao
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-                st.markdown(
-                    """
-                    <div style="
-                        color:#64748B;
-                        font-size:12.5px;
-                        line-height:1.35;
-                    ">
-                        x3 điểm dự đoán<br>
-                        của trận được chọn
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            st.markdown(
+                f"""
+                <div style="
+                    color:#07111F;
+                    font-weight:950;
+                    font-size:36px;
+                    line-height:1;
+                    margin-bottom:16px;
+                ">
+                    {usage["super_left"]}/{SUPER_STARS_PER_USER}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            st.markdown(
+                """
+                <div style="
+                    color:#64748B;
+                    font-size:13px;
+                    line-height:1.35;
+                ">
+                    x3 điểm dự đoán của trận được chọn
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
 def render_scoring_rules():
     with stylable_container(
