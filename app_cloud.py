@@ -1211,174 +1211,206 @@ def render_star_balance(user_id: int):
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        f"""
-        <style>
-        .wc-star-balance-grid {{
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 32px;
+    with stylable_container(
+        key="star_balance_mobile_grid_shell",
+        css_styles="""
+        {
             width: 100%;
             margin: 0 0 28px 0;
-            box-sizing: border-box;
-        }}
+        }
 
-        .wc-star-balance-card {{
-            border-radius: 22px;
-            padding: 24px 28px;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
-            min-height: 142px;
-            width: 100%;
-            box-sizing: border-box;
-            overflow: hidden;
-        }}
+        @media (max-width: 768px) {
+            div[data-testid="stHorizontalBlock"] {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 768px) {
+            div[data-testid="stHorizontalBlock"] {
+                display: grid !important;
+                grid32px !important;
+                width: min(344px, calc(100vw - 28px)) !important;
+                max-width: min(344px, calc(100vw - 28px)) !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                align-items: stretch !important;
+            }
 
-        .wc-star-balance-card-hope {{
-            background: linear-gradient(135deg, #FFF7ED, #FFFFFF);
-            border: 1px solid rgba(245, 158, 11, 0.32);
-        }}
+            div[data-testid="column"] {
+                width: 100% !important;
+                min-width: 0 !important;
+                flex: unset !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
 
-        .wc-star-balance-card-super {{
-            background: linear-gradient(135deg, #FEF3C7, #FFFFFF);
-            border: 1px solid rgba(245, 197, 66, 0.50);
-        }}
+            div[data-testid="column"] > div {
+                width: 100% !important;
+            }
+        }
 
-        .wc-star-balance-title {{
-            font-weight: 900;
-            font-size: 15px;
-            line-height: 1.2;
-            margin-bottom: 24px;
-        }}
+        @media (max-width: 350px) {
+            div[data-testid="stHorizontalBlock"] {
+                gap: 18px !important;
+                width: calc(100vw - 24px) !important;
+                max-width: calc(100vw - 24px) !important;
+            }
+        }
+        """
+    ):
+        col_hope, col_super = st.columns([1, 1], gap="large")
 
-        .wc-star-balance-title-hope {{
-            color: #92400E;
-        }}
+        with col_hope:
+            with stylable_container(
+                key="hope_star_balance_card",
+                css_styles="""
+                {
+                    background: linear-gradient(135deg, #FFF7ED, #FFFFFF);
+                    border: 1px solid rgba(245, 158, 11, 0.32);
+                    border-radius: 22px;
+                    padding: 24px 28px;
+                    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+                    margin: 0;
+                    min-height: 142px;
+                    width: 100%;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                }
 
-        .wc-star-balance-title-super {{
-            color: #78350F;
-        }}
+                @media (max-width: 768px) {
+                    {
+                        height: 150px !important;
+                        min-height: 150px !important;
+                        max-height: 150px !important;
+                        padding: 18px 24px !important;
+                    }
+                }
 
-        .wc-star-balance-value {{
-            color: #07111F;
-            font-weight: 950;
-            font-size: 36px;
-            line-height: 1;
-            margin-bottom: 16px;
-        }}
+                @media (max-width: 350px) {
+                    {
+                        padding: 16px 18px !important;
+                    }
+                }
+                """
+            ):
+                st.markdown(
+                    """
+                    <div style="
+                        color:#92400E;
+                        font-weight:900;
+                        font-size:15px;
+                        line-height:1.2;
+                        margin-bottom:18px;
+                    ">
+                        ⭐ Ngôi sao hy vọng
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-        .wc-star-balance-note {{
-            color: #64748B;
-            font-size: 13px;
-            line-height: 1.35;
-        }}
+                st.markdown(
+                    f"""
+                    <div style="
+                        color:#07111F;
+                        font-weight:950;
+                        font-size:30px;
+                        line-height:1;
+                        margin-bottom:14px;
+                    ">
+                        {usage["hope_left"]}/{HOPE_STARS_PER_USER}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-        @media (max-width: 768px) {{
-            .wc-star-balance-grid {{
-                width: min(344px, calc(100vw - 28px));
-                max-width: min(344px, calc(100vw - 28px));
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: clamp(18px, 8vw, 32px);
-                margin-left: auto;
-                margin-right: auto;
-                margin-bottom: 28px;
-                justify-content: center;
-                align-items: stretch;
-            }}
+                st.markdown(
+                    """
+                    <div style="
+                        color:#64748B;
+                        font-size:12.5px;
+                        line-height:1.35;
+                    ">
+                        x2 điểm dự đoán<br>
+                        của trận được chọn
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            .wc-star-balance-card {{
-                height: 150px;
-                min-height: 150px;
-                max-height: 150px;
-                padding: 18px 26px;
-            }}
+        with col_super:
+            with stylable_container(
+                key="super_star_balance_card",
+                css_styles="""
+                {
+                    background: linear-gradient(135deg, #FEF3C7, #FFFFFF);
+                    border: 1px solid rgba(245, 197, 66, 0.50);
+                    border-radius: 22px;
+                    padding: 24px 28px;
+                    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+                    margin: 0;
+                    min-height: 142px;
+                    width: 100%;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                }
 
-            .wc-star-balance-title {{
-                font-size: 15px;
-                margin-bottom: 18px;
-            }}
+                @media (max-width: 768px) {
+                    {
+                        height: 150px !important;
+                        min-height: 150px !important;
+                        max-height: 150px !important;
+                        padding: 18px 24px !important;
+                    }
+                }
 
-            .wc-star-balance-value {{
-                font-size: 30px;
-                margin-bottom: 14px;
-            }}
+                @media (max-width: 350px) {
+                    {
+                        padding: 16px 18px !important;
+                    }
+                }
+                """
+            ):
+                st.markdown(
+                    """
+                    <div style="
+                        color:#78350F;
+                        font-weight:900;
+                        font-size:15px;
+                        line-height:1.2;
+                        margin-bottom:18px;
+                    ">
+                        ✨ Siêu sao
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            .wc-star-balance-note {{
-                font-size: 12.5px;
-                line-height: 1.35;
-            }}
-        }}
+                st.markdown(
+                    f"""
+                    <div style="
+                        color:#07111F;
+                        font-weight:950;
+                        font-size:30px;
+                        line-height:1;
+                        margin-bottom:14px;
+                    ">
+                        {usage["super_left"]}/{SUPER_STARS_PER_USER}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-        @media (max-width: 390px) {{
-            .wc-star-balance-grid {{
-                width: min(344px, calc(100vw - 28px));
-                max-width: min(344px, calc(100vw - 28px));
-                gap: 32px;
-            }}
-
-            .wc-star-balance-card {{
-                height: 150px;
-                min-height: 150px;
-                max-height: 150px;
-                padding: 18px 24px;
-            }}
-        }}
-
-        @media (max-width: 350px) {{
-            .wc-star-balance-grid {{
-                width: calc(100vw - 24px);
-                max-width: calc(100vw - 24px);
-                gap: 18px;
-            }}
-
-            .wc-star-balance-card {{
-                padding: 16px 18px;
-            }}
-
-            .wc-star-balance-title {{
-                font-size: 14px;
-                margin-bottom: 16px;
-            }}
-
-            .wc-star-balance-value {{
-                font-size: 28px;
-            }}
-
-            .wc-star-balance-note {{
-                font-size: 12px;
-            }}
-        }}
-        </style>
-
-        <div class="wc-star-balance-grid">
-            <div class="wc-star-balance-card wc-star-balance-card-hope">
-                <div class="wc-star-balance-title wc-star-balance-title-hope">
-                    ⭐ Ngôi sao hy vọng
-                </div>
-                <div class="wc-star-balance-value">
-                    {usage["hope_left"]}/{HOPE_STARS_PER_USER}
-                </div>
-                <div class="wc-star-balance-note">
-                    x2 điểm dự đoán<br>
-                    của trận được chọn
-                </div>
-            </div>
-
-            <div class="wc-star-balance-card wc-star-balance-card-super">
-                <div class="wc-star-balance-title wc-star-balance-title-super">
-                    ✨ Siêu sao
-                </div>
-                <div class="wc-star-balance-value">
-                    {usage["super_left"]}/{SUPER_STARS_PER_USER}
-                </div>
-                <div class="wc-star-balance-note">
-                    x3 điểm dự đoán<br>
-                    của trận được chọn
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+                st.markdown(
+                    """
+                    <div style="
+                        color:#64748B;
+                        font-size:12.5px;
+                        line-height:1.35;
+                    ">
+                        x3 điểm dự đoán<br>
+                        của trận được chọn
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
 def render_scoring_rules():
     with stylable_container(
