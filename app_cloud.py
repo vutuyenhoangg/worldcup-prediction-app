@@ -1009,6 +1009,49 @@ def inject_mobile_goal_scorer_panel_css():
 
 inject_mobile_goal_scorer_panel_css()
 
+def get_prediction_radio_css():
+    return """
+    label[data-baseweb="radio"] {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 5px 9px 5px 2px !important;
+        border-radius: 999px !important;
+        transition: background 0.16s ease, color 0.16s ease;
+    }
+
+    label[data-baseweb="radio"]:has(input:checked) {
+        background: rgba(245, 197, 66, 0.16) !important;
+        color: #07111F !important;
+        font-weight: 850 !important;
+    }
+
+    label[data-baseweb="radio"] > div:first-child {
+        width: 18px !important;
+        height: 18px !important;
+        border-radius: 999px !important;
+        border: 2px solid #CBD5E1 !important;
+        background: #FFFFFF !important;
+        box-shadow: inset 0 0 0 4px #FFFFFF !important;
+        transition:
+            border-color 0.16s ease,
+            background 0.16s ease,
+            box-shadow 0.16s ease;
+    }
+
+    label[data-baseweb="radio"]:has(input:checked) > div:first-child {
+        border-color: #B45309 !important;
+        background: #F5C542 !important;
+        box-shadow:
+            inset 0 0 0 4px #FFFFFF,
+            0 0 0 4px rgba(245, 197, 66, 0.24) !important;
+    }
+
+    label[data-baseweb="radio"]:hover > div:first-child {
+        border-color: #F5C542 !important;
+    }
+    """
+
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
 
@@ -4567,13 +4610,17 @@ def render_match_card(row, user_id: int):
                     if pred_winner_team_id == away_team_id:
                         default_index = 1
             
-                selected_winner_name = st.radio(
-                    "Nếu dự đoán hòa trong thời gian thi đấu chính thức, chọn đội thắng chung cuộc:",
-                    options=winner_option_names,
-                    index=default_index,
-                    horizontal=True,
-                    key=winner_radio_key
-                )
+                with stylable_container(
+                    key=f"winner_radio_style_shell_{match_id}",
+                    css_styles=get_prediction_radio_css()
+                ):
+                    selected_winner_name = st.radio(
+                        "Nếu dự đoán hòa trong thời gian thi đấu chính thức (tính cả hiệp phụ), chọn đội thắng chung cuộc:",
+                        options=winner_option_names,
+                        index=default_index,
+                        horizontal=True,
+                        key=winner_radio_key
+                    ) 
             
                 # Khi lưu, vẫn chốt đúng theo logic tỉ số.
                 # Nếu tỉ số lệch, đội thắng chung cuộc phải là đội có nhiều bàn hơn.
@@ -4610,18 +4657,22 @@ def render_match_card(row, user_id: int):
             
             star_radio_key = f"star_type_{match_id}_{current_star_type}"
             
-            selected_star_type = st.radio(
-                "Chọn bổ trợ cho trận này:",
-                options=star_options,
-                index=star_radio_index,
-                format_func=lambda star: format_star_option_label(
-                    star,
-                    current_star_type=current_star_type,
-                    usage=star_usage_for_card
-                ),
-                horizontal=False,
-                key=star_radio_key
-            )
+            with stylable_container(
+                key=f"star_radio_style_shell_{match_id}",
+                css_styles=get_prediction_radio_css()
+            ):
+                selected_star_type = st.radio(
+                    "Chọn bổ trợ cho trận này:",
+                    options=star_options,
+                    index=star_radio_index,
+                    format_func=lambda star: format_star_option_label(
+                        star,
+                        current_star_type=current_star_type,
+                        usage=star_usage_for_card
+                    ),
+                    horizontal=False,
+                    key=star_radio_key
+                )
 
             submitted = False
             delete_submitted = False
