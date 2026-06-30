@@ -2569,7 +2569,7 @@ def format_star_option_label(
         hope_label = STAR_CONFIG[STAR_TYPE_HOPE]["label"]
 
         if current_star_type == STAR_TYPE_HOPE:
-            return f"{hope_label} (đang dùng ở trận này)"
+            return f"{hope_label} (đang dùng)"
 
         return f"{hope_label} (còn {usage['hope_left']}/{HOPE_STARS_PER_USER})"
 
@@ -2577,7 +2577,7 @@ def format_star_option_label(
         super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
 
         if current_star_type == STAR_TYPE_SUPER:
-            return f"{super_label} (đang dùng ở trận này)"
+            return f"{super_label} (đang dùng)"
 
         return f"{super_label} (còn {usage['super_left']}/{SUPER_STARS_PER_USER})"
 
@@ -4740,7 +4740,7 @@ def render_match_card(row, user_id: int):
             
                     with save_col:
                         submitted = st.form_submit_button(
-                            "Lưu / cập nhật dự đoán"
+                            "Cập nhật dự đoán"
                         )
             
                     with delete_col:
@@ -4786,7 +4786,7 @@ def render_match_card(row, user_id: int):
                     css_styles=get_prediction_action_spacing_css()
                 ):
                     submitted = st.form_submit_button(
-                        "Lưu / cập nhật dự đoán"
+                        "Lưu dự đoán"
                     )
             
             if submitted:
