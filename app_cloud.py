@@ -1081,6 +1081,95 @@ def get_prediction_radio_css():
     }
     """
 
+def get_prediction_mobile_action_css():
+    return """
+    @media (max-width: 768px) {
+        {
+            width: 100% !important;
+            margin-top: 14px !important;
+            padding-bottom: 30px !important;
+            box-sizing: border-box !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 7px !important;
+            width: 100% !important;
+        }
+
+        div[data-testid="column"] {
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            flex: 0 0 auto !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        div[data-testid="column"]:nth-child(2) {
+            display: none !important;
+        }
+
+        div[data-testid="column"]:nth-child(1) button {
+            width: auto !important;
+            min-width: 168px !important;
+            max-width: 100% !important;
+            min-height: 40px !important;
+            padding: 8px 13px !important;
+            font-size: 12.5px !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            box-sizing: border-box !important;
+        }
+
+        div[data-testid="column"]:nth-child(1) button * {
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            overflow-wrap: normal !important;
+            font-size: inherit !important;
+            line-height: 1 !important;
+        }
+
+        div[data-testid="column"]:nth-child(3) {
+            margin-top: 0 !important;
+            margin-bottom: 4px !important;
+        }
+
+        div[data-testid="column"]:nth-child(3) button {
+            width: auto !important;
+            min-width: 96px !important;
+            max-width: 112px !important;
+            min-height: 32px !important;
+            padding: 5px 10px !important;
+            font-size: 11.8px !important;
+            white-space: nowrap !important;
+            box-sizing: border-box !important;
+        }
+    }
+
+    @media (max-width: 390px) {
+        {
+            margin-top: 13px !important;
+            padding-bottom: 32px !important;
+        }
+
+        div[data-testid="column"]:nth-child(1) button {
+            min-width: 160px !important;
+            padding-left: 11px !important;
+            padding-right: 11px !important;
+            font-size: 12px !important;
+        }
+
+        div[data-testid="column"]:nth-child(3) button {
+            min-width: 92px !important;
+            max-width: 106px !important;
+            font-size: 11.5px !important;
+        }
+    }
+    """
+
 def get_prediction_action_spacing_css():
     return """
     {
@@ -4733,8 +4822,8 @@ def render_match_card(row, user_id: int):
             
             if existing:
                 with stylable_container(
-                    key=f"prediction_action_spacing_shell_{match_id}",
-                    css_styles=get_prediction_action_spacing_css()
+                    key=f"prediction_mobile_action_shell_{match_id}",
+                    css_styles=get_prediction_mobile_action_css()
                 ):
                     save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
@@ -4782,8 +4871,8 @@ def render_match_card(row, user_id: int):
             
             else:
                 with stylable_container(
-                    key=f"prediction_action_spacing_shell_{match_id}",
-                    css_styles=get_prediction_action_spacing_css()
+                    key=f"prediction_mobile_action_shell_{match_id}",
+                    css_styles=get_prediction_mobile_action_css()
                 ):
                     submitted = st.form_submit_button(
                         "Lưu / cập nhật dự đoán"
