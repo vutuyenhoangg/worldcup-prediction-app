@@ -1231,12 +1231,12 @@ def render_star_balance(user_id: int):
 
             @media (max-width: 768px) {
                 {
-                    height: 160px !important;
-                    min-height: 160px !important;
-                    max-height: 160px !important;
+                    height: 170px !important;
+                    min-height: 170px !important;
+                    max-height: 170px !important;
                     width: 100% !important;
             
-                    padding: 22px 10px 12px 14px !important;
+                    padding: 30px 10px 12px 14px !important;
                     margin: 0 0 22px 0 !important;
             
                     overflow: hidden !important;
@@ -1375,12 +1375,12 @@ def render_star_balance(user_id: int):
             }
             @media (max-width: 768px) {
                 {
-                    height: 160px !important;
-                    min-height: 160px !important;
-                    max-height: 160px !important;
+                    height: 170px !important;
+                    min-height: 170px !important;
+                    max-height: 170px !important;
                     width: 100% !important;
             
-                    padding: 22px 10px 12px 14px !important;
+                    padding: 30px 10px 12px 14px !important;
                     margin: 0 0 22px 0 !important;
             
                     overflow: hidden !important;
