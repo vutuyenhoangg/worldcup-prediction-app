@@ -4739,63 +4739,9 @@ def render_match_card(row, user_id: int):
                     save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
                     with save_col:
-                        st.markdown(
-                            f"""
-                            <style>
-                            @media (max-width: 768px) {{
-                                div[class*="st-key-save_existing_prediction_button_fix_{match_id}"] button {{
-                                    width: auto !important;
-                                    min-width: 166px !important;
-                                    max-width: 178px !important;
-                                    min-height: 36px !important;
-                                    padding: 7px 10px !important;
-                    
-                                    font-size: 12px !important;
-                                    line-height: 1 !important;
-                                    white-space: nowrap !important;
-                    
-                                    box-sizing: border-box !important;
-                                    overflow: visible !important;
-                                }}
-                    
-                                div[class*="st-key-save_existing_prediction_button_fix_{match_id}"] button * {{
-                                    font-size: inherit !important;
-                                    line-height: 1 !important;
-                                    white-space: nowrap !important;
-                                    word-break: keep-all !important;
-                                    overflow-wrap: normal !important;
-                                }}
-                            }}
-                    
-                            @media (max-width: 390px) {{
-                                div[class*="st-key-save_existing_prediction_button_fix_{match_id}"] button {{
-                                    min-width: 160px !important;
-                                    max-width: 172px !important;
-                                    padding-left: 9px !important;
-                                    padding-right: 9px !important;
-                                    font-size: 11.8px !important;
-                                }}
-                            }}
-                            </style>
-                            """,
-                            unsafe_allow_html=True
+                        submitted = st.form_submit_button(
+                            "Lưu / cập nhật dự đoán"
                         )
-                    
-                        with stylable_container(
-                            key=f"save_existing_prediction_button_fix_{match_id}",
-                            css_styles="""
-                            {
-                                padding: 0 !important;
-                                margin: 0 !important;
-                                border: none !important;
-                                background: transparent !important;
-                                box-shadow: none !important;
-                            }
-                            """
-                        ):
-                            submitted = st.form_submit_button(
-                                "Lưu / cập nhật dự đoán"
-                            )
             
                     with delete_col:
                         with stylable_container(
