@@ -1226,6 +1226,28 @@ def render_star_balance(user_id: int):
                 margin: 0 0 28px 0;
                 min-height: 142px;
                 width: 100%;
+                box-sizing: border-box;
+            }
+        
+            @media (max-width: 768px) {
+                {
+                    width: 100% !important;
+                    height: 150px !important;
+                    min-height: 150px !important;
+                    max-height: 150px !important;
+                    padding: 20px 26px !important;
+                    box-sizing: border-box !important;
+                    overflow: hidden !important;
+                }
+            }
+        
+            @media (max-width: 390px) {
+                {
+                    height: 150px !important;
+                    min-height: 150px !important;
+                    max-height: 150px !important;
+                    padding: 18px 24px !important;
+                }
             }
             """
         ):
@@ -1285,6 +1307,28 @@ def render_star_balance(user_id: int):
                 margin: 0 0 28px 0;
                 min-height: 142px;
                 width: 100%;
+                box-sizing: border-box;
+            }
+        
+            @media (max-width: 768px) {
+                {
+                    width: 100% !important;
+                    height: 150px !important;
+                    min-height: 150px !important;
+                    max-height: 150px !important;
+                    padding: 20px 26px !important;
+                    box-sizing: border-box !important;
+                    overflow: hidden !important;
+                }
+            }
+        
+            @media (max-width: 390px) {
+                {
+                    height: 150px !important;
+                    min-height: 150px !important;
+                    max-height: 150px !important;
+                    padding: 18px 24px !important;
+                }
             }
             """
         ):
