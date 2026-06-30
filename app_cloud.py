@@ -805,6 +805,67 @@ def inject_worldcup_theme():
 
 inject_worldcup_theme()
 
+def inject_mobile_match_title_css():
+    st.markdown(
+        """
+        <style>
+        .wc-match-title-mobile {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            div[class*="st-key-match_title_desktop_"] {
+                display: none !important;
+            }
+
+            .wc-match-title-mobile {
+                display: block;
+                width: 100%;
+                max-width: 100%;
+                margin: 2px 0 10px 0;
+            }
+
+            .wc-match-title-mobile .wc-match-team {
+                display: block;
+                width: 100%;
+                max-width: 100%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                color: #07111F;
+                font-size: clamp(20px, 5.6vw, 23px);
+                line-height: 1.13;
+                font-weight: 950;
+                letter-spacing: -0.035em;
+            }
+
+            .wc-match-title-mobile .wc-match-vs {
+                display: block;
+                width: 100%;
+                color: #07111F;
+                font-size: clamp(18px, 5vw, 21px);
+                line-height: 1.08;
+                font-weight: 950;
+                letter-spacing: -0.025em;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .wc-match-title-mobile .wc-match-team {
+                font-size: 20px;
+            }
+
+            .wc-match-title-mobile .wc-match-vs {
+                font-size: 18px;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+inject_mobile_match_title_css()
 
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
@@ -3810,6 +3871,36 @@ def render_match_title(home_name, away_name, match_id: int):
         st.subheader(f"{home_display} vs {away_display}")
 
     # Mobile: title riêng, mỗi đội đúng 1 dòng
+    st.markdown(
+        f"""
+        <div class="wc-match-title-mobile" aria-label="{safe_home} vs {safe_away}">
+            <div class="wc-match-team">{safe_home}</div>
+            <div class="wc-match-vs">vs</div>
+            <div class="wc-match-team">{safe_away}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+def render_match_title(home_name, away_name, match_id: int):
+    home_display = "TBD" if home_name is None or pd.isna(home_name) else str(home_name)
+    away_display = "TBD" if away_name is None or pd.isna(away_name) else str(away_name)
+
+    safe_home = html.escape(home_display)
+    safe_away = html.escape(away_display)
+
+    # Desktop: giữ nguyên kiểu st.subheader cũ
+    with stylable_container(
+        key=f"match_title_desktop_{match_id}",
+        css_styles="""
+        {
+            display: block;
+        }
+        """
+    ):
+        st.subheader(f"{home_display} vs {away_display}")
+
+    # Mobile: hiển thị dạng 3 dòng
     st.markdown(
         f"""
         <div class="wc-match-title-mobile" aria-label="{safe_home} vs {safe_away}">
