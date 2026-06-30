@@ -4631,141 +4631,49 @@ def render_match_card(row, user_id: int):
             delete_submitted = False
             
             if existing:
-                with stylable_container(
-                    key=f"prediction_action_row_{match_id}",
-                    css_styles="""
-                    {
-                        margin-top: 0;
-                    }
+                save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
-                    @media (max-width: 768px) {
-                        {
+                with save_col:
+                    submitted = st.form_submit_button(
+                        "Lưu / cập nhật dự đoán"
+                    )
+            
+                with delete_col:
+                    with stylable_container(
+                        key=f"delete_prediction_button_shell_{match_id}",
+                        css_styles="""
+                        button {
                             width: 100% !important;
-                            margin-top: 2px !important;
-                        }
-            
-                        div[data-testid="stHorizontalBlock"] {
-                            display: grid !important;
-                            grid-template-columns: max-content 1fr max-content !important;
-                            gap: 8px !important;
-                            align-items: center !important;
-                            width: 100% !important;
-                        }
-            
-                        div[data-testid="column"] {
-                            width: 100% !important;
-                            min-width: 0 !important;
-                            flex: unset !important;
-                            padding-left: 0 !important;
-                            padding-right: 0 !important;
-                        }
-            
-                        div[data-testid="column"]:nth-child(1) {
-                            justify-self: start !important;
-                        }
-            
-                        div[data-testid="column"]:nth-child(2) {
-                            display: block !important;
-                        }
-            
-                        div[data-testid="column"]:nth-child(3) {
-                            justify-self: end !important;
-                        }
-            
-                        div[data-testid="column"]:nth-child(1) button {
-                            width: auto !important;
-                            min-width: 156px !important;
-                            max-width: 168px !important;
-                            min-height: 42px !important;
-                            padding: 8px 11px !important;
-                            font-size: 12.5px !important;
-                            line-height: 1 !important;
-                            white-space: nowrap !important;
-                        }
-            
-                        div[data-testid="column"]:nth-child(1) button * {
-                            white-space: nowrap !important;
-                            word-break: keep-all !important;
-                            overflow-wrap: normal !important;
-                            font-size: inherit !important;
-                            line-height: 1 !important;
-                        }
-            
-                        div[data-testid="column"]:nth-child(3) button {
-                            width: auto !important;
-                            min-width: 92px !important;
-                            max-width: 108px !important;
-                            min-height: 32px !important;
-                            white-space: nowrap !important;
-                        }
-                    }
-            
-                    @media (max-width: 390px) {
-                        div[data-testid="stHorizontalBlock"] {
-                            gap: 6px !important;
-                        }
-            
-                        div[data-testid="column"]:nth-child(1) button {
-                            min-width: 150px !important;
-                            max-width: 156px !important;
-                            padding-left: 8px !important;
-                            padding-right: 8px !important;
+                            background: rgba(255, 255, 255, 0.66) !important;
+                            color: #DC2626 !important;
+                            border: 1px solid rgba(220, 38, 38, 0.38) !important;
+                            box-shadow: none !important;
                             font-size: 12px !important;
+                            font-weight: 750 !important;
+                            padding: 5px 9px !important;
+                            min-height: 32px !important;
+                            border-radius: 999px !important;
+                            white-space: nowrap !important;
                         }
             
-                        div[data-testid="column"]:nth-child(3) button {
-                            min-width: 88px !important;
-                            max-width: 98px !important;
-                            padding-left: 8px !important;
-                            padding-right: 8px !important;
-                            font-size: 11.5px !important;
+                        button:hover {
+                            color: #B91C1C !important;
+                            border-color: rgba(185, 28, 28, 0.68) !important;
+                            background: rgba(254, 226, 226, 0.46) !important;
+                            transform: none !important;
+                            box-shadow: none !important;
                         }
-                    }
-                    """
-                ):
-                    save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
-                    with save_col:
-                        submitted = st.form_submit_button(
-                            "Lưu / cập nhật dự đoán"
+                        button:active {
+                            transform: none !important;
+                            box-shadow: none !important;
+                        }
+                        """
+                    ):
+                        delete_submitted = st.form_submit_button(
+                            "Xóa dự đoán",
+                            help="Xóa dự đoán đã lưu cho trận này."
                         )
-            
-                    with delete_col:
-                        with stylable_container(
-                            key=f"delete_prediction_button_shell_{match_id}",
-                            css_styles="""
-                            button {
-                                width: 100% !important;
-                                background: rgba(255, 255, 255, 0.66) !important;
-                                color: #DC2626 !important;
-                                border: 1px solid rgba(220, 38, 38, 0.38) !important;
-                                box-shadow: none !important;
-                                font-size: 12px !important;
-                                font-weight: 750 !important;
-                                padding: 5px 9px !important;
-                                min-height: 32px !important;
-                                border-radius: 999px !important;
-                                white-space: nowrap !important;
-                            }
-            
-                            button:hover {
-                                color: #B91C1C !important;
-                                border-color: rgba(185, 28, 28, 0.68) !important;
-                                background: rgba(254, 226, 226, 0.46) !important;
-                                transform: none !important;
-                                box-shadow: none !important;
-                            }
-            
-                            button:active {
-                                transform: none !important;
-                                box-shadow: none !important;
-                            }
-                            """
-                        ):
-                            delete_submitted = st.form_submit_button(
-                                "Xóa dự đoán",
-                                help="Xóa dự đoán đã lưu cho trận này."
-                            )
             
             else:
                 submitted = st.form_submit_button(
