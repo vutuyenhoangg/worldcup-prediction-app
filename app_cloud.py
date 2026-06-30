@@ -4531,10 +4531,6 @@ def render_match_card(row, user_id: int):
                     key=f"home_score_{match_id}"
                 )
 
-            with col_mid:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("### -")
-
             with col_away:
                 input_away = st.number_input(
                     away_name,
