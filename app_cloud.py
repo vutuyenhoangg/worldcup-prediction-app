@@ -1081,6 +1081,31 @@ def get_prediction_radio_css():
     }
     """
 
+def get_prediction_action_spacing_css():
+    return """
+    {
+        margin-top: 16px !important;
+        margin-bottom: 18px !important;
+    }
+
+    button {
+        white-space: nowrap !important;
+    }
+
+    button * {
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        overflow-wrap: normal !important;
+    }
+
+    @media (max-width: 768px) {
+        {
+            margin-top: 15px !important;
+            margin-bottom: 20px !important;
+        }
+    }
+    """
+
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
 
@@ -4707,54 +4732,62 @@ def render_match_card(row, user_id: int):
             delete_submitted = False
             
             if existing:
-                save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
+                with stylable_container(
+                    key=f"prediction_action_spacing_shell_{match_id}",
+                    css_styles=get_prediction_action_spacing_css()
+                ):
+                    save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
-                with save_col:
+                    with save_col:
+                        submitted = st.form_submit_button(
+                            "Lưu / cập nhật dự đoán"
+                        )
+            
+                    with delete_col:
+                        with stylable_container(
+                            key=f"delete_prediction_button_shell_{match_id}",
+                            css_styles="""
+                            button {
+                                width: 100% !important;
+                                background: rgba(255, 255, 255, 0.66) !important;
+                                color: #DC2626 !important;
+                                border: 1px solid rgba(220, 38, 38, 0.38) !important;
+                                box-shadow: none !important;
+                                font-size: 12px !important;
+                                font-weight: 750 !important;
+                                padding: 5px 9px !important;
+                                min-height: 32px !important;
+                                border-radius: 999px !important;
+                                white-space: nowrap !important;
+                            }
+            
+                            button:hover {
+                                color: #B91C1C !important;
+                                border-color: rgba(185, 28, 28, 0.68) !important;
+                                background: rgba(254, 226, 226, 0.46) !important;
+                                transform: none !important;
+                                box-shadow: none !important;
+                            }
+            
+                            button:active {
+                                transform: none !important;
+                                box-shadow: none !important;
+                            }
+                            """
+                        ):
+                            delete_submitted = st.form_submit_button(
+                                "Xóa dự đoán",
+                                help="Xóa dự đoán đã lưu cho trận này."
+                            )
+            
+            else:
+                with stylable_container(
+                    key=f"prediction_action_spacing_shell_{match_id}",
+                    css_styles=get_prediction_action_spacing_css()
+                ):
                     submitted = st.form_submit_button(
                         "Lưu / cập nhật dự đoán"
                     )
-            
-                with delete_col:
-                    with stylable_container(
-                        key=f"delete_prediction_button_shell_{match_id}",
-                        css_styles="""
-                        button {
-                            width: 100% !important;
-                            background: rgba(255, 255, 255, 0.66) !important;
-                            color: #DC2626 !important;
-                            border: 1px solid rgba(220, 38, 38, 0.38) !important;
-                            box-shadow: none !important;
-                            font-size: 12px !important;
-                            font-weight: 750 !important;
-                            padding: 5px 9px !important;
-                            min-height: 32px !important;
-                            border-radius: 999px !important;
-                            white-space: nowrap !important;
-                        }
-            
-                        button:hover {
-                            color: #B91C1C !important;
-                            border-color: rgba(185, 28, 28, 0.68) !important;
-                            background: rgba(254, 226, 226, 0.46) !important;
-                            transform: none !important;
-                            box-shadow: none !important;
-                        }
-            
-                        button:active {
-                            transform: none !important;
-                            box-shadow: none !important;
-                        }
-                        """
-                    ):
-                        delete_submitted = st.form_submit_button(
-                            "Xóa dự đoán",
-                            help="Xóa dự đoán đã lưu cho trận này."
-                        )
-            
-            else:
-                submitted = st.form_submit_button(
-                    "Lưu / cập nhật dự đoán"
-                )
             
             if submitted:
                 try:
