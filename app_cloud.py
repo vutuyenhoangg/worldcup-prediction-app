@@ -3041,46 +3041,13 @@ def render_goal_scorers_for_match(match_id: int):
         else "⚽ Xem cầu thủ ghi bàn"
     )
 
-    with stylable_container(
-        key=f"goal_scorers_button_shell_{match_id}",
-        css_styles="""
-        {
-            display: inline-block;
-        }
-    
-        @media (max-width: 768px) {
-            button {
-                width: auto !important;
-                min-width: 230px !important;
-                max-width: 100% !important;
-                height: 46px !important;
-                padding: 9px 18px !important;
-                border-radius: 999px !important;
-                white-space: nowrap !important;
-                display: inline-flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 6px !important;
-                font-size: 15px !important;
-                font-weight: 800 !important;
-                line-height: 1 !important;
-            }
-    
-            button * {
-                white-space: nowrap !important;
-                overflow-wrap: normal !important;
-                word-break: keep-all !important;
-            }
-        }
-        """
-    ):
-        st.button(
-            button_label,
-            key=f"goal_scorers_button_{match_id}",
-            type="secondary",
-            on_click=toggle_goal_scorers,
-            args=(match_id,)
-        )
+    st.button(
+        button_label,
+        key=f"goal_scorers_button_{match_id}",
+        type="secondary",
+        on_click=toggle_goal_scorers,
+        args=(match_id,)
+    )
 
     if not is_open:
         return
@@ -3773,88 +3740,6 @@ def render_auth_page():
 # ============================================================
 # 9. MATCH CARD UI
 # ============================================================
-def render_match_title_responsive(home_name, away_name, match_id: int):
-    """
-    Desktop:
-    - Giữ nguyên giao diện cũ bằng st.subheader().
-    
-    Mobile:
-    - Hiển thị tên 2 đội theo layout tối ưu:
-      Đội nhà
-      vs
-      Đội khách
-    - Tránh lỗi tên đội dài bị xuống dòng xấu như "Netherland / s vs / Morocco".
-    """
-    safe_home_name = html.escape(str(home_name))
-    safe_away_name = html.escape(str(away_name))
-
-    # Desktop giữ nguyên st.subheader như code cũ
-    with stylable_container(
-        key=f"match_title_desktop_shell_{match_id}",
-        css_styles="""
-        {
-            display: block;
-        }
-
-        @media (max-width: 768px) {
-            {
-                display: none !important;
-            }
-        }
-        """
-    ):
-        st.subheader(f"{home_name} vs {away_name}")
-
-    # Mobile dùng title riêng
-    st.markdown(
-        f"""
-        <style>
-        .wc-match-title-mobile-{match_id} {{
-            display: none;
-        }}
-
-        @media (max-width: 768px) {{
-            .wc-match-title-mobile-{match_id} {{
-                display: block;
-                margin: 4px 0 16px 0;
-                color: #07111F;
-            }}
-
-            .wc-match-title-mobile-{match_id} .wc-match-team {{
-                font-size: clamp(28px, 7.4vw, 36px);
-                font-weight: 950;
-                line-height: 1.08;
-                letter-spacing: -0.045em;
-                word-break: normal;
-                overflow-wrap: normal;
-                hyphens: none;
-            }}
-
-            .wc-match-title-mobile-{match_id} .wc-match-vs {{
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                margin: 7px 0;
-                padding: 3px 9px;
-                border-radius: 999px;
-                background: rgba(15, 23, 42, 0.06);
-                color: #64748B;
-                font-size: 12px;
-                font-weight: 900;
-                letter-spacing: 0.02em;
-                text-transform: uppercase;
-            }}
-        }}
-        </style>
-
-        <div class="wc-match-title-mobile-{match_id}">
-            <div class="wc-match-team">{safe_home_name}</div>
-            <div class="wc-match-vs">vs</div>
-            <div class="wc-match-team">{safe_away_name}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 def render_match_card(row, user_id: int):
     match_id = int(row["match_id"])
@@ -3884,11 +3769,7 @@ def render_match_card(row, user_id: int):
         top_left, top_right = st.columns([3, 1])
 
         with top_left:
-            render_match_title_responsive(
-                home_name=home_name,
-                away_name=away_name,
-                match_id=match_id
-            )
+            st.subheader(f"{home_name} vs {away_name}")
 
             st.caption(
                 f"{row.get('round_name')} | "
