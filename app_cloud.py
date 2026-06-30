@@ -4835,7 +4835,7 @@ def render_match_card(row, user_id: int):
                                 border-radius: 999px !important;
                                 white-space: nowrap !important;
                             }
-            
+                        
                             button:hover {
                                 color: #B91C1C !important;
                                 border-color: rgba(185, 28, 28, 0.68) !important;
@@ -4843,10 +4843,59 @@ def render_match_card(row, user_id: int):
                                 transform: none !important;
                                 box-shadow: none !important;
                             }
-            
+                        
                             button:active {
                                 transform: none !important;
                                 box-shadow: none !important;
+                            }
+                        
+                            @media (max-width: 768px) {
+                                {
+                                    width: 100% !important;
+                                    max-width: 100% !important;
+                                }
+                        
+                                button {
+                                    width: 96px !important;
+                                    max-width: 96px !important;
+                                    min-width: 96px !important;
+                                    min-height: 38px !important;
+                        
+                                    padding: 7px 10px !important;
+                                    font-size: 12.2px !important;
+                                    line-height: 1 !important;
+                        
+                                    display: inline-flex !important;
+                                    align-items: center !important;
+                                    justify-content: center !important;
+                        
+                                    white-space: nowrap !important;
+                                    word-break: keep-all !important;
+                                    overflow-wrap: normal !important;
+                        
+                                    box-sizing: border-box !important;
+                                    overflow: hidden !important;
+                                }
+                        
+                                button * {
+                                    font-size: inherit !important;
+                                    line-height: 1 !important;
+                                    white-space: nowrap !important;
+                                    word-break: keep-all !important;
+                                    overflow-wrap: normal !important;
+                                    margin: 0 !important;
+                                }
+                            }
+                        
+                            @media (max-width: 390px) {
+                                button {
+                                    width: 92px !important;
+                                    max-width: 92px !important;
+                                    min-width: 92px !important;
+                                    padding-left: 8px !important;
+                                    padding-right: 8px !important;
+                                    font-size: 11.8px !important;
+                                }
                             }
                             """
                         ):
