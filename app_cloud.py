@@ -1226,12 +1226,71 @@ def render_star_balance(user_id: int):
                 margin: 0 0 28px 0;
                 min-height: 142px;
                 width: 100%;
+                box-sizing: border-box;
+            }
+
+            @media (max-width: 768px) {
+                {
+                    height: 150px !important;
+                    min-height: 150px !important;
+                    max-height: 150px !important;
+                    width: 100% !important;
+                    padding: 18px 10px 12px 15px !important;
+                    margin: 0 0 22px 0 !important;
+                    overflow: hidden !important;
+                    box-sizing: border-box !important;
+                }
+
+                .wc-star-balance-title {
+                    font-size: 14px !important;
+                    line-height: 1.15 !important;
+                    margin-bottom: 9px !important;
+                    text-align: left !important;
+                    width: 100% !important;
+                }
+
+                .wc-star-balance-value {
+                    font-size: 31px !important;
+                    line-height: 1 !important;
+                    margin-bottom: 9px !important;
+                    text-align: left !important;
+                    width: 100% !important;
+                }
+
+                .wc-star-balance-note {
+                    font-size: 11.5px !important;
+                    line-height: 1.22 !important;
+                    text-align: left !important;
+                    width: 100% !important;
+                }
+            }
+
+            @media (max-width: 390px) {
+                {
+                    height: 150px !important;
+                    min-height: 150px !important;
+                    max-height: 150px !important;
+                    padding-left: 13px !important;
+                    padding-right: 8px !important;
+                }
+
+                .wc-star-balance-title {
+                    font-size: 13px !important;
+                }
+
+                .wc-star-balance-value {
+                    font-size: 30px !important;
+                }
+
+                .wc-star-balance-note {
+                    font-size: 11px !important;
+                }
             }
             """
         ):
             st.markdown(
                 """
-                <div style="
+                <div class="wc-star-balance-title" style="
                     color:#92400E;
                     font-weight:900;
                     font-size:15px;
@@ -1246,7 +1305,7 @@ def render_star_balance(user_id: int):
 
             st.markdown(
                 f"""
-                <div style="
+                <div class="wc-star-balance-value" style="
                     color:#07111F;
                     font-weight:950;
                     font-size:36px;
@@ -1261,7 +1320,7 @@ def render_star_balance(user_id: int):
 
             st.markdown(
                 """
-                <div style="
+                <div class="wc-star-balance-note" style="
                     color:#64748B;
                     font-size:13px;
                     line-height:1.35;
@@ -1285,12 +1344,71 @@ def render_star_balance(user_id: int):
                 margin: 0 0 28px 0;
                 min-height: 142px;
                 width: 100%;
+                box-sizing: border-box;
+            }
+
+            @media (max-width: 768px) {
+                {
+                    height: 150px !important;
+                    min-height: 150px !important;
+                    max-height: 150px !important;
+                    width: 100% !important;
+                    padding: 18px 10px 12px 15px !important;
+                    margin: 0 0 22px 0 !important;
+                    overflow: hidden !important;
+                    box-sizing: border-box !important;
+                }
+
+                .wc-star-balance-title {
+                    font-size: 14px !important;
+                    line-height: 1.15 !important;
+                    margin-bottom: 9px !important;
+                    text-align: left !important;
+                    width: 100% !important;
+                }
+
+                .wc-star-balance-value {
+                    font-size: 31px !important;
+                    line-height: 1 !important;
+                    margin-bottom: 9px !important;
+                    text-align: left !important;
+                    width: 100% !important;
+                }
+
+                .wc-star-balance-note {
+                    font-size: 11.5px !important;
+                    line-height: 1.22 !important;
+                    text-align: left !important;
+                    width: 100% !important;
+                }
+            }
+
+            @media (max-width: 390px) {
+                {
+                    height: 150px !important;
+                    min-height: 150px !important;
+                    max-height: 150px !important;
+                    padding-left: 13px !important;
+                    padding-right: 8px !important;
+                }
+
+                .wc-star-balance-title {
+                    font-size: 13px !important;
+                }
+
+                .wc-star-balance-value {
+                    font-size: 30px !important;
+                }
+
+                .wc-star-balance-note {
+                    font-size: 11px !important;
+                }
             }
             """
         ):
             st.markdown(
                 """
-                <div style="
+                <div class="wc-star-balance-title" style="
                     color:#78350F;
                     font-weight:900;
                     font-size:15px;
@@ -1305,7 +1423,7 @@ def render_star_balance(user_id: int):
 
             st.markdown(
                 f"""
-                <div style="
+                <div class="wc-star-balance-value" style="
                     color:#07111F;
                     font-weight:950;
                     font-size:36px;
@@ -1320,7 +1438,7 @@ def render_star_balance(user_id: int):
 
             st.markdown(
                 """
-                <div style="
+                <div class="wc-star-balance-note" style="
                     color:#64748B;
                     font-size:13px;
                     line-height:1.35;
