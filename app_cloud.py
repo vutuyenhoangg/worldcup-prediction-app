@@ -4044,6 +4044,130 @@ def render_match_title(home_name, away_name, match_id: int):
         unsafe_allow_html=True
     )
 
+def render_prediction_score_inputs(
+    match_id: int,
+    home_name,
+    away_name,
+    pred_home: int,
+    pred_away: int
+):
+    """
+    Render 2 ô nhập tỉ số dự đoán.
+
+    Desktop:
+    - Giữ nguyên layout st.columns([2, 1, 2]).
+
+    Mobile:
+    - Chỉ ép riêng hàng chọn tỉ số nằm trên 1 dòng.
+    - Thu ngắn nhẹ 2 khung số.
+    - Giữ nguyên kiểu dáng number_input của Streamlit.
+    - Không thay đổi logic, key, value, submit.
+    """
+    with stylable_container(
+        key=f"prediction_score_inputs_shell_{match_id}",
+        css_styles="""
+        {
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            div[data-testid="stHorizontalBlock"] {
+                display: grid !important;
+                grid-template-columns: 126px 20px 126px !important;
+                gap: 8px !important;
+                align-items: end !important;
+                justify-content: start !important;
+                width: 100% !important;
+            }
+
+            div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+                width: 100% !important;
+                min-width: 0 !important;
+                flex: none !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+
+            div[data-testid="stNumberInput"] {
+                width: 126px !important;
+                max-width: 126px !important;
+            }
+
+            div[data-testid="stNumberInput"] label,
+            div[data-testid="stNumberInput"] label p {
+                max-width: 126px !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+
+            div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) {
+                display: flex !important;
+                align-items: flex-end !important;
+                justify-content: center !important;
+                padding-bottom: 6px !important;
+            }
+
+            div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) div[data-testid="stMarkdownContainer"] {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) div[data-testid="stMarkdownContainer"] h3 {
+                margin: 0 !important;
+                padding: 0 !important;
+                line-height: 40px !important;
+                font-size: 20px !important;
+                text-align: center !important;
+            }
+        }
+
+        @media (max-width: 390px) {
+            div[data-testid="stHorizontalBlock"] {
+                grid-template-columns: 118px 18px 118px !important;
+                gap: 7px !important;
+            }
+
+            div[data-testid="stNumberInput"] {
+                width: 118px !important;
+                max-width: 118px !important;
+            }
+
+            div[data-testid="stNumberInput"] label,
+            div[data-testid="stNumberInput"] label p {
+                max-width: 118px !important;
+            }
+        }
+        """
+    ):
+        col_home, col_mid, col_away = st.columns([2, 1, 2])
+
+        with col_home:
+            input_home = st.number_input(
+                home_name,
+                min_value=0,
+                max_value=20,
+                value=pred_home,
+                step=1,
+                key=f"home_score_{match_id}"
+            )
+
+        with col_mid:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### -")
+
+        with col_away:
+            input_away = st.number_input(
+                away_name,
+                min_value=0,
+                max_value=20,
+                value=pred_away,
+                step=1,
+                key=f"away_score_{match_id}"
+            )
+
+    return input_home, input_away
+
 def render_match_card(row, user_id: int):
     match_id = int(row["match_id"])
 
@@ -4306,34 +4430,15 @@ def render_match_card(row, user_id: int):
 
         if not editable:
             return
-
+        
         with st.form(f"prediction_form_{match_id}"):
-            col_home, col_mid, col_away = st.columns([2, 1, 2])
-
-            with col_home:
-                input_home = st.number_input(
-                    home_name,
-                    min_value=0,
-                    max_value=20,
-                    value=pred_home,
-                    step=1,
-                    key=f"home_score_{match_id}"
-                )
-
-            with col_mid:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("### -")
-
-            with col_away:
-                input_away = st.number_input(
-                    away_name,
-                    min_value=0,
-                    max_value=20,
-                    value=pred_away,
-                    step=1,
-                    key=f"away_score_{match_id}"
-                )
-
+            input_home, input_away = render_prediction_score_inputs(
+                match_id=match_id,
+                home_name=home_name,
+                away_name=away_name,
+                pred_home=pred_home,
+                pred_away=pred_away
+            )
             predicted_winner_team_id = None
             predicted_winner_team_name = None
 
