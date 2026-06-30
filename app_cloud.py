@@ -939,16 +939,29 @@ inject_mobile_goal_scorer_button_css()
 
 def inject_mobile_goal_scorer_panel_css():
     """
-    CSS riêng cho box Cầu thủ ghi bàn trên mobile.
+    CSS riêng cho box Cầu thủ ghi bàn.
 
     Mục tiêu:
-    - Chỉ áp dụng trên điện thoại.
-    - Không đổi desktop.
-    - Cho box cầu thủ ghi bàn chạy rộng sang bên phải thay vì bó trong cột trái.
+    - Desktop: in đậm tên đội trong danh sách cầu thủ ghi bàn.
+    - Mobile: giữ logic kéo rộng box như hiện tại.
+    - Không đổi logic render dữ liệu.
     """
     st.markdown(
         """
         <style>
+        /* Desktop: in đậm tên đội khi xem cầu thủ ghi bàn */
+        @media (min-width: 769px) {
+            .wc-goal-scorer-team {
+                font-weight: 950 !important;
+                color: #07111F !important;
+                white-space: nowrap !important;
+            }
+
+            .wc-goal-scorer-names {
+                color: #334155 !important;
+            }
+        }
+
         @media (max-width: 768px) {
             .wc-goal-scorers-box {
                 width: calc(100vw - 78px) !important;
@@ -968,7 +981,7 @@ def inject_mobile_goal_scorer_panel_css():
             }
 
             .wc-goal-scorer-team {
-                font-weight: 800 !important;
+                font-weight: 900 !important;
                 color: #0F172A !important;
                 white-space: nowrap !important;
             }
