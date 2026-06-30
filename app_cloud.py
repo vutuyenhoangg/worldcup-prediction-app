@@ -1106,101 +1106,96 @@ def get_prediction_action_spacing_css():
     }
     """
 
-def get_sidebar_menu_radio_css():
-    return """
-    div[role="radiogroup"] {
-        gap: 8px !important;
-    }
+def inject_sidebar_menu_radio_css():
+    st.markdown(
+        """
+        <style>
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"] {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 10px !important;
 
-    label[data-baseweb="radio"] {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 10px !important;
+            width: fit-content !important;
+            min-height: 42px !important;
 
-        width: fit-content !important;
-        min-height: 42px !important;
+            padding: 10px 14px !important;
+            margin: 0 0 8px 0 !important;
 
-        padding: 10px 14px !important;
-        margin: 0 0 8px 0 !important;
+            border-radius: 16px !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            background: rgba(255,255,255,0.06) !important;
 
-        border-radius: 16px !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        background: rgba(255,255,255,0.06) !important;
+            color: #F8FAFC !important;
+            font-weight: 800 !important;
+        }
 
-        color: #F8FAFC !important;
-        font-weight: 800 !important;
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"]:has(input:checked) {
+            background: linear-gradient(
+                90deg,
+                rgba(245,197,66,0.28),
+                rgba(0,180,216,0.14)
+            ) !important;
+            border-color: rgba(245,197,66,0.66) !important;
+        }
 
-        transition:
-            background 0.16s ease,
-            border-color 0.16s ease,
-            color 0.16s ease !important;
-    }
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"] > div:first-child {
+            width: 18px !important;
+            height: 18px !important;
+            min-width: 18px !important;
+            min-height: 18px !important;
 
-    label[data-baseweb="radio"]:has(input:checked) {
-        background: linear-gradient(
-            90deg,
-            rgba(245,197,66,0.28),
-            rgba(0,180,216,0.14)
-        ) !important;
-        border-color: rgba(245,197,66,0.66) !important;
-        color: #F8FAFC !important;
-    }
+            border-radius: 999px !important;
+            border: 2px solid #CBD5E1 !important;
+            background: #FFFFFF !important;
+            background-image: none !important;
 
-    label[data-baseweb="radio"] > div:first-child {
-        width: 18px !important;
-        height: 18px !important;
-        min-width: 18px !important;
-        min-height: 18px !important;
+            box-shadow: none !important;
+            box-sizing: border-box !important;
 
-        border-radius: 999px !important;
-        border: 2px solid #CBD5E1 !important;
-        background: #FFFFFF !important;
-        background-image: none !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
 
-        box-shadow: none !important;
-        box-sizing: border-box !important;
+            position: relative !important;
+            overflow: hidden !important;
+            margin-right: 0 !important;
+        }
 
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"] > div:first-child * {
+            opacity: 0 !important;
+            background-image: none !important;
+            color: transparent !important;
+            box-shadow: none !important;
+        }
 
-        position: relative !important;
-        overflow: hidden !important;
-        margin-right: 0 !important;
-    }
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"] > div:first-child::before,
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"] > div:first-child::after {
+            content: none !important;
+            display: none !important;
+        }
 
-    /* Xóa sạch tick/check mặc định của Streamlit/BaseWeb */
-    label[data-baseweb="radio"] > div:first-child * {
-        opacity: 0 !important;
-        background-image: none !important;
-        color: transparent !important;
-        box-shadow: none !important;
-    }
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"]:has(input:checked) > div:first-child {
+            border-color: #D97706 !important;
+            background: #F5C542 !important;
+            background-image: none !important;
+            box-shadow: 0 0 0 3px rgba(245, 197, 66, 0.22) !important;
+        }
 
-    label[data-baseweb="radio"] > div:first-child::before,
-    label[data-baseweb="radio"] > div:first-child::after {
-        content: none !important;
-        display: none !important;
-    }
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"]:hover > div:first-child {
+            border-color: #F5C542 !important;
+        }
 
-    /* Khi chọn: dùng chấm tròn vàng đồng bộ */
-    label[data-baseweb="radio"]:has(input:checked) > div:first-child {
-        border-color: #D97706 !important;
-        background: #F5C542 !important;
-        background-image: none !important;
-        box-shadow: 0 0 0 3px rgba(245, 197, 66, 0.22) !important;
-    }
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"] p,
+        section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"] span {
+            color: #F8FAFC !important;
+            font-weight: 800 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-    label[data-baseweb="radio"]:hover > div:first-child {
-        border-color: #F5C542 !important;
-    }
-
-    label[data-baseweb="radio"] p,
-    label[data-baseweb="radio"] span {
-        color: #F8FAFC !important;
-        font-weight: 800 !important;
-    }
-    """
+inject_sidebar_menu_radio_css()
 
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
@@ -6238,16 +6233,11 @@ def main():
 
         if st.session_state["selected_page"] not in pages:
             st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
-
-        with stylable_container(
-            key="sidebar_menu_radio_shell",
-            css_styles=get_sidebar_menu_radio_css()
-        ):
-            selected_page = st.radio(
-                "Menu",
-                pages,
-                key="selected_page"
-            )
+        selected_page = st.radio(
+            "Menu",
+            pages,
+            key="selected_page"
+        )
 
         render_sidebar_footer()
 
