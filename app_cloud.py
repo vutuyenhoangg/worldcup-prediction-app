@@ -1012,13 +1012,19 @@ inject_mobile_goal_scorer_panel_css()
 def get_prediction_radio_css():
     return """
     label[data-baseweb="radio"] {
+        position: relative !important;
         display: inline-flex !important;
         align-items: center !important;
-        gap: 7px !important;
-        padding: 2px 8px 2px 3px !important;
+
+        min-height: 24px !important;
+        padding: 3px 9px 3px 29px !important;
         border-radius: 999px !important;
         border: 1px solid transparent !important;
         background: transparent !important;
+
+        line-height: 1.15 !important;
+        font-size: 14px !important;
+
         transition:
             background 0.16s ease,
             border-color 0.16s ease,
@@ -1027,61 +1033,142 @@ def get_prediction_radio_css():
 
     label[data-baseweb="radio"]:has(input:checked) {
         background: rgba(245, 197, 66, 0.13) !important;
-        border-color: rgba(245, 197, 66, 0.30) !important;
+        border-color: rgba(245, 197, 66, 0.32) !important;
         color: #07111F !important;
         font-weight: 800 !important;
     }
 
+    /* Ẩn radio mặc định của Streamlit/BaseWeb */
     label[data-baseweb="radio"] > div:first-child {
-        width: 16px !important;
-        height: 16px !important;
-        min-width: 16px !important;
-        min-height: 16px !important;
-        border-radius: 999px !important;
-        border: 2px solid #CBD5E1 !important;
-        background: #FFFFFF !important;
-        box-shadow: none !important;
-        position: relative !important;
-        margin: 0 2px 0 0 !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        overflow: hidden !important;
+        margin: 0 !important;
         padding: 0 !important;
-        box-sizing: border-box !important;
-        display: block !important;
-        flex: 0 0 16px !important;
+        border: none !important;
+        box-shadow: none !important;
     }
 
     label[data-baseweb="radio"] > div:first-child * {
+        opacity: 0 !important;
         display: none !important;
     }
 
-    label[data-baseweb="radio"] > div:first-child::after {
+    /* Vẽ vòng tròn mới */
+    label[data-baseweb="radio"]::before {
         content: "" !important;
         position: absolute !important;
-        left: 50% !important;
+        left: 8px !important;
         top: 50% !important;
-        width: 0 !important;
-        height: 0 !important;
+
+        width: 15px !important;
+        height: 15px !important;
         border-radius: 999px !important;
-        background: transparent !important;
-        transform: translate(-50%, -50%) !important;
+        border: 2px solid #CBD5E1 !important;
+        background: #FFFFFF !important;
+
+        box-sizing: border-box !important;
+        transform: translateY(-50%) !important;
+
         transition:
-            width 0.16s ease,
-            height 0.16s ease,
+            border-color 0.16s ease,
             background 0.16s ease;
     }
 
-    label[data-baseweb="radio"]:has(input:checked) > div:first-child {
+    /* Vẽ chấm ở chính giữa vòng tròn */
+    label[data-baseweb="radio"]::after {
+        content: "" !important;
+        position: absolute !important;
+        left: 15.5px !important;
+        top: 50% !important;
+
+        width: 0 !important;
+        height: 0 !important;
+        border-radius: 999px !important;
+        background: #D97706 !important;
+
+        transform: translate(-50%, -50%) !important;
+
+        transition:
+            width 0.16s ease,
+            height 0.16s ease;
+    }
+
+    label[data-baseweb="radio"]:has(input:checked)::before {
         border-color: #D97706 !important;
         background: #FFFDF7 !important;
     }
 
-    label[data-baseweb="radio"]:has(input:checked) > div:first-child::after {
+    label[data-baseweb="radio"]:has(input:checked)::after {
         width: 7px !important;
         height: 7px !important;
-        background: #D97706 !important;
     }
 
-    label[data-baseweb="radio"]:hover > div:first-child {
+    label[data-baseweb="radio"]:hover::before {
         border-color: #F5C542 !important;
+    }
+
+    @media (max-width: 768px) {
+        label[data-baseweb="radio"] {
+            min-height: 23px !important;
+            padding: 3px 8px 3px 28px !important;
+            font-size: 13.5px !important;
+        }
+
+        label[data-baseweb="radio"]::before {
+            left: 8px !important;
+            width: 15px !important;
+            height: 15px !important;
+        }
+
+        label[data-baseweb="radio"]::after {
+            left: 15.5px !important;
+        }
+    }
+    """
+
+def get_save_prediction_button_css():
+    return """
+    {
+        display: inline-block !important;
+
+        margin-top: 14px !important;
+        margin-bottom: 10px !important;
+
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    button {
+        min-height: 40px !important;
+        padding: 8px 16px !important;
+        white-space: nowrap !important;
+    }
+
+    button * {
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        overflow-wrap: normal !important;
+    }
+
+    @media (max-width: 768px) {
+        {
+            margin-top: 14px !important;
+            margin-bottom: 12px !important;
+        }
+
+        button {
+            min-height: 40px !important;
+            padding: 8px 14px !important;
+            white-space: nowrap !important;
+        }
     }
     """
 
@@ -4716,23 +4803,7 @@ def render_match_card(row, user_id: int):
                 with save_col:
                     with stylable_container(
                         key=f"save_prediction_button_shell_{match_id}",
-                        css_styles="""
-                        @media (max-width: 768px) {
-                            {
-                                margin-top: 10px !important;
-                            }
-                
-                            button {
-                                white-space: nowrap !important;
-                            }
-                
-                            button * {
-                                white-space: nowrap !important;
-                                word-break: keep-all !important;
-                                overflow-wrap: normal !important;
-                            }
-                        }
-                        """
+                        css_styles=get_save_prediction_button_css()
                     ):
                         submitted = st.form_submit_button(
                             "Lưu / cập nhật dự đoán"
@@ -4778,23 +4849,7 @@ def render_match_card(row, user_id: int):
             else:
                 with stylable_container(
                     key=f"save_prediction_button_shell_{match_id}",
-                    css_styles="""
-                    @media (max-width: 768px) {
-                        {
-                            margin-top: 10px !important;
-                        }
-            
-                        button {
-                            white-space: nowrap !important;
-                        }
-            
-                        button * {
-                            white-space: nowrap !important;
-                            word-break: keep-all !important;
-                            overflow-wrap: normal !important;
-                        }
-                    }
-                    """
+                    css_styles=get_save_prediction_button_css()
                 ):
                     submitted = st.form_submit_button(
                         "Lưu / cập nhật dự đoán"
