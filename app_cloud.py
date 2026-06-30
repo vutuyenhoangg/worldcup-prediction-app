@@ -4634,42 +4634,9 @@ def render_match_card(row, user_id: int):
                 save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
                 with save_col:
-                    with stylable_container(
-                        key=f"save_prediction_button_shell_{match_id}",
-                        css_styles="""
-                        @media (max-width: 768px) {
-                            button {
-                                width: auto !important;
-                                min-width: 158px !important;
-                                padding-left: 12px !important;
-                                padding-right: 12px !important;
-                                white-space: nowrap !important;
-                                font-size: 12.5px !important;
-                                line-height: 1 !important;
-                            }
-                
-                            button * {
-                                white-space: nowrap !important;
-                                word-break: keep-all !important;
-                                overflow-wrap: normal !important;
-                                font-size: inherit !important;
-                                line-height: 1 !important;
-                            }
-                        }
-                
-                        @media (max-width: 390px) {
-                            button {
-                                min-width: 150px !important;
-                                font-size: 12px !important;
-                                padding-left: 10px !important;
-                                padding-right: 10px !important;
-                            }
-                        }
-                        """
-                    ):
-                        submitted = st.form_submit_button(
-                            "Lưu / cập nhật dự đoán"
-                        )
+                    submitted = st.form_submit_button(
+                        "Lưu / cập nhật dự đoán"
+                    )
             
                 with delete_col:
                     with stylable_container(
@@ -4688,7 +4655,7 @@ def render_match_card(row, user_id: int):
                             border-radius: 999px !important;
                             white-space: nowrap !important;
                         }
-                    
+            
                         button:hover {
                             color: #B91C1C !important;
                             border-color: rgba(185, 28, 28, 0.68) !important;
@@ -4696,42 +4663,10 @@ def render_match_card(row, user_id: int):
                             transform: none !important;
                             box-shadow: none !important;
                         }
-                    
+            
                         button:active {
                             transform: none !important;
                             box-shadow: none !important;
-                        }
-                    
-                        @media (max-width: 768px) {
-                            {
-                                width: 100% !important;
-                                display: flex !important;
-                                justify-content: flex-end !important;
-                                margin-top: -34px !important;
-                                padding-right: 0 !important;
-                                box-sizing: border-box !important;
-                            }
-                    
-                            button {
-                                width: auto !important;
-                                min-width: 92px !important;
-                                max-width: 108px !important;
-                                white-space: nowrap !important;
-                            }
-                        }
-                    
-                        @media (max-width: 390px) {
-                            {
-                                margin-top: -32px !important;
-                            }
-                    
-                            button {
-                                min-width: 88px !important;
-                                max-width: 98px !important;
-                                font-size: 11.5px !important;
-                                padding-left: 8px !important;
-                                padding-right: 8px !important;
-                            }
                         }
                         """
                     ):
