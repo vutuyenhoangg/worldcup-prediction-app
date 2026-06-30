@@ -1235,55 +1235,82 @@ def render_star_balance(user_id: int):
                     min-height: 150px !important;
                     max-height: 150px !important;
                     width: 100% !important;
-                    padding: 18px 10px 12px 15px !important;
+            
+                    padding: 17px 10px 12px 14px !important;
                     margin: 0 0 22px 0 !important;
+            
                     overflow: hidden !important;
                     box-sizing: border-box !important;
                 }
-
+            
                 .wc-star-balance-title {
-                    font-size: 14px !important;
-                    line-height: 1.15 !important;
-                    margin-bottom: 9px !important;
-                    text-align: left !important;
                     width: 100% !important;
+                    min-height: 38px !important;
+                    margin-bottom: 7px !important;
+            
+                    font-size: 13.5px !important;
+                    line-height: 1.32 !important;
+                    font-weight: 900 !important;
+            
+                    text-align: left !important;
+                    white-space: normal !important;
+                    word-break: normal !important;
+                    overflow-wrap: normal !important;
                 }
-
+            
                 .wc-star-balance-value {
+                    width: 100% !important;
+                    min-height: 31px !important;
+                    margin-bottom: 10px !important;
+            
                     font-size: 31px !important;
                     line-height: 1 !important;
-                    margin-bottom: 9px !important;
+                    font-weight: 950 !important;
+            
                     text-align: left !important;
-                    width: 100% !important;
                 }
-
+            
                 .wc-star-balance-note {
-                    font-size: 11.5px !important;
-                    line-height: 1.22 !important;
-                    text-align: left !important;
                     width: 100% !important;
+                    min-height: 31px !important;
+            
+                    font-size: 11.5px !important;
+                    line-height: 1.28 !important;
+            
+                    text-align: left !important;
+                    white-space: normal !important;
+                    word-break: normal !important;
+                    overflow-wrap: normal !important;
                 }
             }
-
+            
             @media (max-width: 390px) {
                 {
                     height: 150px !important;
                     min-height: 150px !important;
                     max-height: 150px !important;
-                    padding-left: 13px !important;
+            
+                    padding-left: 12px !important;
                     padding-right: 8px !important;
                 }
-
+            
                 .wc-star-balance-title {
+                    min-height: 38px !important;
                     font-size: 13px !important;
+                    line-height: 1.32 !important;
+                    margin-bottom: 7px !important;
                 }
-
+            
                 .wc-star-balance-value {
+                    min-height: 30px !important;
                     font-size: 30px !important;
+                    margin-bottom: 10px !important;
                 }
-
+            
                 .wc-star-balance-note {
+                    min-height: 31px !important;
                     font-size: 11px !important;
+                    line-height: 1.28 !important;
                 }
             }
             """
@@ -1346,40 +1373,58 @@ def render_star_balance(user_id: int):
                 width: 100%;
                 box-sizing: border-box;
             }
-
             @media (max-width: 768px) {
                 {
                     height: 150px !important;
                     min-height: 150px !important;
                     max-height: 150px !important;
                     width: 100% !important;
-                    padding: 18px 10px 12px 15px !important;
+            
+                    padding: 17px 10px 12px 14px !important;
                     margin: 0 0 22px 0 !important;
+            
                     overflow: hidden !important;
                     box-sizing: border-box !important;
                 }
-
+            
                 .wc-star-balance-title {
-                    font-size: 14px !important;
-                    line-height: 1.15 !important;
-                    margin-bottom: 9px !important;
-                    text-align: left !important;
                     width: 100% !important;
+                    min-height: 38px !important;
+                    margin-bottom: 7px !important;
+            
+                    font-size: 13.5px !important;
+                    line-height: 1.32 !important;
+                    font-weight: 900 !important;
+            
+                    text-align: left !important;
+                    white-space: normal !important;
+                    word-break: normal !important;
+                    overflow-wrap: normal !important;
                 }
-
+            
                 .wc-star-balance-value {
+                    width: 100% !important;
+                    min-height: 31px !important;
+                    margin-bottom: 10px !important;
+            
                     font-size: 31px !important;
                     line-height: 1 !important;
-                    margin-bottom: 9px !important;
+                    font-weight: 950 !important;
+            
                     text-align: left !important;
-                    width: 100% !important;
                 }
-
+            
                 .wc-star-balance-note {
-                    font-size: 11.5px !important;
-                    line-height: 1.22 !important;
-                    text-align: left !important;
                     width: 100% !important;
+                    min-height: 31px !important;
+            
+                    font-size: 11.5px !important;
+                    line-height: 1.28 !important;
+            
+                    text-align: left !important;
+                    white-space: normal !important;
+                    word-break: normal !important;
+                    overflow-wrap: normal !important;
                 }
             }
 
@@ -1388,20 +1433,28 @@ def render_star_balance(user_id: int):
                     height: 150px !important;
                     min-height: 150px !important;
                     max-height: 150px !important;
-                    padding-left: 13px !important;
+            
+                    padding-left: 12px !important;
                     padding-right: 8px !important;
                 }
-
+            
                 .wc-star-balance-title {
+                    min-height: 38px !important;
                     font-size: 13px !important;
+                    line-height: 1.32 !important;
+                    margin-bottom: 7px !important;
                 }
-
+            
                 .wc-star-balance-value {
+                    min-height: 30px !important;
                     font-size: 30px !important;
+                    margin-bottom: 10px !important;
                 }
-
+            
                 .wc-star-balance-note {
+                    min-height: 31px !important;
                     font-size: 11px !important;
+                    line-height: 1.28 !important;
                 }
             }
             """
