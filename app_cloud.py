@@ -1106,6 +1106,104 @@ def get_prediction_action_spacing_css():
     }
     """
 
+def get_existing_prediction_action_mobile_css():
+    return """
+    {
+        margin-top: 16px !important;
+        margin-bottom: 18px !important;
+    }
+
+    button {
+        white-space: nowrap !important;
+    }
+
+    button * {
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        overflow-wrap: normal !important;
+    }
+
+    @media (max-width: 768px) {
+        {
+            margin-top: 15px !important;
+            margin-bottom: 20px !important;
+            overflow: visible !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 8px !important;
+            width: 100% !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) {
+            flex: 0 0 178px !important;
+            width: 178px !important;
+            min-width: 178px !important;
+            max-width: 178px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(2) {
+            flex: 1 1 auto !important;
+            width: auto !important;
+            min-width: 0 !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(3) {
+            flex: 0 0 92px !important;
+            width: 92px !important;
+            min-width: 92px !important;
+            max-width: 92px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) button {
+            width: 100% !important;
+            min-width: 178px !important;
+            max-width: 178px !important;
+            min-height: 36px !important;
+            padding: 7px 10px !important;
+            font-size: 12.5px !important;
+            line-height: 1 !important;
+            box-sizing: border-box !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) button * {
+            font-size: inherit !important;
+            line-height: 1 !important;
+        }
+    }
+
+    @media (max-width: 390px) {
+        div[data-testid="stHorizontalBlock"] {
+            gap: 7px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) {
+            flex-basis: 170px !important;
+            width: 170px !important;
+            min-width: 170px !important;
+            max-width: 170px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(3) {
+            flex-basis: 88px !important;
+            width: 88px !important;
+            min-width: 88px !important;
+            max-width: 88px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) button {
+            min-width: 170px !important;
+            max-width: 170px !important;
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+            font-size: 12px !important;
+        }
+    }
+    """
+
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
 
@@ -4733,8 +4831,8 @@ def render_match_card(row, user_id: int):
             
             if existing:
                 with stylable_container(
-                    key=f"prediction_action_spacing_shell_{match_id}",
-                    css_styles=get_prediction_action_spacing_css()
+                    key=f"prediction_existing_action_spacing_shell_{match_id}",
+                    css_styles=get_existing_prediction_action_mobile_css()
                 ):
                     save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
