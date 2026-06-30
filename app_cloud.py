@@ -937,6 +937,65 @@ def inject_mobile_goal_scorer_button_css():
 
 inject_mobile_goal_scorer_button_css()
 
+def inject_mobile_goal_scorer_panel_css():
+    """
+    CSS riêng cho box Cầu thủ ghi bàn trên mobile.
+
+    Mục tiêu:
+    - Chỉ áp dụng trên điện thoại.
+    - Không đổi desktop.
+    - Cho box cầu thủ ghi bàn chạy rộng sang bên phải thay vì bó trong cột trái.
+    """
+    st.markdown(
+        """
+        <style>
+        @media (max-width: 768px) {
+            .wc-goal-scorers-box {
+                width: calc(100vw - 78px) !important;
+                max-width: calc(100vw - 78px) !important;
+                box-sizing: border-box !important;
+                margin-top: 10px !important;
+                margin-bottom: 18px !important;
+            }
+
+            .wc-goal-scorer-line {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin-top: 3px !important;
+                white-space: normal !important;
+                word-break: normal !important;
+                overflow-wrap: normal !important;
+            }
+
+            .wc-goal-scorer-team {
+                font-weight: 800 !important;
+                color: #0F172A !important;
+                white-space: nowrap !important;
+            }
+
+            .wc-goal-scorer-names {
+                color: #334155 !important;
+                white-space: normal !important;
+                word-break: normal !important;
+                overflow-wrap: normal !important;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .wc-goal-scorers-box {
+                width: calc(100vw - 70px) !important;
+                max-width: calc(100vw - 70px) !important;
+                font-size: 12.5px !important;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+inject_mobile_goal_scorer_panel_css()
+
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
 
@@ -3198,11 +3257,14 @@ def render_goal_scorers_for_match(match_id: int):
     """
     Hiển thị nút mở rộng/thu gọn danh sách cầu thủ ghi bàn.
 
-    Logic mới:
+    Logic giữ nguyên:
     - Mỗi card có trạng thái ẩn/hiện riêng.
     - Bấm mở/ẩn trận này không tự đóng các trận khác.
     - Chưa mở thì không query bảng match_goals.
     - Khi mở thì chỉ query cầu thủ ghi bàn của đúng trận đó.
+
+    UI update:
+    - Thêm class CSS cho box cầu thủ ghi bàn để mobile có thể kéo rộng sang phải.
     """
     from html import escape
 
@@ -3247,9 +3309,9 @@ def render_goal_scorers_for_match(match_id: int):
         home_text = ", ".join(home_goals.apply(format_goal_text, axis=1))
 
         goal_lines.append(
-            '<div style="margin-top:3px;">'
-            f'<span style="font-weight:800;color:#0F172A;">{home_team}:</span> '
-            f'<span style="color:#334155;">{home_text}</span>'
+            '<div class="wc-goal-scorer-line">'
+            f'<span class="wc-goal-scorer-team">{home_team}:</span> '
+            f'<span class="wc-goal-scorer-names">{home_text}</span>'
             '</div>'
         )
 
@@ -3261,9 +3323,9 @@ def render_goal_scorers_for_match(match_id: int):
         away_text = ", ".join(away_goals.apply(format_goal_text, axis=1))
 
         goal_lines.append(
-            '<div style="margin-top:3px;">'
-            f'<span style="font-weight:800;color:#0F172A;">{away_team}:</span> '
-            f'<span style="color:#334155;">{away_text}</span>'
+            '<div class="wc-goal-scorer-line">'
+            f'<span class="wc-goal-scorer-team">{away_team}:</span> '
+            f'<span class="wc-goal-scorer-names">{away_text}</span>'
             '</div>'
         )
 
@@ -3272,7 +3334,7 @@ def render_goal_scorers_for_match(match_id: int):
         return
 
     scorers_html = (
-        '<div style="'
+        '<div class="wc-goal-scorers-box" style="'
         'margin-top:8px;'
         'margin-bottom:18px;'
         'padding-left:12px;'
@@ -3280,7 +3342,7 @@ def render_goal_scorers_for_match(match_id: int):
         'font-size:13px;'
         'line-height:1.55;'
         '">'
-        '<div style="'
+        '<div class="wc-goal-scorers-title" style="'
         'font-weight:900;'
         'color:#07111F;'
         'margin-bottom:4px;'
