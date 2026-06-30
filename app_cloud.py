@@ -1014,8 +1014,8 @@ def get_prediction_radio_css():
     label[data-baseweb="radio"] {
         display: inline-flex !important;
         align-items: center !important;
-        gap: 8px !important;
-        padding: 2px 8px 2px 2px !important;
+        gap: 7px !important;
+        padding: 2px 8px 2px 3px !important;
         border-radius: 999px !important;
         border: 1px solid transparent !important;
         background: transparent !important;
@@ -1026,13 +1026,12 @@ def get_prediction_radio_css():
     }
 
     label[data-baseweb="radio"]:has(input:checked) {
-        background: rgba(245, 197, 66, 0.14) !important;
-        border-color: rgba(245, 197, 66, 0.32) !important;
+        background: rgba(245, 197, 66, 0.13) !important;
+        border-color: rgba(245, 197, 66, 0.30) !important;
         color: #07111F !important;
         font-weight: 800 !important;
     }
 
-    /* Ô tick: nhỏ gọn hơn */
     label[data-baseweb="radio"] > div:first-child {
         width: 16px !important;
         height: 16px !important;
@@ -1043,22 +1042,27 @@ def get_prediction_radio_css():
         background: #FFFFFF !important;
         box-shadow: none !important;
         position: relative !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin-right: 2px !important;
-        transition:
-            border-color 0.16s ease,
-            background 0.16s ease;
+        margin: 0 2px 0 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        display: block !important;
+        flex: 0 0 16px !important;
     }
 
-    /* Dấu chấm bên trong */
+    label[data-baseweb="radio"] > div:first-child * {
+        display: none !important;
+    }
+
     label[data-baseweb="radio"] > div:first-child::after {
         content: "" !important;
+        position: absolute !important;
+        left: 50% !important;
+        top: 50% !important;
         width: 0 !important;
         height: 0 !important;
         border-radius: 999px !important;
         background: transparent !important;
+        transform: translate(-50%, -50%) !important;
         transition:
             width 0.16s ease,
             height 0.16s ease,
@@ -4710,9 +4714,29 @@ def render_match_card(row, user_id: int):
                 save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
                 with save_col:
-                    submitted = st.form_submit_button(
-                        "Lưu / cập nhật dự đoán"
-                    )
+                    with stylable_container(
+                        key=f"save_prediction_button_shell_{match_id}",
+                        css_styles="""
+                        @media (max-width: 768px) {
+                            {
+                                margin-top: 10px !important;
+                            }
+                
+                            button {
+                                white-space: nowrap !important;
+                            }
+                
+                            button * {
+                                white-space: nowrap !important;
+                                word-break: keep-all !important;
+                                overflow-wrap: normal !important;
+                            }
+                        }
+                        """
+                    ):
+                        submitted = st.form_submit_button(
+                            "Lưu / cập nhật dự đoán"
+                        )
             
                 with delete_col:
                     with stylable_container(
@@ -4752,9 +4776,29 @@ def render_match_card(row, user_id: int):
                         )
             
             else:
-                submitted = st.form_submit_button(
-                    "Lưu / cập nhật dự đoán"
-                )
+                with stylable_container(
+                    key=f"save_prediction_button_shell_{match_id}",
+                    css_styles="""
+                    @media (max-width: 768px) {
+                        {
+                            margin-top: 10px !important;
+                        }
+            
+                        button {
+                            white-space: nowrap !important;
+                        }
+            
+                        button * {
+                            white-space: nowrap !important;
+                            word-break: keep-all !important;
+                            overflow-wrap: normal !important;
+                        }
+                    }
+                    """
+                ):
+                    submitted = st.form_submit_button(
+                        "Lưu / cập nhật dự đoán"
+                    )
             
             if submitted:
                 try:
