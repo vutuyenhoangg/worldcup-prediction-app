@@ -2307,21 +2307,32 @@ def get_prediction_result_info(
     pred_away,
     actual_home,
     actual_away,
-    is_finished
+    is_finished,
+    is_knockout=False,
+    predicted_winner_team_id=None,
+    actual_winner_team_id=None
 ):
     """
     Trả về thông tin hiển thị kết quả dự đoán:
     - Đúng hoàn toàn tỉ số
     - Đúng kết quả
+    - Đúng đội thắng chung cuộc
     - Sai
 
     Logic:
     - Đúng hoàn toàn tỉ số: dự đoán đúng chính xác tỉ số.
     - Đúng kết quả: không đúng tỉ số, nhưng đúng kết quả thắng/hòa/thua.
-    - Sai: sai kết quả thắng/hòa/thua.
+    - Đúng đội thắng chung cuộc: trận knockout, sai outcome tỉ số,
+      nhưng chọn đúng đội thắng chung cuộc.
+    - Sai: không đúng các trường hợp trên.
     """
     if not is_finished:
         return None
+
+    pred_home = to_optional_int(pred_home)
+    pred_away = to_optional_int(pred_away)
+    actual_home = to_optional_int(actual_home)
+    actual_away = to_optional_int(actual_away)
 
     if (
         pred_home is None
@@ -2331,10 +2342,8 @@ def get_prediction_result_info(
     ):
         return None
 
-    pred_home = int(pred_home)
-    pred_away = int(pred_away)
-    actual_home = int(actual_home)
-    actual_away = int(actual_away)
+    predicted_winner_team_id = to_optional_int(predicted_winner_team_id)
+    actual_winner_team_id = to_optional_int(actual_winner_team_id)
 
     if pred_home == actual_home and pred_away == actual_away:
         return {
@@ -2350,6 +2359,21 @@ def get_prediction_result_info(
             "text_color": "#0369A1",
             "bg_color": "#E0F2FE",
             "border_color": "#7DD3FC"
+        }
+
+    correct_knockout_winner = (
+        to_bool(is_knockout)
+        and predicted_winner_team_id is not None
+        and actual_winner_team_id is not None
+        and predicted_winner_team_id == actual_winner_team_id
+    )
+
+    if correct_knockout_winner:
+        return {
+            "label": "Đúng đội thắng chung cuộc",
+            "text_color": "#C2410C",
+            "bg_color": "#FFEDD5",
+            "border_color": "#FDBA74"
         }
 
     return {
@@ -4289,7 +4313,10 @@ def render_match_card(row, user_id: int):
                 pred_away=pred_away,
                 actual_home=actual_home_for_result,
                 actual_away=actual_away_for_result,
-                is_finished=is_finished
+                is_finished=is_finished,
+                is_knockout=is_knockout,
+                predicted_winner_team_id=pred_winner_team_id,
+                actual_winner_team_id=row.get("winner_team_id")
             )
 
             render_prediction_result_and_score_row(
