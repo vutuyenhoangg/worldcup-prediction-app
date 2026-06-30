@@ -867,6 +867,65 @@ def inject_mobile_match_title_css():
 
 inject_mobile_match_title_css()
 
+def inject_mobile_goal_scorer_button_css():
+    """
+    CSS riêng cho nút Xem cầu thủ ghi bàn trên mobile.
+
+    Mục tiêu:
+    - Chỉ áp dụng trên điện thoại.
+    - Không thay đổi logic nút.
+    - Không ảnh hưởng desktop.
+    - Ép chữ trong nút chỉ hiển thị trên 1 dòng.
+    """
+    st.markdown(
+        """
+        <style>
+        @media (max-width: 768px) {
+            div[class*="st-key-goal_scorers_button_"] {
+                width: auto !important;
+                max-width: 100% !important;
+            }
+
+            div[class*="st-key-goal_scorers_button_"] button {
+                width: auto !important;
+                min-width: 172px !important;
+                max-width: 100% !important;
+                min-height: 42px !important;
+                padding: 8px 14px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-wrap: nowrap !important;
+                white-space: nowrap !important;
+                font-size: 13px !important;
+                line-height: 1 !important;
+            }
+
+            div[class*="st-key-goal_scorers_button_"] button * {
+                white-space: nowrap !important;
+                word-break: keep-all !important;
+                overflow-wrap: normal !important;
+                line-height: 1 !important;
+                font-size: inherit !important;
+            }
+        }
+
+        @media (max-width: 390px) {
+            div[class*="st-key-goal_scorers_button_"] button {
+                min-width: 164px !important;
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+                font-size: 12.5px !important;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+inject_mobile_goal_scorer_button_css()
+
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
 
