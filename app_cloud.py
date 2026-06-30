@@ -4044,148 +4044,6 @@ def render_match_title(home_name, away_name, match_id: int):
         unsafe_allow_html=True
     )
 
-def render_prediction_score_inputs(
-    match_id: int,
-    home_name,
-    away_name,
-    pred_home: int,
-    pred_away: int
-):
-    """
-    Render 2 ô nhập tỉ số dự đoán.
-
-    Desktop:
-    - Giữ nguyên layout st.columns([2, 1, 2]) như cũ.
-
-    Mobile:
-    - Ép 2 ô nhập tỉ số + dấu gạch ngang nằm trên cùng 1 dòng.
-    - Thu ngắn width ô số để không bị rơi xuống dòng.
-    - Không thay đổi logic input, key, value hay submit.
-    """
-    with stylable_container(
-        key=f"prediction_score_inputs_shell_{match_id}",
-        css_styles="""
-        {
-            width: 100%;
-        }
-
-        @media (max-width: 768px) {
-            div[data-testid="stHorizontalBlock"] {
-                display: grid !important;
-                grid-template-columns: minmax(104px, 128px) 20px minmax(104px, 128px) !important;
-                gap: 8px !important;
-                align-items: end !important;
-                justify-content: start !important;
-                width: 100% !important;
-            }
-
-            div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-                width: 100% !important;
-                min-width: 0 !important;
-                flex: none !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
-            }
-
-            div[data-testid="stNumberInput"] {
-                width: 100% !important;
-                max-width: 128px !important;
-            }
-
-            div[data-testid="stNumberInput"] label,
-            div[data-testid="stNumberInput"] label p {
-                max-width: 128px !important;
-                white-space: nowrap !important;
-                overflow: hidden !important;
-                text-overflow: ellipsis !important;
-                font-size: 13px !important;
-                line-height: 1.2 !important;
-            }
-
-            div[data-testid="stNumberInput"] input {
-                height: 40px !important;
-                min-height: 40px !important;
-                padding-left: 4px !important;
-                padding-right: 4px !important;
-                text-align: center !important;
-                font-size: 13px !important;
-            }
-
-            div[data-testid="stNumberInput"] button {
-                width: 30px !important;
-                min-width: 30px !important;
-                height: 40px !important;
-                min-height: 40px !important;
-                padding: 0 !important;
-            }
-
-            div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) {
-                display: flex !important;
-                align-items: flex-end !important;
-                justify-content: center !important;
-                padding-bottom: 2px !important;
-            }
-
-            div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) div[data-testid="stMarkdownContainer"] h3 {
-                margin: 0 !important;
-                padding: 0 !important;
-                line-height: 40px !important;
-                font-size: 20px !important;
-                text-align: center !important;
-            }
-        }
-
-        @media (max-width: 390px) {
-            div[data-testid="stHorizontalBlock"] {
-                grid-template-columns: minmax(96px, 118px) 18px minmax(96px, 118px) !important;
-                gap: 7px !important;
-            }
-
-            div[data-testid="stNumberInput"] {
-                max-width: 118px !important;
-            }
-
-            div[data-testid="stNumberInput"] label,
-            div[data-testid="stNumberInput"] label p {
-                max-width: 118px !important;
-                font-size: 12.5px !important;
-            }
-
-            div[data-testid="stNumberInput"] button {
-                width: 28px !important;
-                min-width: 28px !important;
-            }
-        }
-        """
-    ):
-        col_home, col_mid, col_away = st.columns([2, 1, 2])
-
-        with col_home:
-            input_home = st.number_input(
-                home_name,
-                min_value=0,
-                max_value=20,
-                value=pred_home,
-                step=1,
-                key=f"home_score_{match_id}"
-            )
-
-        with col_mid:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("### -")
-
-        with col_away:
-            input_away = st.number_input(
-                away_name,
-                min_value=0,
-                max_value=20,
-                value=pred_away,
-                step=1,
-                key=f"away_score_{match_id}"
-            )
-
-    return input_home, input_away
-
 def render_match_card(row, user_id: int):
     match_id = int(row["match_id"])
 
@@ -4450,13 +4308,31 @@ def render_match_card(row, user_id: int):
             return
 
         with st.form(f"prediction_form_{match_id}"):
-            input_home, input_away = render_prediction_score_inputs(
-                match_id=match_id,
-                home_name=home_name,
-                away_name=away_name,
-                pred_home=pred_home,
-                pred_away=pred_away
-            )
+            col_home, col_mid, col_away = st.columns([2, 1, 2])
+
+            with col_home:
+                input_home = st.number_input(
+                    home_name,
+                    min_value=0,
+                    max_value=20,
+                    value=pred_home,
+                    step=1,
+                    key=f"home_score_{match_id}"
+                )
+
+            with col_mid:
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("### -")
+
+            with col_away:
+                input_away = st.number_input(
+                    away_name,
+                    min_value=0,
+                    max_value=20,
+                    value=pred_away,
+                    step=1,
+                    key=f"away_score_{match_id}"
+                )
 
             predicted_winner_team_id = None
             predicted_winner_team_name = None
