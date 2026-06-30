@@ -876,6 +876,8 @@ def inject_mobile_goal_scorer_button_css():
     - Không thay đổi logic nút.
     - Không ảnh hưởng desktop.
     - Ép chữ trong nút chỉ hiển thị trên 1 dòng.
+    - Tạo thêm khoảng cách phía trên nút để tránh bị sát phần "Thắng chung cuộc"
+      khi card kết quả có thêm penalty.
     """
     st.markdown(
         """
@@ -884,6 +886,10 @@ def inject_mobile_goal_scorer_button_css():
             div[class*="st-key-goal_scorers_button_"] {
                 width: auto !important;
                 max-width: 100% !important;
+
+                /* Chỉnh khoảng cách nút với phần phía trên ở mobile */
+                margin-top: 18px !important;
+                margin-bottom: 8px !important;
             }
 
             div[class*="st-key-goal_scorers_button_"] button {
@@ -911,6 +917,11 @@ def inject_mobile_goal_scorer_button_css():
         }
 
         @media (max-width: 390px) {
+            div[class*="st-key-goal_scorers_button_"] {
+                margin-top: 20px !important;
+                margin-bottom: 8px !important;
+            }
+
             div[class*="st-key-goal_scorers_button_"] button {
                 min-width: 164px !important;
                 padding-left: 12px !important;
