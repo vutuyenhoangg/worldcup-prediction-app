@@ -4739,51 +4739,9 @@ def render_match_card(row, user_id: int):
                     save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
                     with save_col:
-                        with stylable_container(
-                            key=f"save_prediction_button_mobile_fix_existing_{match_id}",
-                            css_styles="""
-                            @media (max-width: 768px) {
-                                button {
-                                    width: 100% !important;
-                                    max-width: 100% !important;
-                                    height: auto !important;
-                                    min-height: 42px !important;
-                    
-                                    padding: 7px 8px !important;
-                    
-                                    font-size: 12px !important;
-                                    line-height: 1.15 !important;
-                                    text-align: center !important;
-                    
-                                    white-space: normal !important;
-                                    word-break: normal !important;
-                                    overflow-wrap: anywhere !important;
-                                }
-                    
-                                button * {
-                                    white-space: normal !important;
-                                    word-break: normal !important;
-                                    overflow-wrap: anywhere !important;
-                    
-                                    font-size: inherit !important;
-                                    line-height: 1.15 !important;
-                                    text-align: center !important;
-                                }
-                            }
-                    
-                            @media (max-width: 390px) {
-                                button {
-                                    min-height: 44px !important;
-                                    padding-left: 6px !important;
-                                    padding-right: 6px !important;
-                                    font-size: 11.5px !important;
-                                }
-                            }
-                            """
-                        ):
-                            submitted = st.form_submit_button(
-                                "Lưu / cập nhật dự đoán"
-                            )
+                        submitted = st.form_submit_button(
+                            "Lưu / cập nhật dự đoán"
+                        )
             
                     with delete_col:
                         with stylable_container(
