@@ -1246,7 +1246,7 @@ def render_star_balance(user_id: int):
                 .wc-star-balance-title {
                     width: 100% !important;
                     min-height: 38px !important;
-                    margin-bottom: 7px !important;
+                    margin-bottom: 12px !important;
             
                     font-size: 13.5px !important;
                     line-height: 1.32 !important;
@@ -1261,7 +1261,7 @@ def render_star_balance(user_id: int):
                 .wc-star-balance-value {
                     width: 100% !important;
                     min-height: 31px !important;
-                    margin-bottom: 10px !important;
+                    margin-bottom: 7px !important;
             
                     font-size: 31px !important;
                     line-height: 1 !important;
@@ -1298,13 +1298,13 @@ def render_star_balance(user_id: int):
                     min-height: 38px !important;
                     font-size: 13px !important;
                     line-height: 1.32 !important;
-                    margin-bottom: 7px !important;
+                    margin-bottom: 12px !important;
                 }
             
                 .wc-star-balance-value {
                     min-height: 30px !important;
                     font-size: 30px !important;
-                    margin-bottom: 10px !important;
+                    margin-bottom: 7px !important;
                 }
             
                 .wc-star-balance-note {
@@ -1390,7 +1390,7 @@ def render_star_balance(user_id: int):
                 .wc-star-balance-title {
                     width: 100% !important;
                     min-height: 38px !important;
-                    margin-bottom: 7px !important;
+                    margin-bottom: 12px !important;
             
                     font-size: 13.5px !important;
                     line-height: 1.32 !important;
@@ -1405,7 +1405,7 @@ def render_star_balance(user_id: int):
                 .wc-star-balance-value {
                     width: 100% !important;
                     min-height: 31px !important;
-                    margin-bottom: 10px !important;
+                    margin-bottom: 7px !important;
             
                     font-size: 31px !important;
                     line-height: 1 !important;
@@ -1442,13 +1442,13 @@ def render_star_balance(user_id: int):
                     min-height: 38px !important;
                     font-size: 13px !important;
                     line-height: 1.32 !important;
-                    margin-bottom: 7px !important;
+                    margin-bottom: 12px !important;
                 }
             
                 .wc-star-balance-value {
                     min-height: 30px !important;
                     font-size: 30px !important;
-                    margin-bottom: 10px !important;
+                    margin-bottom: 7px !important;
                 }
             
                 .wc-star-balance-note {
