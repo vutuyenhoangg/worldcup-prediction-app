@@ -4739,9 +4739,52 @@ def render_match_card(row, user_id: int):
                     save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
                     with save_col:
-                        submitted = st.form_submit_button(
-                            "Lưu / cập nhật dự đoán"
-                        )
+                        with stylable_container(
+                            key=f"save_prediction_existing_mobile_button_shell_{match_id}",
+                            css_styles="""
+                            @media (max-width: 768px) {
+                                button {
+                                    width: 154px !important;
+                                    max-width: 154px !important;
+                                    min-height: 42px !important;
+                                    padding: 7px 10px !important;
+                    
+                                    font-size: 12.3px !important;
+                                    line-height: 1.15 !important;
+                                    text-align: center !important;
+                    
+                                    white-space: normal !important;
+                                    word-break: normal !important;
+                                    overflow-wrap: normal !important;
+                    
+                                    box-sizing: border-box !important;
+                                    overflow: hidden !important;
+                                }
+                    
+                                button * {
+                                    font-size: inherit !important;
+                                    line-height: 1.15 !important;
+                                    white-space: normal !important;
+                                    word-break: normal !important;
+                                    overflow-wrap: normal !important;
+                                    margin: 0 !important;
+                                }
+                            }
+                    
+                            @media (max-width: 390px) {
+                                button {
+                                    width: 146px !important;
+                                    max-width: 146px !important;
+                                    min-height: 42px !important;
+                                    padding: 7px 8px !important;
+                                    font-size: 11.8px !important;
+                                }
+                            }
+                            """
+                        ):
+                            submitted = st.form_submit_button(
+                                "Lưu / cập nhật dự đoán"
+                            )
             
                     with delete_col:
                         with stylable_container(
