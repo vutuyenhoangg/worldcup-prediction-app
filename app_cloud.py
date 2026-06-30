@@ -1236,7 +1236,7 @@ def render_star_balance(user_id: int):
                     max-height: 170px !important;
                     width: 100% !important;
             
-                    padding: 30px 10px 12px 14px !important;
+                    padding: 50px 10px 12px 14px !important;
                     margin: 0 0 22px 0 !important;
             
                     overflow: hidden !important;
