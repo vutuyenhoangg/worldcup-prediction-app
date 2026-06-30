@@ -737,19 +737,19 @@ def inject_worldcup_theme():
             color: #64748B !important;
             stroke: #64748B !important;
         }}
-        .wc-match-title-mobile {
+        .wc-match-title-mobile {{
             display: none;
-        }
-        
-        @media (max-width: 768px) {
-            .wc-match-title-mobile {
+        }}
+
+        @media (max-width: 768px) {{
+            .wc-match-title-mobile {{
                 display: block;
                 width: 100%;
                 max-width: 100%;
                 margin: 2px 0 10px 0;
-            }
-        
-            .wc-match-title-mobile .wc-match-team {
+            }}
+
+            .wc-match-title-mobile .wc-match-team {{
                 display: block;
                 width: 100%;
                 max-width: 100%;
@@ -761,9 +761,9 @@ def inject_worldcup_theme():
                 line-height: 1.13;
                 font-weight: 950;
                 letter-spacing: -0.035em;
-            }
-        
-            .wc-match-title-mobile .wc-match-vs {
+            }}
+
+            .wc-match-title-mobile .wc-match-vs {{
                 display: block;
                 width: 100%;
                 color: #07111F;
@@ -771,18 +771,18 @@ def inject_worldcup_theme():
                 line-height: 1.08;
                 font-weight: 950;
                 letter-spacing: -0.025em;
-            }
-        }
-        
-        @media (max-width: 390px) {
-            .wc-match-title-mobile .wc-match-team {
+            }}
+        }}
+
+        @media (max-width: 390px) {{
+            .wc-match-title-mobile .wc-match-team {{
                 font-size: 20px;
-            }
-        
-            .wc-match-title-mobile .wc-match-vs {
+            }}
+
+            .wc-match-title-mobile .wc-match-vs {{
                 font-size: 18px;
-            }
-        }
+            }}
+        }}
         @media (max-width: 900px) {{
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
