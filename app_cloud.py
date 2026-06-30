@@ -1032,48 +1032,48 @@ def get_prediction_radio_css():
         font-weight: 800 !important;
     }
 
-    /* Ô tick: nhỏ gọn hơn */
     label[data-baseweb="radio"] > div:first-child {
         width: 16px !important;
         height: 16px !important;
         min-width: 16px !important;
         min-height: 16px !important;
+
         border-radius: 999px !important;
         border: 2px solid #CBD5E1 !important;
         background: #FFFFFF !important;
+
         box-shadow: none !important;
         position: relative !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin-right: 2px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+
         transition:
             border-color 0.16s ease,
-            background 0.16s ease;
+            background 0.16s ease,
+            box-shadow 0.16s ease;
     }
 
-    /* Dấu chấm bên trong */
+    /* Ẩn phần tick/chấm mặc định bên trong radio của Streamlit/BaseWeb */
+    label[data-baseweb="radio"] > div:first-child * {
+        opacity: 0 !important;
+    }
+
+    /* Không vẽ chấm riêng nữa */
+    label[data-baseweb="radio"] > div:first-child::before,
     label[data-baseweb="radio"] > div:first-child::after {
-        content: "" !important;
-        width: 0 !important;
-        height: 0 !important;
-        border-radius: 999px !important;
-        background: transparent !important;
-        transition:
-            width 0.16s ease,
-            height 0.16s ease,
-            background 0.16s ease;
+        content: none !important;
+        display: none !important;
     }
 
+    /* Khi chọn: tô vàng toàn bộ hình tròn */
     label[data-baseweb="radio"]:has(input:checked) > div:first-child {
         border-color: #D97706 !important;
-        background: #FFFDF7 !important;
-    }
-
-    label[data-baseweb="radio"]:has(input:checked) > div:first-child::after {
-        width: 7px !important;
-        height: 7px !important;
-        background: #D97706 !important;
+        background: #F5C542 !important;
+        box-shadow: 0 0 0 3px rgba(245, 197, 66, 0.22) !important;
     }
 
     label[data-baseweb="radio"]:hover > div:first-child {
