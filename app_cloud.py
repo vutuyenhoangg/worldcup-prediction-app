@@ -1015,36 +1015,65 @@ def get_prediction_radio_css():
         display: inline-flex !important;
         align-items: center !important;
         gap: 8px !important;
-        padding: 5px 9px 5px 2px !important;
+        padding: 2px 8px 2px 2px !important;
         border-radius: 999px !important;
-        transition: background 0.16s ease, color 0.16s ease;
+        border: 1px solid transparent !important;
+        background: transparent !important;
+        transition:
+            background 0.16s ease,
+            border-color 0.16s ease,
+            color 0.16s ease;
     }
 
     label[data-baseweb="radio"]:has(input:checked) {
-        background: rgba(245, 197, 66, 0.16) !important;
+        background: rgba(245, 197, 66, 0.14) !important;
+        border-color: rgba(245, 197, 66, 0.32) !important;
         color: #07111F !important;
-        font-weight: 850 !important;
+        font-weight: 800 !important;
     }
 
+    /* Ô tick: nhỏ gọn hơn */
     label[data-baseweb="radio"] > div:first-child {
-        width: 18px !important;
-        height: 18px !important;
+        width: 16px !important;
+        height: 16px !important;
+        min-width: 16px !important;
+        min-height: 16px !important;
         border-radius: 999px !important;
         border: 2px solid #CBD5E1 !important;
         background: #FFFFFF !important;
-        box-shadow: inset 0 0 0 4px #FFFFFF !important;
+        box-shadow: none !important;
+        position: relative !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-right: 2px !important;
         transition:
             border-color 0.16s ease,
-            background 0.16s ease,
-            box-shadow 0.16s ease;
+            background 0.16s ease;
+    }
+
+    /* Dấu chấm bên trong */
+    label[data-baseweb="radio"] > div:first-child::after {
+        content: "" !important;
+        width: 0 !important;
+        height: 0 !important;
+        border-radius: 999px !important;
+        background: transparent !important;
+        transition:
+            width 0.16s ease,
+            height 0.16s ease,
+            background 0.16s ease;
     }
 
     label[data-baseweb="radio"]:has(input:checked) > div:first-child {
-        border-color: #B45309 !important;
-        background: #F5C542 !important;
-        box-shadow:
-            inset 0 0 0 4px #FFFFFF,
-            0 0 0 4px rgba(245, 197, 66, 0.24) !important;
+        border-color: #D97706 !important;
+        background: #FFFDF7 !important;
+    }
+
+    label[data-baseweb="radio"]:has(input:checked) > div:first-child::after {
+        width: 7px !important;
+        height: 7px !important;
+        background: #D97706 !important;
     }
 
     label[data-baseweb="radio"]:hover > div:first-child {
