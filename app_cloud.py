@@ -1106,6 +1106,57 @@ def get_prediction_action_spacing_css():
     }
     """
 
+def get_existing_prediction_action_spacing_css():
+    return """
+    {
+        margin-top: 16px !important;
+        margin-bottom: 18px !important;
+    }
+
+    button {
+        white-space: nowrap !important;
+    }
+
+    button * {
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        overflow-wrap: normal !important;
+    }
+
+    @media (max-width: 768px) {
+        {
+            margin-top: 15px !important;
+            margin-bottom: 20px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) button {
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 46px !important;
+            padding: 7px 10px !important;
+
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+
+            white-space: normal !important;
+            text-align: center !important;
+            line-height: 1.15 !important;
+
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-of-type(1) button * {
+            white-space: normal !important;
+            word-break: normal !important;
+            overflow-wrap: normal !important;
+            line-height: 1.15 !important;
+            margin: 0 !important;
+        }
+    }
+    """
+
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
 
@@ -4734,7 +4785,7 @@ def render_match_card(row, user_id: int):
             if existing:
                 with stylable_container(
                     key=f"prediction_action_spacing_shell_{match_id}",
-                    css_styles=get_prediction_action_spacing_css()
+                    css_styles=get_existing_prediction_action_spacing_css()
                 ):
                     save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
