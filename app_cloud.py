@@ -1106,81 +1106,6 @@ def get_prediction_action_spacing_css():
     }
     """
 
-def get_existing_prediction_action_spacing_css():
-    return """
-    {
-        margin-top: 16px !important;
-        margin-bottom: 18px !important;
-    }
-
-    button {
-        white-space: nowrap !important;
-    }
-
-    button * {
-        white-space: nowrap !important;
-        word-break: keep-all !important;
-        overflow-wrap: normal !important;
-    }
-
-    @media (max-width: 768px) {
-        {
-            margin-top: 15px !important;
-            margin-bottom: 20px !important;
-        }
-
-        div[data-testid="stHorizontalBlock"] {
-            display: grid !important;
-            grid-template-columns: 178px 1fr 96px !important;
-            gap: 8px !important;
-            align-items: center !important;
-            width: 100% !important;
-        }
-
-        div[data-testid="column"] {
-            width: auto !important;
-            min-width: 0 !important;
-            flex: unset !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-        }
-
-        div[data-testid="column"]:nth-child(1) button {
-            width: 178px !important;
-            max-width: 178px !important;
-            min-height: 38px !important;
-            padding: 7px 12px !important;
-            font-size: 12.6px !important;
-            line-height: 1 !important;
-            box-sizing: border-box !important;
-            white-space: nowrap !important;
-        }
-
-        div[data-testid="column"]:nth-child(1) button * {
-            font-size: inherit !important;
-            line-height: 1 !important;
-            white-space: nowrap !important;
-            word-break: keep-all !important;
-            overflow-wrap: normal !important;
-        }
-    }
-
-    @media (max-width: 390px) {
-        div[data-testid="stHorizontalBlock"] {
-            grid-template-columns: 170px 1fr 92px !important;
-            gap: 7px !important;
-        }
-
-        div[data-testid="column"]:nth-child(1) button {
-            width: 170px !important;
-            max-width: 170px !important;
-            padding-left: 10px !important;
-            padding-right: 10px !important;
-            font-size: 12.2px !important;
-        }
-    }
-    """
-
 def render_sidebar_brand():
     app_logo_src = resolve_asset_src(APP_LOGO_URL)
 
@@ -4809,7 +4734,7 @@ def render_match_card(row, user_id: int):
             if existing:
                 with stylable_container(
                     key=f"prediction_action_spacing_shell_{match_id}",
-                    css_styles=get_existing_prediction_action_spacing_css()
+                    css_styles=get_prediction_action_spacing_css()
                 ):
                     save_col, spacer_col, delete_col = st.columns([1.45, 6.8, 0.85])
             
@@ -4835,7 +4760,7 @@ def render_match_card(row, user_id: int):
                                 border-radius: 999px !important;
                                 white-space: nowrap !important;
                             }
-                        
+            
                             button:hover {
                                 color: #B91C1C !important;
                                 border-color: rgba(185, 28, 28, 0.68) !important;
@@ -4843,59 +4768,10 @@ def render_match_card(row, user_id: int):
                                 transform: none !important;
                                 box-shadow: none !important;
                             }
-                        
+            
                             button:active {
                                 transform: none !important;
                                 box-shadow: none !important;
-                            }
-                        
-                            @media (max-width: 768px) {
-                                {
-                                    width: 100% !important;
-                                    max-width: 100% !important;
-                                }
-                        
-                                button {
-                                    width: 96px !important;
-                                    max-width: 96px !important;
-                                    min-width: 96px !important;
-                                    min-height: 38px !important;
-                        
-                                    padding: 7px 10px !important;
-                                    font-size: 12.2px !important;
-                                    line-height: 1 !important;
-                        
-                                    display: inline-flex !important;
-                                    align-items: center !important;
-                                    justify-content: center !important;
-                        
-                                    white-space: nowrap !important;
-                                    word-break: keep-all !important;
-                                    overflow-wrap: normal !important;
-                        
-                                    box-sizing: border-box !important;
-                                    overflow: hidden !important;
-                                }
-                        
-                                button * {
-                                    font-size: inherit !important;
-                                    line-height: 1 !important;
-                                    white-space: nowrap !important;
-                                    word-break: keep-all !important;
-                                    overflow-wrap: normal !important;
-                                    margin: 0 !important;
-                                }
-                            }
-                        
-                            @media (max-width: 390px) {
-                                button {
-                                    width: 92px !important;
-                                    max-width: 92px !important;
-                                    min-width: 92px !important;
-                                    padding-left: 8px !important;
-                                    padding-right: 8px !important;
-                                    font-size: 11.8px !important;
-                                }
                             }
                             """
                         ):
