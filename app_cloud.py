@@ -4743,26 +4743,22 @@ def render_match_card(row, user_id: int):
                             f"""
                             <style>
                             @media (max-width: 768px) {{
-                                div[class*="st-key-save_prediction_button_mobile_only_{match_id}"] {{
-                                    display: inline-block !important;
+                                div[class*="st-key-save_existing_prediction_button_fix_{match_id}"] button {{
                                     width: auto !important;
-                                    max-width: 100% !important;
-                                    overflow: visible !important;
-                                }}
-                    
-                                div[class*="st-key-save_prediction_button_mobile_only_{match_id}"] button {{
-                                    width: auto !important;
-                                    min-width: 158px !important;
+                                    min-width: 166px !important;
                                     max-width: 178px !important;
                                     min-height: 36px !important;
                                     padding: 7px 10px !important;
+                    
                                     font-size: 12px !important;
                                     line-height: 1 !important;
                                     white-space: nowrap !important;
+                    
                                     box-sizing: border-box !important;
+                                    overflow: visible !important;
                                 }}
                     
-                                div[class*="st-key-save_prediction_button_mobile_only_{match_id}"] button * {{
+                                div[class*="st-key-save_existing_prediction_button_fix_{match_id}"] button * {{
                                     font-size: inherit !important;
                                     line-height: 1 !important;
                                     white-space: nowrap !important;
@@ -4772,11 +4768,11 @@ def render_match_card(row, user_id: int):
                             }}
                     
                             @media (max-width: 390px) {{
-                                div[class*="st-key-save_prediction_button_mobile_only_{match_id}"] button {{
-                                    min-width: 154px !important;
-                                    max-width: 170px !important;
-                                    padding-left: 8px !important;
-                                    padding-right: 8px !important;
+                                div[class*="st-key-save_existing_prediction_button_fix_{match_id}"] button {{
+                                    min-width: 160px !important;
+                                    max-width: 172px !important;
+                                    padding-left: 9px !important;
+                                    padding-right: 9px !important;
                                     font-size: 11.8px !important;
                                 }}
                             }}
@@ -4786,12 +4782,12 @@ def render_match_card(row, user_id: int):
                         )
                     
                         with stylable_container(
-                            key=f"save_prediction_button_mobile_only_{match_id}",
+                            key=f"save_existing_prediction_button_fix_{match_id}",
                             css_styles="""
                             {
-                                border: none !important;
                                 padding: 0 !important;
                                 margin: 0 !important;
+                                border: none !important;
                                 background: transparent !important;
                                 box-shadow: none !important;
                             }
