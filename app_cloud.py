@@ -5880,53 +5880,171 @@ def page_dashboard():
         [1.00, "#07111F"]    # xanh đậm giống sidebar
     ]
 
-    top_points = leaderboard.sort_values("total_points", ascending=False)
-
+    plotly_chart_config = {
+        "displayModeBar": False,
+        "displaylogo": False,
+        "responsive": True
+    }
+    
+    points_scope = st.radio(
+        "Hiển thị biểu đồ điểm",
+        options=["Top 10", "Tất cả"],
+        index=0,
+        horizontal=True,
+        key="dashboard_points_scope"
+    )
+    
+    top_points = leaderboard.sort_values(
+        ["total_points", "exact_score_count", "correct_outcome_count"],
+        ascending=[False, False, False]
+    ).copy()
+    
+    if points_scope == "Top 10":
+        top_points = top_points.head(10)
+    
+    def get_rank_bar_color(rank_value: int) -> str:
+        if rank_value == 1:
+            return "#F5C542"   # Top 1 - vàng
+        if rank_value == 2:
+            return "#CBD5E1"   # Top 2 - bạc
+        if rank_value == 3:
+            return "#CD7F32"   # Top 3 - đồng
+        return "#2563EB"       # Người chơi còn lại
+    
+    def get_rank_name_color(rank_value: int) -> str:
+        if rank_value == 1:
+            return "#78350F"
+        if rank_value == 2:
+            return "#334155"
+        if rank_value == 3:
+            return "#431407"
+        return "#334155"
+    
+    top_points["bar_color"] = top_points["rank"].apply(
+        lambda rank: get_rank_bar_color(int(rank))
+    )
+    
+    points_chart_height = max(
+        430,
+        135 + len(top_points) * 42
+    )
+    
+    points_chart_title = (
+        "Top 10 điểm theo người chơi"
+        if points_scope == "Top 10"
+        else "Tổng điểm theo người chơi"
+    )
+    
     fig_points = px.bar(
         top_points,
-        x="display_name",
-        y="total_points",
-        title="Tổng điểm theo người chơi",
+        x="total_points",
+        y="display_name",
+        orientation="h",
+        title=points_chart_title,
         labels={
             "display_name": "Người chơi",
             "total_points": "Điểm"
         },
-        color="total_points",
-        color_continuous_scale=custom_score_scale,
-        range_color=(0, score_max),
+        text="total_points",
         custom_data=[
+            "rank",
             "base_points",
             "star_bonus_points",
             "hope_stars_used",
             "super_stars_used"
         ]
     )
-
+    
     fig_points.update_traces(
-        hovertemplate=(
-            "<b>%{x}</b><br>"
-            "Tổng điểm = %{y}<br>"
-            "Điểm gốc = %{customdata[0]}<br>"
-            "Thưởng sao = %{customdata[1]}<br>"
-            "⭐ Ngôi sao hy vọng đã dùng = %{customdata[2]}<br>"
-            "✨ Siêu sao đã dùng = %{customdata[3]}"
-            "<extra></extra>"
-        ),
+        marker_color=top_points["bar_color"].tolist(),
         marker_line_width=0,
-        opacity=0.92
-    )
-
-    fig_points.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#07111F"),
-        coloraxis_colorbar=dict(
-            title="Điểm",
-            tickfont=dict(color="#64748B")
+        opacity=0.94,
+        textposition="outside",
+        textfont=dict(
+            color="#07111F",
+            size=12
+        ),
+        cliponaxis=False,
+        hovertemplate=(
+            "<b>#%{customdata[0]} %{y}</b><br>"
+            "Tổng điểm = %{x}<br>"
+            "Điểm gốc = %{customdata[1]}<br>"
+            "Thưởng sao = %{customdata[2]}<br>"
+            "⭐ Ngôi sao hy vọng đã dùng = %{customdata[3]}<br>"
+            "✨ Siêu sao đã dùng = %{customdata[4]}"
+            "<extra></extra>"
         )
     )
-
-    st.plotly_chart(fig_points, use_container_width=True)
+    
+    fig_points.update_layout(
+        height=points_chart_height,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(
+            color="#07111F"
+        ),
+        title=dict(
+            font=dict(
+                size=17,
+                color="#07111F"
+            )
+        ),
+        xaxis_title="Điểm",
+        yaxis_title="",
+        showlegend=False,
+        hovermode="closest",
+        dragmode=False,
+        bargap=0.28,
+        margin=dict(
+            l=230,
+            r=80,
+            t=76,
+            b=46
+        )
+    )
+    
+    fig_points.update_xaxes(
+        showgrid=True,
+        gridcolor="rgba(15,23,42,0.08)",
+        zeroline=False,
+        range=[0, max(1, score_max * 1.16)]
+    )
+    
+    fig_points.update_yaxes(
+        showticklabels=False,
+        autorange="reversed"
+    )
+    
+    for _, player_row in top_points.iterrows():
+        rank_value = int(player_row["rank"])
+        player_name = html.escape(str(player_row["display_name"]))
+        name_color = get_rank_name_color(rank_value)
+    
+        fig_points.add_annotation(
+            x=0,
+            y=player_row["display_name"],
+            xref="paper",
+            yref="y",
+            text=f"<b>#{rank_value} {player_name}</b>",
+            showarrow=False,
+            xanchor="right",
+            xshift=-12,
+            align="right",
+            font=dict(
+                color=name_color,
+                size=13
+            )
+        )
+    
+    st.caption(
+        "Di chuột vào từng thanh để xem chi tiết điểm. Chọn “Tất cả” để xem toàn bộ người chơi và cuộn xuống dưới nếu danh sách dài."
+    )
+    
+    st.plotly_chart(
+        fig_points,
+        use_container_width=True,
+        config=plotly_chart_config
+    )
 
     fig_accuracy = px.scatter(
         leaderboard,
@@ -5986,7 +6104,15 @@ def page_dashboard():
         )
     )
 
-    st.plotly_chart(fig_accuracy, use_container_width=True)
+    fig_accuracy.update_layout(
+        dragmode=False
+    )
+    
+    st.plotly_chart(
+        fig_accuracy,
+        use_container_width=True,
+        config=plotly_chart_config
+    )
 
 
 def page_admin():
