@@ -177,6 +177,64 @@ st.set_page_config(
 
 cookie_controller = CookieController()
 
+def safe_get_cookie(name: str):
+    """
+    Đọc cookie an toàn khi Streamlit vừa F5/rerun.
+
+    Một số thời điểm cookie_controller chưa hydrate xong,
+    cookie_controller.get() có thể lỗi TypeError vì internal cookies = None.
+    """
+    try:
+        value = cookie_controller.get(name)
+
+        if value:
+            return value
+
+    except TypeError:
+        pass
+
+    except Exception:
+        pass
+
+    try:
+        cookies = cookie_controller.getAll()
+
+        if isinstance(cookies, dict):
+            return cookies.get(name)
+
+    except TypeError:
+        pass
+
+    except Exception:
+        pass
+
+    return None
+
+
+def safe_remove_cookie(name: str):
+    """
+    Xóa cookie an toàn, tránh crash nếu cookie controller chưa sẵn sàng.
+    """
+    try:
+        cookie_controller.remove(name)
+    except Exception:
+        pass
+
+
+def safe_set_cookie(name: str, value: str, max_age: int):
+    """
+    Set cookie an toàn. Nếu controller lỗi nhất thời thì phần set_login_cookie_and_reload()
+    phía sau vẫn có script document.cookie để ghi cookie.
+    """
+    try:
+        cookie_controller.set(
+            name,
+            value,
+            max_age=max_age
+        )
+    except Exception:
+        pass
+
 @st.cache_data(show_spinner=False)
 def load_avatar_keys() -> list[str]:
     """
@@ -3361,13 +3419,7 @@ def restore_user_from_cookie() -> bool:
     if "user" in st.session_state:
         return True
 
-    token = cookie_controller.get(COOKIE_NAME)
-
-    if not token:
-        cookies = cookie_controller.getAll()
-
-        if isinstance(cookies, dict):
-            token = cookies.get(COOKIE_NAME)
+    token = safe_get_cookie(COOKIE_NAME)
 
     if not token:
         return False
@@ -3380,7 +3432,7 @@ def restore_user_from_cookie() -> bool:
     user = get_user_by_session_token(token)
 
     if user is None:
-        cookie_controller.remove(COOKIE_NAME)
+        safe_remove_cookie(COOKIE_NAME)
         return False
 
     st.session_state["user"] = user
@@ -3504,11 +3556,11 @@ def login_user(username: str, password: str):
 
 
 def logout_user():
-    token = cookie_controller.get(COOKIE_NAME)
+    token = safe_get_cookie(COOKIE_NAME)
 
     if token:
         delete_login_session(token)
-        cookie_controller.remove(COOKIE_NAME)
+        safe_remove_cookie(COOKIE_NAME)
 
     for key in list(st.session_state.keys()):
         del st.session_state[key]
@@ -4369,7 +4421,7 @@ def render_auth_page():
 
                         session_token = create_login_session(user["user_id"])
 
-                        cookie_controller.set(
+                        safe_set_cookie(
                             COOKIE_NAME,
                             session_token,
                             max_age=SESSION_DAYS * 24 * 60 * 60
