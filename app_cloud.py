@@ -2971,7 +2971,7 @@ def get_match_card_css(status_info):
     {{
         border: 2px solid {status_info["border_color"]};
         border-radius: 20px;
-        padding: 22px 22px 30px 22px;
+        padding: 22px 22px 22px 22px;
         margin-bottom: 22px;
         background: {status_info["background"]};
         box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
@@ -4539,7 +4539,7 @@ def render_match_venue_footer(row, match_id: int):
     st.markdown(
         f"""
         <div style="
-            margin-top: 20px;
+            margin-top: 16px;
             margin-bottom: 0;
             color: #334155;
             font-size: 14.5px;
@@ -4552,7 +4552,7 @@ def render_match_venue_footer(row, match_id: int):
             ">
                 {soccer_field_icon_svg}:
             </span>
-            <span>{safe_venue}</span>
+            <span style="font-style: italic;">{safe_venue}</span>
         </div>
         """,
         unsafe_allow_html=True
