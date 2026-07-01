@@ -2801,12 +2801,82 @@ def render_prediction_result_line(result_info):
         unsafe_allow_html=True
     )
 
-def render_prediction_result_and_score_row(result_info, existing):
+def calculate_display_points_for_prediction(existing, match_row) -> dict | None:
+    """
+    Tính điểm hiển thị ngay tại card trận đấu.
+
+    Ưu tiên tính live từ:
+    - Dự đoán của user
+    - Kết quả thật của trận
+    - Bổ trợ sao đang dùng
+
+    Mục tiêu:
+    - UI luôn hiện điểm thực tế đã nhân sao.
+    - Không phụ thuộc hoàn toàn vào points đang cache/lưu trong DB.
+    - Không ghi database, không ảnh hưởng BXH/chấm điểm chính thức.
+    """
+    if existing is None:
+        return None
+
+    is_finished = to_bool(match_row.get("is_finished"))
+
+    actual_home = to_optional_int(match_row.get("home_score_for_prediction"))
+    actual_away = to_optional_int(match_row.get("away_score_for_prediction"))
+
+    if not is_finished or actual_home is None or actual_away is None:
+        db_points = to_optional_int(existing.get("points"))
+
+        if db_points is None:
+            return None
+
+        return {
+            "base_points": to_optional_int(existing.get("base_points")),
+            "star_bonus_points": to_optional_int(existing.get("star_bonus_points")),
+            "points": db_points
+        }
+
+    scoring_row = {
+        "predicted_home_score": existing.get("predicted_home_score"),
+        "predicted_away_score": existing.get("predicted_away_score"),
+        "predicted_winner_team_id": existing.get("predicted_winner_team_id"),
+
+        "home_score_for_prediction": match_row.get("home_score_for_prediction"),
+        "away_score_for_prediction": match_row.get("away_score_for_prediction"),
+
+        "is_knockout": match_row.get("is_knockout"),
+        "winner_team_id": match_row.get("winner_team_id")
+    }
+
+    base_points = calculate_total_points(scoring_row)
+
+    return calculate_points_with_star(
+        base_points=base_points,
+        star_type=existing.get("star_type")
+    )
+
+def render_prediction_result_and_score_row(result_info, existing, match_row=None):
+    display_point_info = None
+
+    if match_row is not None:
+        display_point_info = calculate_display_points_for_prediction(
+            existing=existing,
+            match_row=match_row
+        )
+
+    if display_point_info is None and existing is not None:
+        db_points = to_optional_int(existing.get("points"))
+
+        if db_points is not None:
+            display_point_info = {
+                "base_points": to_optional_int(existing.get("base_points")),
+                "star_bonus_points": to_optional_int(existing.get("star_bonus_points")),
+                "points": db_points
+            }
+
     has_result = result_info is not None
     has_points = (
-        existing is not None
-        and existing.get("points") is not None
-        and not pd.isna(existing.get("points"))
+        display_point_info is not None
+        and display_point_info.get("points") is not None
     )
 
     if not has_result and not has_points:
@@ -2839,7 +2909,9 @@ def render_prediction_result_and_score_row(result_info, existing):
         )
 
     if has_points:
-        final_points = int(round(float(existing.get("points"))))
+        final_points = int(round(float(display_point_info.get("points") or 0)))
+        base_points = int(round(float(display_point_info.get("base_points") or 0)))
+        star_bonus_points = int(round(float(display_point_info.get("star_bonus_points") or 0)))
 
         if has_result:
             score_bg = result_info["bg_color"]
@@ -2850,12 +2922,16 @@ def render_prediction_result_and_score_row(result_info, existing):
             score_text = "#9A3412"
             score_border = "rgba(251,146,60,0.45)"
 
+        score_title = f"Điểm gốc: {base_points} | Thưởng sao: {star_bonus_points} | Tổng điểm: {final_points}"
+
         score_html = (
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             '<span style="color:#07111F;font-size:15px;font-weight:650;">'
             'Điểm:'
             '</span>'
-            '<span style="'
+            '<span title="'
+            f'{html.escape(score_title)}'
+            '" style="'
             'display:inline-block;'
             'min-width:34px;'
             'text-align:center;'
@@ -4816,7 +4892,8 @@ def render_match_card(
 
             render_prediction_result_and_score_row(
                 result_info=prediction_result_info,
-                existing=existing
+                existing=existing,
+                match_row=row
             )
 
         else:
