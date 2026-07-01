@@ -117,7 +117,7 @@ FOOTER_PROJECT_URL = ""
 # Có thể để trống.
 # FOOTER_PROJECT_URL = "https://github.com/yourname/worldcup-prediction-app"
 
-
+@st.cache_data(show_spinner=False)
 def resolve_asset_src(asset_path: str) -> str:
     """
     Nhận link ảnh online hoặc đường dẫn ảnh local, rồi trả về src dùng được trong HTML/CSS.
@@ -2335,7 +2335,11 @@ def render_avatar_popover(user: dict):
 def get_engine() -> Engine:
     engine = create_engine(
         DATABASE_URL,
-        pool_pre_ping=True
+        pool_pre_ping=True,
+        pool_recycle=1800,
+        pool_timeout=30,
+        pool_size=5,
+        max_overflow=10
     )
     return engine
 
