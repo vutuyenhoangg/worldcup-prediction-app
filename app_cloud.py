@@ -4541,19 +4541,19 @@ def render_match_venue_footer(row, match_id: int):
         <div style="
             margin-top: 20px;
             margin-bottom: 0;
-            color: #808080;
+            color: #64748B;
             font-size: 14.5px;
             font-weight: 700;
             line-height: 1.35;
         ">
             <span style="
-                color: #808080;
+                color: #64748B;
                 margin-right: 6px;
             ">
                 {soccer_field_icon_svg}:
             </span>
             <span style="
-                color: #808080;
+                color: #64748B;
                 font-style: italic;
             ">{safe_venue}</span>
         </div>
