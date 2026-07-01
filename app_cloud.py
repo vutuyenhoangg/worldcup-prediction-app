@@ -3843,8 +3843,8 @@ def update_user_avatar(user_id: int, avatar_key: str):
     """
     Cập nhật avatar cho user hiện tại.
 
-    Chỉ lưu tên file avatar vào database, ví dụ: avatar_01.png.
-    Không lưu ảnh trực tiếp vào database để app nhẹ và dễ deploy hơn.
+    Chỉ lưu tên file avatar vào database.
+    Sau khi đổi avatar, clear cache users và leaderboard để Bảng xếp hạng cập nhật ngay.
     """
     avatar_key = normalize_avatar_key(avatar_key)
 
@@ -3865,6 +3865,11 @@ def update_user_avatar(user_id: int, avatar_key: str):
 
     try:
         load_users.clear()
+    except Exception:
+        pass
+
+    try:
+        build_leaderboard_df.clear()
     except Exception:
         pass
 
