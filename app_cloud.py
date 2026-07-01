@@ -30,6 +30,12 @@ from streamlit_cookies_controller import CookieController
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_URL = st.secrets["DATABASE_URL"]
+RUN_DB_MIGRATIONS = str(
+    os.getenv(
+        "RUN_DB_MIGRATIONS",
+        st.secrets.get("RUN_DB_MIGRATIONS", "false")
+    )
+).strip().lower() in ["true", "1", "yes", "y"]
 
 APP_NAME = "World Cup 2026 Prediction Arena"
 APP_SHORT_NAME = "WC 2026"
@@ -2343,14 +2349,27 @@ def render_avatar_popover(user: dict):
 
 @st.cache_resource
 def get_engine() -> Engine:
+    """
+    Tạo kết nối Supabase/PostgreSQL.
+
+    Tối ưu:
+    - Không để app chờ kết nối quá lâu.
+    - Không để query bị treo vô hạn.
+    - Giảm pool để nhẹ hơn với Streamlit Cloud/Supabase.
+    """
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
         pool_recycle=1800,
-        pool_timeout=30,
-        pool_size=5,
-        max_overflow=10
+        pool_timeout=12,
+        pool_size=3,
+        max_overflow=5,
+        connect_args={
+            "connect_timeout": 8,
+            "options": "-c statement_timeout=15000 -c lock_timeout=5000"
+        }
     )
+
     return engine
 
 
@@ -2585,19 +2604,17 @@ def format_star_short(star_type) -> str:
 def get_user_star_usage(user_id: int, exclude_match_id: int | None = None) -> dict:
     """
     Dùng cho UI.
-    Tính quota sao từ load_predictions() đã cache để giảm query database khi render nhiều card.
+    Tính quota sao từ prediction của riêng user hiện tại để giảm tải khi render/F5.
     """
-    predictions = load_predictions()
+    user_predictions = load_user_predictions(int(user_id))
 
-    if predictions.empty:
+    if user_predictions.empty:
         hope_used = 0
         super_used = 0
     else:
-        user_predictions = predictions[
-            predictions["user_id"].astype(int) == int(user_id)
-        ].copy()
+        user_predictions = user_predictions.copy()
 
-        if exclude_match_id is not None and not user_predictions.empty:
+        if exclude_match_id is not None:
             user_predictions = user_predictions[
                 user_predictions["match_id"].astype(int) != int(exclude_match_id)
             ]
@@ -3047,11 +3064,9 @@ def render_match_status_box(status_info):
 
 def check_base_database():
     try:
-        tables = read_sql(
+        row = fetch_one(
             """
-            SELECT table_name AS name
-            FROM information_schema.tables
-            WHERE table_schema = 'public'
+            SELECT to_regclass('public.matches') AS table_name
             """
         )
     except Exception as e:
@@ -3059,12 +3074,55 @@ def check_base_database():
         st.exception(e)
         st.stop()
 
-    table_names = set(tables["name"].tolist())
-
-    if "matches" not in table_names:
+    if row is None or row.get("table_name") is None:
         st.error("Supabase database chưa có bảng `matches`. Hãy kiểm tra lại bước import dữ liệu.")
         st.stop()
 
+def check_required_app_tables():
+    """
+    Kiểm tra nhanh các bảng app cần có khi không chạy migration.
+
+    Không tạo/sửa bảng ở runtime, chỉ kiểm tra để app báo lỗi rõ nếu thiếu.
+    """
+    try:
+        tables = read_sql(
+            """
+            SELECT table_name AS name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name IN (
+                  'matches',
+                  'users',
+                  'predictions',
+                  'prediction_history',
+                  'login_sessions'
+              )
+            """
+        )
+    except Exception as e:
+        st.error("Không kiểm tra được schema Supabase.")
+        st.exception(e)
+        st.stop()
+
+    table_names = set(tables["name"].tolist())
+
+    required_tables = {
+        "matches",
+        "users",
+        "predictions",
+        "prediction_history",
+        "login_sessions"
+    }
+
+    missing_tables = sorted(required_tables - table_names)
+
+    if missing_tables:
+        st.error(
+            "Database đang thiếu bảng bắt buộc: "
+            + ", ".join(missing_tables)
+            + ". Hãy bật RUN_DB_MIGRATIONS=true một lần để khởi tạo schema."
+        )
+        st.stop()
 
 def init_app_tables():
     execute_sql(
@@ -3238,15 +3296,19 @@ def init_app_tables():
 @st.cache_resource
 def initialize_app_once():
     """
-    Chạy kiểm tra/khoi tạo database một lần cho mỗi app process.
+    Khởi động app một lần cho mỗi app process.
 
-    Mục tiêu:
-    - Không gọi check/create table ở mỗi lần rerun.
-    - Giảm thời gian khởi động lại giao diện khi người dùng click/F5.
-    - Không thay đổi logic dữ liệu hay logic chấm điểm.
+    Tối ưu:
+    - App chính không chạy ALTER/CREATE/UPDATE database ở startup.
+    - Chỉ chạy migration khi RUN_DB_MIGRATIONS=true.
     """
     check_base_database()
-    init_app_tables()
+
+    if RUN_DB_MIGRATIONS:
+        init_app_tables()
+    else:
+        check_required_app_tables()
+
     return True
 
 
@@ -3588,6 +3650,30 @@ def load_predictions() -> pd.DataFrame:
         """
     )
 
+@st.cache_data(ttl=10, show_spinner=False)
+def load_user_predictions(user_id: int) -> pd.DataFrame:
+    """
+    Load prediction của riêng user hiện tại.
+
+    Dùng cho:
+    - Trang Lịch thi đấu & dự đoán
+    - Trang Dự đoán của tôi
+    - Tính số sao còn lại
+
+    Mục tiêu:
+    - Không load toàn bộ predictions của mọi người khi chỉ cần dữ liệu của 1 user.
+    - Giảm thời gian F5 ở trang chính.
+    """
+    return read_sql(
+        """
+        SELECT *
+        FROM predictions
+        WHERE user_id = :user_id
+        """,
+        {
+            "user_id": int(user_id)
+        }
+    )
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_goal_scorers_for_match(match_id: int) -> pd.DataFrame:
@@ -3778,6 +3864,11 @@ def clear_data_cache():
     load_predictions.clear()
 
     try:
+        load_user_predictions.clear()
+    except NameError:
+        pass
+
+    try:
         build_leaderboard_df.clear()
     except NameError:
         pass
@@ -3876,16 +3967,15 @@ def update_user_avatar(user_id: int, avatar_key: str):
 def get_user_prediction(user_id: int, match_id: int):
     """
     Dùng cho UI.
-    Lấy từ load_predictions() đã cache để tránh query database lặp lại cho từng card.
+    Lấy prediction của user hiện tại từ cache riêng theo user_id.
     """
-    predictions = load_predictions()
+    predictions = load_user_predictions(int(user_id))
 
     if predictions.empty:
         return None
 
     filtered = predictions[
-        (predictions["user_id"].astype(int) == int(user_id))
-        & (predictions["match_id"].astype(int) == int(match_id))
+        predictions["match_id"].astype(int) == int(match_id)
     ]
 
     if filtered.empty:
@@ -5145,7 +5235,7 @@ def page_matches():
             filtered["is_finished"].apply(to_bool)
         ]
 
-    user_predictions = load_predictions()
+    user_predictions = load_user_predictions(user_id)
     user_prediction_map = build_user_prediction_map(
         predictions=user_predictions,
         user_id=user_id
@@ -5194,14 +5284,8 @@ def page_my_predictions():
     user_id = st.session_state["user"]["user_id"]
 
     matches = load_matches()
-    predictions = load_predictions()
-
-    if predictions.empty:
-        st.info("Bạn chưa có dự đoán nào.")
-        return
-
-    my_predictions = predictions[predictions["user_id"] == user_id].copy()
-
+    my_predictions = load_user_predictions(user_id).copy()
+    
     if my_predictions.empty:
         st.info("Bạn chưa có dự đoán nào.")
         return
@@ -6364,10 +6448,19 @@ def render_footer():
 # ============================================================
 # 11. MAIN APP
 # ============================================================
-
 def main():
-    initialize_app_once()
-    restore_user_from_cookie()
+    try:
+        initialize_app_once()
+    except Exception as e:
+        st.error("App không khởi động được ở bước kết nối/kiểm tra database.")
+        st.caption("Hãy kiểm tra DATABASE_URL, Supabase và log trong Streamlit Cloud.")
+        st.exception(e)
+        st.stop()
+
+    try:
+        restore_user_from_cookie()
+    except Exception:
+        st.session_state.pop("user", None)
 
     # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
     # Sau khi đăng nhập thành công, render_auth_page() sẽ set st.session_state["user"].
