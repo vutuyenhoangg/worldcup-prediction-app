@@ -4501,11 +4501,13 @@ def normalize_venue_text(value) -> str:
 
 def render_match_venue_footer(row, match_id: int):
     """
-    Hiển thị thông tin SVĐ/địa điểm ở cuối card trận đấu.
+    Hiển thị thông tin sân vận động/địa điểm ở cuối card trận đấu.
 
-    Chỉ dùng cột venue.
+    Chỉ hiển thị dạng:
+    Icon: Tên sân vận động
+
     Không nằm trong form dự đoán.
-    Không ảnh hưởng logic lưu/xóa dự đoán.
+    Không ảnh hưởng logic lưu/cập nhật/xóa dự đoán.
     """
     venue = normalize_venue_text(row.get("venue"))
 
@@ -4514,46 +4516,43 @@ def render_match_venue_footer(row, match_id: int):
 
     safe_venue = html.escape(venue)
 
+    soccer_field_icon_svg = """
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="18"
+         height="18"
+         viewBox="0 0 24 24"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="1.6"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         style="display:inline-block; vertical-align:-4px;">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/>
+      <path d="M3 9h3v6h-3l0 -6"/>
+      <path d="M18 9h3v6h-3l0 -6"/>
+      <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10"/>
+      <path d="M12 5l0 14"/>
+    </svg>
+    """
+
     st.markdown(
         f"""
         <div style="
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            width: fit-content;
-            max-width: 100%;
             margin-top: 28px;
             margin-bottom: 4px;
-            padding: 8px 13px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.72);
-            border: 1px solid rgba(15,23,42,0.10);
-            color: #0F172A;
+            color: #334155;
             font-size: 13px;
-            font-weight: 700;
-            line-height: 1.25;
-            box-shadow: 0 6px 16px rgba(15,23,42,0.04);
+            font-weight: 650;
+            line-height: 1.35;
         ">
             <span style="
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                width: 20px;
-                height: 20px;
-                border-radius: 999px;
-                border: 1.5px solid #0F172A;
                 color: #0F172A;
-                font-size: 12px;
-                font-weight: 900;
-                line-height: 1;
-                flex: 0 0 auto;
-            ">⌂</span>
-            <span style="
-                color: #334155;
-                white-space: normal;
-                word-break: normal;
-                overflow-wrap: anywhere;
-            ">{safe_venue}</span>
+                margin-right: 5px;
+            ">
+                {soccer_field_icon_svg}:
+            </span>
+            <span>{safe_venue}</span>
         </div>
         """,
         unsafe_allow_html=True
