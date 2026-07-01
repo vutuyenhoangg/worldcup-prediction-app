@@ -3878,6 +3878,30 @@ def get_user_prediction(user_id: int, match_id: int):
 
     return filtered.iloc[0].to_dict()
 
+def build_user_prediction_map(predictions: pd.DataFrame, user_id: int) -> dict[int, dict]:
+    """
+    Tạo map dự đoán của user hiện tại để render card nhanh hơn.
+
+    Không đổi logic:
+    - Vẫn dùng dữ liệu từ load_predictions().
+    - Vẫn lấy đúng prediction theo user_id và match_id.
+    - Chỉ tránh filter DataFrame lặp lại trong từng match card.
+    """
+    if predictions.empty:
+        return {}
+
+    user_predictions = predictions[
+        predictions["user_id"].astype(int) == int(user_id)
+    ]
+
+    if user_predictions.empty:
+        return {}
+
+    return {
+        int(row["match_id"]): row.to_dict()
+        for _, row in user_predictions.iterrows()
+    }
+
 def get_match_by_id(match_id: int):
     return fetch_one(
         """
@@ -4444,7 +4468,11 @@ def render_match_title(home_name, away_name, match_id: int):
         unsafe_allow_html=True
     )
 
-def render_match_card(row, user_id: int):
+def render_match_card(
+    row,
+    user_id: int,
+    user_prediction_map: dict[int, dict] | None = None
+):
     match_id = int(row["match_id"])
 
     home_team_id = to_optional_int(row.get("home_team_id"))
@@ -4458,7 +4486,10 @@ def render_match_card(row, user_id: int):
 
     editable = can_edit_prediction(row.get("kickoff_time_utc"))
 
-    existing = get_user_prediction(user_id, match_id)
+    if user_prediction_map is None:
+        existing = get_user_prediction(user_id, match_id)
+    else:
+        existing = user_prediction_map.get(match_id)
 
     status_info = get_match_status_info(row)
     card_css = get_match_card_css(status_info)
@@ -5100,15 +5131,12 @@ def page_matches():
         ]
 
     user_predictions = load_predictions()
-
-    if user_predictions.empty:
-        predicted_match_ids = set()
-    else:
-        predicted_match_ids = set(
-            user_predictions[
-                user_predictions["user_id"].astype(int) == int(user_id)
-            ]["match_id"].astype(int).tolist()
-        )
+    user_prediction_map = build_user_prediction_map(
+        predictions=user_predictions,
+        user_id=user_id
+    )
+    
+    predicted_match_ids = set(user_prediction_map.keys())
 
     if prediction_status_filter == "Đã dự đoán":
         filtered = filtered[
@@ -5133,7 +5161,11 @@ def page_matches():
         group_df = group_df.sort_values("kickoff_time_utc_dt")
 
         for _, row in group_df.iterrows():
-            render_match_card(row, user_id)
+            render_match_card(
+                row,
+                user_id,
+                user_prediction_map=user_prediction_map
+            )
 
 
 def page_my_predictions():
