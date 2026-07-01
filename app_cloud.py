@@ -21,7 +21,6 @@ import streamlit as st
 import plotly.express as px
 from streamlit_extras.stylable_container import stylable_container
 import secrets
-import time
 from streamlit_cookies_controller import CookieController
 
 
@@ -37,7 +36,6 @@ APP_SHORT_NAME = "WC 2026"
 APP_TAGLINE = "Dự đoán tỉ số, tích điểm và leo bảng xếp hạng cùng bạn bè."
 COOKIE_NAME = "wc_session_token"
 SESSION_DAYS = 30
-COOKIE_RESTORE_WAIT_SECONDS = 0.15
 HOPE_STARS_PER_USER = 5
 SUPER_STARS_PER_USER = 1
 
@@ -176,64 +174,6 @@ st.set_page_config(
 )
 
 cookie_controller = CookieController()
-
-def safe_get_cookie(name: str):
-    """
-    Đọc cookie an toàn khi Streamlit vừa F5/rerun.
-
-    Một số thời điểm cookie_controller chưa hydrate xong,
-    cookie_controller.get() có thể lỗi TypeError vì internal cookies = None.
-    """
-    try:
-        value = cookie_controller.get(name)
-
-        if value:
-            return value
-
-    except TypeError:
-        pass
-
-    except Exception:
-        pass
-
-    try:
-        cookies = cookie_controller.getAll()
-
-        if isinstance(cookies, dict):
-            return cookies.get(name)
-
-    except TypeError:
-        pass
-
-    except Exception:
-        pass
-
-    return None
-
-
-def safe_remove_cookie(name: str):
-    """
-    Xóa cookie an toàn, tránh crash nếu cookie controller chưa sẵn sàng.
-    """
-    try:
-        cookie_controller.remove(name)
-    except Exception:
-        pass
-
-
-def safe_set_cookie(name: str, value: str, max_age: int):
-    """
-    Set cookie an toàn. Nếu controller lỗi nhất thời thì phần set_login_cookie_and_reload()
-    phía sau vẫn có script document.cookie để ghi cookie.
-    """
-    try:
-        cookie_controller.set(
-            name,
-            value,
-            max_age=max_age
-        )
-    except Exception:
-        pass
 
 @st.cache_data(show_spinner=False)
 def load_avatar_keys() -> list[str]:
@@ -3419,7 +3359,13 @@ def restore_user_from_cookie() -> bool:
     if "user" in st.session_state:
         return True
 
-    token = safe_get_cookie(COOKIE_NAME)
+    token = cookie_controller.get(COOKIE_NAME)
+
+    if not token:
+        cookies = cookie_controller.getAll()
+
+        if isinstance(cookies, dict):
+            token = cookies.get(COOKIE_NAME)
 
     if not token:
         return False
@@ -3432,7 +3378,7 @@ def restore_user_from_cookie() -> bool:
     user = get_user_by_session_token(token)
 
     if user is None:
-        safe_remove_cookie(COOKIE_NAME)
+        cookie_controller.remove(COOKIE_NAME)
         return False
 
     st.session_state["user"] = user
@@ -3556,11 +3502,11 @@ def login_user(username: str, password: str):
 
 
 def logout_user():
-    token = safe_get_cookie(COOKIE_NAME)
+    token = cookie_controller.get(COOKIE_NAME)
 
     if token:
         delete_login_session(token)
-        safe_remove_cookie(COOKIE_NAME)
+        cookie_controller.remove(COOKIE_NAME)
 
     for key in list(st.session_state.keys()):
         del st.session_state[key]
@@ -4421,7 +4367,7 @@ def render_auth_page():
 
                         session_token = create_login_session(user["user_id"])
 
-                        safe_set_cookie(
+                        cookie_controller.set(
                             COOKIE_NAME,
                             session_token,
                             max_age=SESSION_DAYS * 24 * 60 * 60
@@ -6273,30 +6219,6 @@ def render_footer():
         unsafe_allow_html=True
     )
 
-def render_session_restore_screen():
-    """
-    Màn chờ rất nhẹ khi F5 để cookie/session có thời gian khôi phục.
-
-    Không đổi logic đăng nhập.
-    Không query thêm dữ liệu.
-    Không render full auth page trong lúc cookie chưa kịp hydrate.
-    """
-    st.markdown(
-        """
-        <div style="
-            min-height: 42vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #64748B;
-            font-size: 14px;
-            font-weight: 750;
-        ">
-            Đang khôi phục phiên đăng nhập...
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 # ============================================================
 # 11. MAIN APP
@@ -6306,18 +6228,9 @@ def main():
     initialize_app_once()
     restore_user_from_cookie()
 
-    # Khi F5, session_state bị reset nhưng cookie có thể chưa kịp hydrate ngay.
-    # Đợi đúng 1 lần rất ngắn để tránh render nhầm màn Đăng nhập tạm thời.
-    if (
-        "user" not in st.session_state
-        and not st.session_state.get("_cookie_restore_retry_done", False)
-    ):
-        st.session_state["_cookie_restore_retry_done"] = True
-        render_session_restore_screen()
-        time.sleep(COOKIE_RESTORE_WAIT_SECONDS)
-        st.rerun()
-
-    # Nếu sau lần chờ ngắn vẫn chưa có user, lúc này mới thật sự hiển thị trang đăng nhập.
+    # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
+    # Sau khi đăng nhập thành công, render_auth_page() sẽ set st.session_state["user"].
+    # Khi đó app không stop nữa mà render tiếp màn hình chính trong cùng lượt chạy.
     if "user" not in st.session_state:
         render_auth_page()
 
