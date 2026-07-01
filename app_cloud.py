@@ -2971,7 +2971,7 @@ def get_match_card_css(status_info):
     {{
         border: 2px solid {status_info["border_color"]};
         border-radius: 20px;
-        padding: 22px 22px 52px 22px;
+        padding: 22px 22px 30px 22px;
         margin-bottom: 22px;
         background: {status_info["background"]};
         box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
@@ -4518,15 +4518,15 @@ def render_match_venue_footer(row, match_id: int):
 
     soccer_field_icon_svg = """
     <svg xmlns="http://www.w3.org/2000/svg"
-         width="18"
-         height="18"
+         width="22"
+         height="22"
          viewBox="0 0 24 24"
          fill="none"
          stroke="currentColor"
-         stroke-width="1.6"
+         stroke-width="1.7"
          stroke-linecap="round"
          stroke-linejoin="round"
-         style="display:inline-block; vertical-align:-4px;">
+         style="display:inline-block; vertical-align:-5px;">
       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
       <path d="M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/>
       <path d="M3 9h3v6h-3l0 -6"/>
@@ -4539,16 +4539,16 @@ def render_match_venue_footer(row, match_id: int):
     st.markdown(
         f"""
         <div style="
-            margin-top: 28px;
-            margin-bottom: 4px;
+            margin-top: 20px;
+            margin-bottom: 0;
             color: #334155;
-            font-size: 13px;
-            font-weight: 650;
+            font-size: 14.5px;
+            font-weight: 700;
             line-height: 1.35;
         ">
             <span style="
                 color: #0F172A;
-                margin-right: 5px;
+                margin-right: 6px;
             ">
                 {soccer_field_icon_svg}:
             </span>
