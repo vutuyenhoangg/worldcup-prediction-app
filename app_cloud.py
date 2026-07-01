@@ -117,7 +117,7 @@ FOOTER_PROJECT_URL = ""
 # Có thể để trống.
 # FOOTER_PROJECT_URL = "https://github.com/yourname/worldcup-prediction-app"
 
-
+@st.cache_data(show_spinner=False)
 def resolve_asset_src(asset_path: str) -> str:
     """
     Nhận link ảnh online hoặc đường dẫn ảnh local, rồi trả về src dùng được trong HTML/CSS.
@@ -1972,14 +1972,24 @@ def render_avatar_popover(user: dict):
 
                     if avatar_clicked and not is_selected:
                         try:
+                            selected_page_before_avatar_change = st.session_state.get(
+                                "selected_page",
+                                None
+                            )
+                    
                             update_user_avatar(
                                 user_id=int(user["user_id"]),
                                 avatar_key=avatar_key
                             )
-
+                    
                             st.session_state["user"]["avatar_key"] = avatar_key
+                    
+                            if selected_page_before_avatar_change:
+                                st.session_state["selected_page"] = selected_page_before_avatar_change
+                                st.session_state["_selected_page_after_avatar_change"] = selected_page_before_avatar_change
+                    
                             st.rerun()
-
+                    
                         except ValueError as e:
                             st.error(str(e))
 
@@ -2335,7 +2345,11 @@ def render_avatar_popover(user: dict):
 def get_engine() -> Engine:
     engine = create_engine(
         DATABASE_URL,
-        pool_pre_ping=True
+        pool_pre_ping=True,
+        pool_recycle=1800,
+        pool_timeout=30,
+        pool_size=5,
+        max_overflow=10
     )
     return engine
 
@@ -3829,8 +3843,8 @@ def update_user_avatar(user_id: int, avatar_key: str):
     """
     Cập nhật avatar cho user hiện tại.
 
-    Chỉ lưu tên file avatar vào database, ví dụ: avatar_01.png.
-    Không lưu ảnh trực tiếp vào database để app nhẹ và dễ deploy hơn.
+    Chỉ lưu tên file avatar vào database.
+    Sau khi đổi avatar, clear cache users và leaderboard để Bảng xếp hạng cập nhật ngay.
     """
     avatar_key = normalize_avatar_key(avatar_key)
 
@@ -3854,6 +3868,11 @@ def update_user_avatar(user_id: int, avatar_key: str):
     except Exception:
         pass
 
+    try:
+        build_leaderboard_df.clear()
+    except Exception:
+        pass
+
 def get_user_prediction(user_id: int, match_id: int):
     """
     Dùng cho UI.
@@ -3873,6 +3892,30 @@ def get_user_prediction(user_id: int, match_id: int):
         return None
 
     return filtered.iloc[0].to_dict()
+
+def build_user_prediction_map(predictions: pd.DataFrame, user_id: int) -> dict[int, dict]:
+    """
+    Tạo map dự đoán của user hiện tại để render card nhanh hơn.
+
+    Không đổi logic:
+    - Vẫn dùng dữ liệu từ load_predictions().
+    - Vẫn lấy đúng prediction theo user_id và match_id.
+    - Chỉ tránh filter DataFrame lặp lại trong từng match card.
+    """
+    if predictions.empty:
+        return {}
+
+    user_predictions = predictions[
+        predictions["user_id"].astype(int) == int(user_id)
+    ]
+
+    if user_predictions.empty:
+        return {}
+
+    return {
+        int(row["match_id"]): row.to_dict()
+        for _, row in user_predictions.iterrows()
+    }
 
 def get_match_by_id(match_id: int):
     return fetch_one(
@@ -4440,7 +4483,11 @@ def render_match_title(home_name, away_name, match_id: int):
         unsafe_allow_html=True
     )
 
-def render_match_card(row, user_id: int):
+def render_match_card(
+    row,
+    user_id: int,
+    user_prediction_map: dict[int, dict] | None = None
+):
     match_id = int(row["match_id"])
 
     home_team_id = to_optional_int(row.get("home_team_id"))
@@ -4454,7 +4501,10 @@ def render_match_card(row, user_id: int):
 
     editable = can_edit_prediction(row.get("kickoff_time_utc"))
 
-    existing = get_user_prediction(user_id, match_id)
+    if user_prediction_map is None:
+        existing = get_user_prediction(user_id, match_id)
+    else:
+        existing = user_prediction_map.get(match_id)
 
     status_info = get_match_status_info(row)
     card_css = get_match_card_css(status_info)
@@ -5096,15 +5146,12 @@ def page_matches():
         ]
 
     user_predictions = load_predictions()
-
-    if user_predictions.empty:
-        predicted_match_ids = set()
-    else:
-        predicted_match_ids = set(
-            user_predictions[
-                user_predictions["user_id"].astype(int) == int(user_id)
-            ]["match_id"].astype(int).tolist()
-        )
+    user_prediction_map = build_user_prediction_map(
+        predictions=user_predictions,
+        user_id=user_id
+    )
+    
+    predicted_match_ids = set(user_prediction_map.keys())
 
     if prediction_status_filter == "Đã dự đoán":
         filtered = filtered[
@@ -5129,7 +5176,11 @@ def page_matches():
         group_df = group_df.sort_values("kickoff_time_utc_dt")
 
         for _, row in group_df.iterrows():
-            render_match_card(row, user_id)
+            render_match_card(
+                row,
+                user_id,
+                user_prediction_map=user_prediction_map
+            )
 
 
 def page_my_predictions():
@@ -5829,53 +5880,171 @@ def page_dashboard():
         [1.00, "#07111F"]    # xanh đậm giống sidebar
     ]
 
-    top_points = leaderboard.sort_values("total_points", ascending=False)
-
+    plotly_chart_config = {
+        "displayModeBar": False,
+        "displaylogo": False,
+        "responsive": True
+    }
+    
+    points_scope = st.radio(
+        "Hiển thị biểu đồ điểm",
+        options=["Top 10", "Tất cả"],
+        index=0,
+        horizontal=True,
+        key="dashboard_points_scope"
+    )
+    
+    top_points = leaderboard.sort_values(
+        ["total_points", "exact_score_count", "correct_outcome_count"],
+        ascending=[False, False, False]
+    ).copy()
+    
+    if points_scope == "Top 10":
+        top_points = top_points.head(10)
+    
+    def get_rank_bar_color(rank_value: int) -> str:
+        if rank_value == 1:
+            return "#F5C542"   # Top 1 - vàng
+        if rank_value == 2:
+            return "#CBD5E1"   # Top 2 - bạc
+        if rank_value == 3:
+            return "#CD7F32"   # Top 3 - đồng
+        return "#2563EB"       # Người chơi còn lại
+    
+    def get_rank_name_color(rank_value: int) -> str:
+        if rank_value == 1:
+            return "#78350F"
+        if rank_value == 2:
+            return "#334155"
+        if rank_value == 3:
+            return "#431407"
+        return "#334155"
+    
+    top_points["bar_color"] = top_points["rank"].apply(
+        lambda rank: get_rank_bar_color(int(rank))
+    )
+    
+    points_chart_height = max(
+        430,
+        135 + len(top_points) * 42
+    )
+    
+    points_chart_title = (
+        "Top 10 điểm theo người chơi"
+        if points_scope == "Top 10"
+        else "Tổng điểm theo người chơi"
+    )
+    
     fig_points = px.bar(
         top_points,
-        x="display_name",
-        y="total_points",
-        title="Tổng điểm theo người chơi",
+        x="total_points",
+        y="display_name",
+        orientation="h",
+        title=points_chart_title,
         labels={
             "display_name": "Người chơi",
             "total_points": "Điểm"
         },
-        color="total_points",
-        color_continuous_scale=custom_score_scale,
-        range_color=(0, score_max),
+        text="total_points",
         custom_data=[
+            "rank",
             "base_points",
             "star_bonus_points",
             "hope_stars_used",
             "super_stars_used"
         ]
     )
-
+    
     fig_points.update_traces(
-        hovertemplate=(
-            "<b>%{x}</b><br>"
-            "Tổng điểm = %{y}<br>"
-            "Điểm gốc = %{customdata[0]}<br>"
-            "Thưởng sao = %{customdata[1]}<br>"
-            "⭐ Ngôi sao hy vọng đã dùng = %{customdata[2]}<br>"
-            "✨ Siêu sao đã dùng = %{customdata[3]}"
-            "<extra></extra>"
-        ),
+        marker_color=top_points["bar_color"].tolist(),
         marker_line_width=0,
-        opacity=0.92
-    )
-
-    fig_points.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#07111F"),
-        coloraxis_colorbar=dict(
-            title="Điểm",
-            tickfont=dict(color="#64748B")
+        opacity=0.94,
+        textposition="outside",
+        textfont=dict(
+            color="#07111F",
+            size=12
+        ),
+        cliponaxis=False,
+        hovertemplate=(
+            "<b>#%{customdata[0]} %{y}</b><br>"
+            "Tổng điểm = %{x}<br>"
+            "Điểm gốc = %{customdata[1]}<br>"
+            "Thưởng sao = %{customdata[2]}<br>"
+            "⭐ Ngôi sao hy vọng đã dùng = %{customdata[3]}<br>"
+            "✨ Siêu sao đã dùng = %{customdata[4]}"
+            "<extra></extra>"
         )
     )
-
-    st.plotly_chart(fig_points, use_container_width=True)
+    
+    fig_points.update_layout(
+        height=points_chart_height,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(
+            color="#07111F"
+        ),
+        title=dict(
+            font=dict(
+                size=17,
+                color="#07111F"
+            )
+        ),
+        xaxis_title="Điểm",
+        yaxis_title="",
+        showlegend=False,
+        hovermode="closest",
+        dragmode=False,
+        bargap=0.28,
+        margin=dict(
+            l=230,
+            r=80,
+            t=76,
+            b=46
+        )
+    )
+    
+    fig_points.update_xaxes(
+        showgrid=True,
+        gridcolor="rgba(15,23,42,0.08)",
+        zeroline=False,
+        range=[0, max(1, score_max * 1.16)]
+    )
+    
+    fig_points.update_yaxes(
+        showticklabels=False,
+        autorange="reversed"
+    )
+    
+    for _, player_row in top_points.iterrows():
+        rank_value = int(player_row["rank"])
+        player_name = html.escape(str(player_row["display_name"]))
+        name_color = get_rank_name_color(rank_value)
+    
+        fig_points.add_annotation(
+            x=0,
+            y=player_row["display_name"],
+            xref="paper",
+            yref="y",
+            text=f"<b>#{rank_value} {player_name}</b>",
+            showarrow=False,
+            xanchor="right",
+            xshift=-12,
+            align="right",
+            font=dict(
+                color=name_color,
+                size=13
+            )
+        )
+    
+    st.caption(
+        "Di chuột vào từng thanh để xem chi tiết điểm. Chọn “Tất cả” để xem toàn bộ người chơi và cuộn xuống dưới nếu danh sách dài."
+    )
+    
+    st.plotly_chart(
+        fig_points,
+        use_container_width=True,
+        config=plotly_chart_config
+    )
 
     fig_accuracy = px.scatter(
         leaderboard,
@@ -5935,7 +6104,15 @@ def page_dashboard():
         )
     )
 
-    st.plotly_chart(fig_accuracy, use_container_width=True)
+    fig_accuracy.update_layout(
+        dragmode=False
+    )
+    
+    st.plotly_chart(
+        fig_accuracy,
+        use_container_width=True,
+        config=plotly_chart_config
+    )
 
 
 def page_admin():
@@ -6228,11 +6405,20 @@ def main():
         if user["role"] == "admin":
             pages.append("Admin")
 
+        avatar_restore_page = st.session_state.pop(
+            "_selected_page_after_avatar_change",
+            None
+        )
+        
+        if avatar_restore_page in pages:
+            st.session_state["selected_page"] = avatar_restore_page
+        
         if "selected_page" not in st.session_state:
             st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
-
+        
         if st.session_state["selected_page"] not in pages:
             st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
+        
         selected_page = st.radio(
             "Menu",
             pages,
