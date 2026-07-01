@@ -2971,7 +2971,7 @@ def get_match_card_css(status_info):
     {{
         border: 2px solid {status_info["border_color"]};
         border-radius: 20px;
-        padding: 22px 22px 32px 22px;
+        padding: 22px 22px 52px 22px;
         margin-bottom: 22px;
         background: {status_info["background"]};
         box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
@@ -4483,6 +4483,94 @@ def render_match_title(home_name, away_name, match_id: int):
         unsafe_allow_html=True
     )
 
+def normalize_venue_text(value) -> str:
+    """
+    Chuẩn hóa tên SVĐ/địa điểm để hiển thị ở cuối card.
+    """
+    if value is None:
+        return ""
+
+    try:
+        if pd.isna(value):
+            return ""
+    except TypeError:
+        pass
+
+    return str(value).strip()
+
+
+def render_match_venue_footer(row, match_id: int):
+    """
+    Hiển thị thông tin SVĐ/địa điểm ở cuối card trận đấu.
+
+    Chỉ dùng cột venue.
+    Không nằm trong form dự đoán.
+    Không ảnh hưởng logic lưu/xóa dự đoán.
+    """
+    venue = normalize_venue_text(row.get("venue"))
+
+    if not venue:
+        return
+
+    safe_venue = html.escape(venue)
+
+    stadium_icon_svg = """
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+         xmlns="http://www.w3.org/2000/svg"
+         style="display:block;">
+      <path d="M4 10C4 6.7 7.6 4 12 4C16.4 4 20 6.7 20 10V17C20 18.7 16.4 20 12 20C7.6 20 4 18.7 4 17V10Z"
+            stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M4 10C4 11.7 7.6 13 12 13C16.4 13 20 11.7 20 10"
+            stroke="currentColor" stroke-width="1.8"/>
+      <path d="M8 14V18M12 14V20M16 14V18"
+            stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    """
+
+    st.markdown(
+        f"""
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            max-width: 100%;
+            margin-top: 28px;
+            margin-bottom: 2px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.60);
+            border: 1px solid rgba(15,23,42,0.08);
+            color: #0F172A;
+            font-size: 13px;
+            font-weight: 760;
+            line-height: 1.25;
+            box-shadow: 0 6px 16px rgba(15,23,42,0.04);
+        ">
+            <span style="
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 16px;
+                height: 16px;
+                color: #0F172A;
+                flex: 0 0 auto;
+            ">
+                {stadium_icon_svg}
+            </span>
+            <span style="
+                color: #334155;
+                white-space: normal;
+                word-break: normal;
+                overflow-wrap: anywhere;
+            ">
+                {safe_venue}
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 def render_match_card(
     row,
     user_id: int,
@@ -4526,12 +4614,6 @@ def render_match_card(
                 f"{row.get('kickoff_date_display_vietnam', row.get('kickoff_date_vietnam', ''))} "
                 f"lúc {row.get('kickoff_time_vietnam', '')}"
             )
-
-            venue = row.get("venue")
-            city = row.get("city")
-
-            if venue or city:
-                st.caption(f"🏟️ {venue or ''} {city or ''}")
 
             if is_finished:
                 actual_home_for_goal_button = to_optional_int(
@@ -4697,6 +4779,7 @@ def render_match_card(
 
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
+            render_match_venue_footer(row, match_id)
             return
 
         if existing:
@@ -4752,8 +4835,8 @@ def render_match_card(
             pred_winner_team_id = None
             current_star_type = STAR_TYPE_NONE
             st.caption("Bạn chưa dự đoán trận này.")
-
         if not editable:
+            render_match_venue_footer(row, match_id)
             return
 
         with st.form(f"prediction_form_{match_id}"):
@@ -4964,6 +5047,8 @@ def render_match_card(
             
                 except ValueError as e:
                     st.error(str(e))
+
+        render_match_venue_footer(row, match_id)
 
 # ============================================================
 # 10. PAGES
