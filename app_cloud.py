@@ -21,6 +21,7 @@ import streamlit as st
 import plotly.express as px
 from streamlit_extras.stylable_container import stylable_container
 import secrets
+import time
 from streamlit_cookies_controller import CookieController
 
 
@@ -36,6 +37,7 @@ APP_SHORT_NAME = "WC 2026"
 APP_TAGLINE = "Dự đoán tỉ số, tích điểm và leo bảng xếp hạng cùng bạn bè."
 COOKIE_NAME = "wc_session_token"
 SESSION_DAYS = 30
+COOKIE_RESTORE_WAIT_SECONDS = 0.15
 HOPE_STARS_PER_USER = 5
 SUPER_STARS_PER_USER = 1
 
@@ -6219,6 +6221,30 @@ def render_footer():
         unsafe_allow_html=True
     )
 
+def render_session_restore_screen():
+    """
+    Màn chờ rất nhẹ khi F5 để cookie/session có thời gian khôi phục.
+
+    Không đổi logic đăng nhập.
+    Không query thêm dữ liệu.
+    Không render full auth page trong lúc cookie chưa kịp hydrate.
+    """
+    st.markdown(
+        """
+        <div style="
+            min-height: 42vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748B;
+            font-size: 14px;
+            font-weight: 750;
+        ">
+            Đang khôi phục phiên đăng nhập...
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # ============================================================
 # 11. MAIN APP
@@ -6228,9 +6254,18 @@ def main():
     initialize_app_once()
     restore_user_from_cookie()
 
-    # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
-    # Sau khi đăng nhập thành công, render_auth_page() sẽ set st.session_state["user"].
-    # Khi đó app không stop nữa mà render tiếp màn hình chính trong cùng lượt chạy.
+    # Khi F5, session_state bị reset nhưng cookie có thể chưa kịp hydrate ngay.
+    # Đợi đúng 1 lần rất ngắn để tránh render nhầm màn Đăng nhập tạm thời.
+    if (
+        "user" not in st.session_state
+        and not st.session_state.get("_cookie_restore_retry_done", False)
+    ):
+        st.session_state["_cookie_restore_retry_done"] = True
+        render_session_restore_screen()
+        time.sleep(COOKIE_RESTORE_WAIT_SECONDS)
+        st.rerun()
+
+    # Nếu sau lần chờ ngắn vẫn chưa có user, lúc này mới thật sự hiển thị trang đăng nhập.
     if "user" not in st.session_state:
         render_auth_page()
 
