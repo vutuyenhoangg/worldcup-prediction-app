@@ -1972,14 +1972,24 @@ def render_avatar_popover(user: dict):
 
                     if avatar_clicked and not is_selected:
                         try:
+                            selected_page_before_avatar_change = st.session_state.get(
+                                "selected_page",
+                                None
+                            )
+                    
                             update_user_avatar(
                                 user_id=int(user["user_id"]),
                                 avatar_key=avatar_key
                             )
-
+                    
                             st.session_state["user"]["avatar_key"] = avatar_key
+                    
+                            if selected_page_before_avatar_change:
+                                st.session_state["selected_page"] = selected_page_before_avatar_change
+                                st.session_state["_selected_page_after_avatar_change"] = selected_page_before_avatar_change
+                    
                             st.rerun()
-
+                    
                         except ValueError as e:
                             st.error(str(e))
 
@@ -6264,11 +6274,20 @@ def main():
         if user["role"] == "admin":
             pages.append("Admin")
 
+        avatar_restore_page = st.session_state.pop(
+            "_selected_page_after_avatar_change",
+            None
+        )
+        
+        if avatar_restore_page in pages:
+            st.session_state["selected_page"] = avatar_restore_page
+        
         if "selected_page" not in st.session_state:
             st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
-
+        
         if st.session_state["selected_page"] not in pages:
             st.session_state["selected_page"] = "Lịch thi đấu & dự đoán"
+        
         selected_page = st.radio(
             "Menu",
             pages,
