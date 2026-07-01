@@ -30,6 +30,12 @@ from streamlit_cookies_controller import CookieController
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_URL = st.secrets["DATABASE_URL"]
+RUN_DB_MIGRATIONS = str(
+    os.getenv(
+        "RUN_DB_MIGRATIONS",
+        st.secrets.get("RUN_DB_MIGRATIONS", "false")
+    )
+).strip().lower() in ["true", "1", "yes", "y"]
 
 APP_NAME = "World Cup 2026 Prediction Arena"
 APP_SHORT_NAME = "WC 2026"
@@ -2343,14 +2349,27 @@ def render_avatar_popover(user: dict):
 
 @st.cache_resource
 def get_engine() -> Engine:
+    """
+    Tạo kết nối Supabase/PostgreSQL.
+
+    Fix loading lâu:
+    - connect_timeout: không để app chờ kết nối vô hạn.
+    - statement_timeout: không để query/DDL bị treo quá lâu.
+    - lock_timeout: tránh kẹt nếu database đang bị lock.
+    """
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
         pool_recycle=1800,
-        pool_timeout=30,
-        pool_size=5,
-        max_overflow=10
+        pool_timeout=15,
+        pool_size=3,
+        max_overflow=5,
+        connect_args={
+            "connect_timeout": 10,
+            "options": "-c statement_timeout=20000 -c lock_timeout=5000"
+        }
     )
+
     return engine
 
 
@@ -3141,6 +3160,44 @@ def check_base_database():
         st.error("Supabase database chưa có bảng `matches`. Hãy kiểm tra lại bước import dữ liệu.")
         st.stop()
 
+def check_required_app_tables():
+    """
+    Kiểm tra các bảng app cần có khi không chạy migration ở startup.
+
+    Nếu thiếu bảng thì báo lỗi rõ ràng thay vì loading mãi.
+    """
+    try:
+        tables = read_sql(
+            """
+            SELECT table_name AS name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+            """
+        )
+    except Exception as e:
+        st.error("Không kiểm tra được schema Supabase.")
+        st.exception(e)
+        st.stop()
+
+    table_names = set(tables["name"].tolist())
+
+    required_tables = {
+        "matches",
+        "users",
+        "predictions",
+        "prediction_history",
+        "login_sessions"
+    }
+
+    missing_tables = sorted(required_tables - table_names)
+
+    if missing_tables:
+        st.error(
+            "Database đang thiếu bảng bắt buộc: "
+            + ", ".join(missing_tables)
+            + ". Hãy bật RUN_DB_MIGRATIONS=true một lần để khởi tạo schema."
+        )
+        st.stop()
 
 def init_app_tables():
     execute_sql(
@@ -3314,15 +3371,20 @@ def init_app_tables():
 @st.cache_resource
 def initialize_app_once():
     """
-    Chạy kiểm tra/khoi tạo database một lần cho mỗi app process.
+    Khởi động app một lần cho mỗi app process.
 
-    Mục tiêu:
-    - Không gọi check/create table ở mỗi lần rerun.
-    - Giảm thời gian khởi động lại giao diện khi người dùng click/F5.
-    - Không thay đổi logic dữ liệu hay logic chấm điểm.
+    Fix loading lâu:
+    - Luôn kiểm tra bảng matches.
+    - Chỉ chạy migration khi RUN_DB_MIGRATIONS=true.
+    - App chính nên để RUN_DB_MIGRATIONS=false sau khi schema đã ổn định.
     """
     check_base_database()
-    init_app_tables()
+
+    if RUN_DB_MIGRATIONS:
+        init_app_tables()
+    else:
+        check_required_app_tables()
+
     return True
 
 
@@ -3442,16 +3504,32 @@ def delete_login_session(token: str):
 
 
 def restore_user_from_cookie() -> bool:
+    """
+    Khôi phục user từ cookie.
+
+    Bản an toàn:
+    - Nếu cookie component lỗi, không làm app kẹt.
+    - Nếu token lỗi/hết hạn, xóa cookie và quay về trang đăng nhập.
+    """
     if "user" in st.session_state:
         return True
 
-    token = cookie_controller.get(COOKIE_NAME)
+    token = None
+
+    try:
+        token = cookie_controller.get(COOKIE_NAME)
+    except Exception:
+        token = None
 
     if not token:
-        cookies = cookie_controller.getAll()
+        try:
+            cookies = cookie_controller.getAll()
 
-        if isinstance(cookies, dict):
-            token = cookies.get(COOKIE_NAME)
+            if isinstance(cookies, dict):
+                token = cookies.get(COOKIE_NAME)
+
+        except Exception:
+            token = None
 
     if not token:
         return False
@@ -3461,10 +3539,17 @@ def restore_user_from_cookie() -> bool:
     if not token:
         return False
 
-    user = get_user_by_session_token(token)
+    try:
+        user = get_user_by_session_token(token)
+    except Exception:
+        return False
 
     if user is None:
-        cookie_controller.remove(COOKIE_NAME)
+        try:
+            cookie_controller.remove(COOKIE_NAME)
+        except Exception:
+            pass
+
         return False
 
     st.session_state["user"] = user
@@ -6518,8 +6603,21 @@ def render_footer():
 # ============================================================
 
 def main():
-    initialize_app_once()
-    restore_user_from_cookie()
+    try:
+        initialize_app_once()
+    except Exception as e:
+        st.error("App không khởi động được ở bước kết nối/khởi tạo database.")
+        st.caption(
+            "Hãy kiểm tra DATABASE_URL, trạng thái Supabase và log trong Streamlit Cloud."
+        )
+        st.exception(e)
+        st.stop()
+
+    try:
+        restore_user_from_cookie()
+    except Exception:
+        # Không để lỗi cookie làm sập app.
+        st.session_state.pop("user", None)
 
     # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
     # Sau khi đăng nhập thành công, render_auth_page() sẽ set st.session_state["user"].
