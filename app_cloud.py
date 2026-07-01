@@ -4514,36 +4514,23 @@ def render_match_venue_footer(row, match_id: int):
 
     safe_venue = html.escape(venue)
 
-    stadium_icon_svg = """
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-         xmlns="http://www.w3.org/2000/svg"
-         style="display:block;">
-      <path d="M4 10C4 6.7 7.6 4 12 4C16.4 4 20 6.7 20 10V17C20 18.7 16.4 20 12 20C7.6 20 4 18.7 4 17V10Z"
-            stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-      <path d="M4 10C4 11.7 7.6 13 12 13C16.4 13 20 11.7 20 10"
-            stroke="currentColor" stroke-width="1.8"/>
-      <path d="M8 14V18M12 14V20M16 14V18"
-            stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    </svg>
-    """
-
     st.markdown(
         f"""
         <div style="
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 9px;
             width: fit-content;
             max-width: 100%;
             margin-top: 28px;
-            margin-bottom: 2px;
-            padding: 8px 12px;
+            margin-bottom: 4px;
+            padding: 8px 13px;
             border-radius: 999px;
-            background: rgba(255,255,255,0.60);
-            border: 1px solid rgba(15,23,42,0.08);
+            background: rgba(255,255,255,0.72);
+            border: 1px solid rgba(15,23,42,0.10);
             color: #0F172A;
             font-size: 13px;
-            font-weight: 760;
+            font-weight: 700;
             line-height: 1.25;
             box-shadow: 0 6px 16px rgba(15,23,42,0.04);
         ">
@@ -4551,21 +4538,22 @@ def render_match_venue_footer(row, match_id: int):
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                width: 16px;
-                height: 16px;
+                width: 20px;
+                height: 20px;
+                border-radius: 999px;
+                border: 1.5px solid #0F172A;
                 color: #0F172A;
+                font-size: 12px;
+                font-weight: 900;
+                line-height: 1;
                 flex: 0 0 auto;
-            ">
-                {stadium_icon_svg}
-            </span>
+            ">⌂</span>
             <span style="
                 color: #334155;
                 white-space: normal;
                 word-break: normal;
                 overflow-wrap: anywhere;
-            ">
-                {safe_venue}
-            </span>
+            ">{safe_venue}</span>
         </div>
         """,
         unsafe_allow_html=True
