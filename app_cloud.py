@@ -4249,7 +4249,7 @@ def generate_match_ai_summary(
     prompt = (
         "Bạn là một chuyên gia cập nhật tin tức bóng đá và World Cup 2026. "
         f"Hãy viết summary về trận đấu ngày {match_date_text} giữa {pair_label} trong khuôn khổ World Cup 2026. "
-        "Mục tiêu là giúp người xem hiểu thêm diễn biến trận đấu, thế trận hoặc bước ngoặt, "
+        "Mục tiêu là giúp người xem hiểu thêm về diễn biến trận đấu, thế trận, các tình huống đáng chú ý, "
         "bổ sung thêm thông tin so với việc chỉ nhìn tỉ số và cầu thủ ghi bàn. "
         "Chỉ trả lời bằng tiếng Việt, không quá 100 chữ. "
         "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
