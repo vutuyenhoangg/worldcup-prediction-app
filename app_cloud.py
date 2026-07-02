@@ -2352,21 +2352,21 @@ def get_engine() -> Engine:
     """
     Tạo kết nối Supabase/PostgreSQL.
 
-    Tối ưu:
-    - Không để app chờ kết nối quá lâu.
-    - Không để query bị treo vô hạn.
-    - Giảm pool để nhẹ hơn với Streamlit Cloud/Supabase.
+    Fix loading lâu:
+    - connect_timeout: không để app chờ kết nối vô hạn.
+    - statement_timeout: không để query/DDL bị treo quá lâu.
+    - lock_timeout: tránh kẹt nếu database đang bị lock.
     """
     engine = create_engine(
         DATABASE_URL,
         pool_pre_ping=True,
         pool_recycle=1800,
-        pool_timeout=12,
+        pool_timeout=15,
         pool_size=3,
         max_overflow=5,
         connect_args={
-            "connect_timeout": 8,
-            "options": "-c statement_timeout=15000 -c lock_timeout=5000"
+            "connect_timeout": 10,
+            "options": "-c statement_timeout=20000 -c lock_timeout=5000"
         }
     )
 
@@ -2604,17 +2604,19 @@ def format_star_short(star_type) -> str:
 def get_user_star_usage(user_id: int, exclude_match_id: int | None = None) -> dict:
     """
     Dùng cho UI.
-    Tính quota sao từ prediction của riêng user hiện tại để giảm tải khi render/F5.
+    Tính quota sao từ load_predictions() đã cache để giảm query database khi render nhiều card.
     """
-    user_predictions = load_user_predictions(int(user_id))
+    predictions = load_predictions()
 
-    if user_predictions.empty:
+    if predictions.empty:
         hope_used = 0
         super_used = 0
     else:
-        user_predictions = user_predictions.copy()
+        user_predictions = predictions[
+            predictions["user_id"].astype(int) == int(user_id)
+        ].copy()
 
-        if exclude_match_id is not None:
+        if exclude_match_id is not None and not user_predictions.empty:
             user_predictions = user_predictions[
                 user_predictions["match_id"].astype(int) != int(exclude_match_id)
             ]
@@ -2818,12 +2820,82 @@ def render_prediction_result_line(result_info):
         unsafe_allow_html=True
     )
 
-def render_prediction_result_and_score_row(result_info, existing):
+def calculate_display_points_for_prediction(existing, match_row) -> dict | None:
+    """
+    Tính điểm hiển thị ngay tại card trận đấu.
+
+    Ưu tiên tính live từ:
+    - Dự đoán của user
+    - Kết quả thật của trận
+    - Bổ trợ sao đang dùng
+
+    Mục tiêu:
+    - UI luôn hiện điểm thực tế đã nhân sao.
+    - Không phụ thuộc hoàn toàn vào points đang cache/lưu trong DB.
+    - Không ghi database, không ảnh hưởng BXH/chấm điểm chính thức.
+    """
+    if existing is None:
+        return None
+
+    is_finished = to_bool(match_row.get("is_finished"))
+
+    actual_home = to_optional_int(match_row.get("home_score_for_prediction"))
+    actual_away = to_optional_int(match_row.get("away_score_for_prediction"))
+
+    if not is_finished or actual_home is None or actual_away is None:
+        db_points = to_optional_int(existing.get("points"))
+
+        if db_points is None:
+            return None
+
+        return {
+            "base_points": to_optional_int(existing.get("base_points")),
+            "star_bonus_points": to_optional_int(existing.get("star_bonus_points")),
+            "points": db_points
+        }
+
+    scoring_row = {
+        "predicted_home_score": existing.get("predicted_home_score"),
+        "predicted_away_score": existing.get("predicted_away_score"),
+        "predicted_winner_team_id": existing.get("predicted_winner_team_id"),
+
+        "home_score_for_prediction": match_row.get("home_score_for_prediction"),
+        "away_score_for_prediction": match_row.get("away_score_for_prediction"),
+
+        "is_knockout": match_row.get("is_knockout"),
+        "winner_team_id": match_row.get("winner_team_id")
+    }
+
+    base_points = calculate_total_points(scoring_row)
+
+    return calculate_points_with_star(
+        base_points=base_points,
+        star_type=existing.get("star_type")
+    )
+
+def render_prediction_result_and_score_row(result_info, existing, match_row=None):
+    display_point_info = None
+
+    if match_row is not None:
+        display_point_info = calculate_display_points_for_prediction(
+            existing=existing,
+            match_row=match_row
+        )
+
+    if display_point_info is None and existing is not None:
+        db_points = to_optional_int(existing.get("points"))
+
+        if db_points is not None:
+            display_point_info = {
+                "base_points": to_optional_int(existing.get("base_points")),
+                "star_bonus_points": to_optional_int(existing.get("star_bonus_points")),
+                "points": db_points
+            }
+
     has_result = result_info is not None
     has_points = (
-        existing is not None
-        and existing.get("points") is not None
-        and not pd.isna(existing.get("points"))
+        display_point_info is not None
+        and display_point_info.get("points") is not None
     )
 
     if not has_result and not has_points:
@@ -2856,7 +2928,9 @@ def render_prediction_result_and_score_row(result_info, existing):
         )
 
     if has_points:
-        final_points = int(round(float(existing.get("points"))))
+        final_points = int(round(float(display_point_info.get("points") or 0)))
+        base_points = int(round(float(display_point_info.get("base_points") or 0)))
+        star_bonus_points = int(round(float(display_point_info.get("star_bonus_points") or 0)))
 
         if has_result:
             score_bg = result_info["bg_color"]
@@ -2867,12 +2941,16 @@ def render_prediction_result_and_score_row(result_info, existing):
             score_text = "#9A3412"
             score_border = "rgba(251,146,60,0.45)"
 
+        score_title = f"Điểm gốc: {base_points} | Thưởng sao: {star_bonus_points} | Tổng điểm: {final_points}"
+
         score_html = (
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             '<span style="color:#07111F;font-size:15px;font-weight:650;">'
             'Điểm:'
             '</span>'
-            '<span style="'
+            '<span title="'
+            f'{html.escape(score_title)}'
+            '" style="'
             'display:inline-block;'
             'min-width:34px;'
             'text-align:center;'
@@ -2988,7 +3066,7 @@ def get_match_card_css(status_info):
     {{
         border: 2px solid {status_info["border_color"]};
         border-radius: 20px;
-        padding: 22px 22px 32px 22px;
+        padding: 22px 22px 16px 22px;
         margin-bottom: 22px;
         background: {status_info["background"]};
         box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
@@ -3064,9 +3142,11 @@ def render_match_status_box(status_info):
 
 def check_base_database():
     try:
-        row = fetch_one(
+        tables = read_sql(
             """
-            SELECT to_regclass('public.matches') AS table_name
+            SELECT table_name AS name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
             """
         )
     except Exception as e:
@@ -3074,15 +3154,17 @@ def check_base_database():
         st.exception(e)
         st.stop()
 
-    if row is None or row.get("table_name") is None:
+    table_names = set(tables["name"].tolist())
+
+    if "matches" not in table_names:
         st.error("Supabase database chưa có bảng `matches`. Hãy kiểm tra lại bước import dữ liệu.")
         st.stop()
 
 def check_required_app_tables():
     """
-    Kiểm tra nhanh các bảng app cần có khi không chạy migration.
+    Kiểm tra các bảng app cần có khi không chạy migration ở startup.
 
-    Không tạo/sửa bảng ở runtime, chỉ kiểm tra để app báo lỗi rõ nếu thiếu.
+    Nếu thiếu bảng thì báo lỗi rõ ràng thay vì loading mãi.
     """
     try:
         tables = read_sql(
@@ -3090,13 +3172,6 @@ def check_required_app_tables():
             SELECT table_name AS name
             FROM information_schema.tables
             WHERE table_schema = 'public'
-              AND table_name IN (
-                  'matches',
-                  'users',
-                  'predictions',
-                  'prediction_history',
-                  'login_sessions'
-              )
             """
         )
     except Exception as e:
@@ -3298,9 +3373,10 @@ def initialize_app_once():
     """
     Khởi động app một lần cho mỗi app process.
 
-    Tối ưu:
-    - App chính không chạy ALTER/CREATE/UPDATE database ở startup.
+    Fix loading lâu:
+    - Luôn kiểm tra bảng matches.
     - Chỉ chạy migration khi RUN_DB_MIGRATIONS=true.
+    - App chính nên để RUN_DB_MIGRATIONS=false sau khi schema đã ổn định.
     """
     check_base_database()
 
@@ -3428,16 +3504,32 @@ def delete_login_session(token: str):
 
 
 def restore_user_from_cookie() -> bool:
+    """
+    Khôi phục user từ cookie.
+
+    Bản an toàn:
+    - Nếu cookie component lỗi, không làm app kẹt.
+    - Nếu token lỗi/hết hạn, xóa cookie và quay về trang đăng nhập.
+    """
     if "user" in st.session_state:
         return True
 
-    token = cookie_controller.get(COOKIE_NAME)
+    token = None
+
+    try:
+        token = cookie_controller.get(COOKIE_NAME)
+    except Exception:
+        token = None
 
     if not token:
-        cookies = cookie_controller.getAll()
+        try:
+            cookies = cookie_controller.getAll()
 
-        if isinstance(cookies, dict):
-            token = cookies.get(COOKIE_NAME)
+            if isinstance(cookies, dict):
+                token = cookies.get(COOKIE_NAME)
+
+        except Exception:
+            token = None
 
     if not token:
         return False
@@ -3447,10 +3539,17 @@ def restore_user_from_cookie() -> bool:
     if not token:
         return False
 
-    user = get_user_by_session_token(token)
+    try:
+        user = get_user_by_session_token(token)
+    except Exception:
+        return False
 
     if user is None:
-        cookie_controller.remove(COOKIE_NAME)
+        try:
+            cookie_controller.remove(COOKIE_NAME)
+        except Exception:
+            pass
+
         return False
 
     st.session_state["user"] = user
@@ -3650,30 +3749,6 @@ def load_predictions() -> pd.DataFrame:
         """
     )
 
-@st.cache_data(ttl=10, show_spinner=False)
-def load_user_predictions(user_id: int) -> pd.DataFrame:
-    """
-    Load prediction của riêng user hiện tại.
-
-    Dùng cho:
-    - Trang Lịch thi đấu & dự đoán
-    - Trang Dự đoán của tôi
-    - Tính số sao còn lại
-
-    Mục tiêu:
-    - Không load toàn bộ predictions của mọi người khi chỉ cần dữ liệu của 1 user.
-    - Giảm thời gian F5 ở trang chính.
-    """
-    return read_sql(
-        """
-        SELECT *
-        FROM predictions
-        WHERE user_id = :user_id
-        """,
-        {
-            "user_id": int(user_id)
-        }
-    )
 
 @st.cache_data(ttl=300, show_spinner=False)
 def load_goal_scorers_for_match(match_id: int) -> pd.DataFrame:
@@ -3864,11 +3939,6 @@ def clear_data_cache():
     load_predictions.clear()
 
     try:
-        load_user_predictions.clear()
-    except NameError:
-        pass
-
-    try:
         build_leaderboard_df.clear()
     except NameError:
         pass
@@ -3967,15 +4037,16 @@ def update_user_avatar(user_id: int, avatar_key: str):
 def get_user_prediction(user_id: int, match_id: int):
     """
     Dùng cho UI.
-    Lấy prediction của user hiện tại từ cache riêng theo user_id.
+    Lấy từ load_predictions() đã cache để tránh query database lặp lại cho từng card.
     """
-    predictions = load_user_predictions(int(user_id))
+    predictions = load_predictions()
 
     if predictions.empty:
         return None
 
     filtered = predictions[
-        predictions["match_id"].astype(int) == int(match_id)
+        (predictions["user_id"].astype(int) == int(user_id))
+        & (predictions["match_id"].astype(int) == int(match_id))
     ]
 
     if filtered.empty:
@@ -4573,6 +4644,84 @@ def render_match_title(home_name, away_name, match_id: int):
         unsafe_allow_html=True
     )
 
+def normalize_venue_text(value) -> str:
+    """
+    Chuẩn hóa tên SVĐ/địa điểm để hiển thị ở cuối card.
+    """
+    if value is None:
+        return ""
+
+    try:
+        if pd.isna(value):
+            return ""
+    except TypeError:
+        pass
+
+    return str(value).strip()
+
+
+def render_match_venue_footer(row, match_id: int):
+    """
+    Hiển thị thông tin sân vận động/địa điểm ở cuối card trận đấu.
+
+    Chỉ hiển thị dạng:
+    Icon: Tên sân vận động
+
+    Không nằm trong form dự đoán.
+    Không ảnh hưởng logic lưu/cập nhật/xóa dự đoán.
+    """
+    venue = normalize_venue_text(row.get("venue"))
+
+    if not venue:
+        return
+
+    safe_venue = html.escape(venue)
+
+    soccer_field_icon_svg = """
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="24"
+         height="24"
+         viewBox="0 0 24 24"
+         fill="none"
+         stroke="currentColor"
+         stroke-width="1"
+         stroke-linecap="round"
+         stroke-linejoin="round"
+         style="display:inline-block; vertical-align:-6px;">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/>
+      <path d="M3 9h3v6h-3l0 -6"/>
+      <path d="M18 9h3v6h-3l0 -6"/>
+      <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10"/>
+      <path d="M12 5l0 14"/>
+    </svg>
+    """
+
+    st.markdown(
+        f"""
+        <div style="
+            margin-top: 20px;
+            margin-bottom: 0;
+            color: #64748B;
+            font-size: 14.5px;
+            font-weight: 700;
+            line-height: 1.35;
+        ">
+            <span style="
+                color: #64748B;
+                margin-right: 6px;
+            ">
+                {soccer_field_icon_svg}:
+            </span>
+            <span style="
+                color: #64748B;
+                font-style: italic;
+            ">{safe_venue}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 def render_match_card(
     row,
     user_id: int,
@@ -4616,12 +4765,6 @@ def render_match_card(
                 f"{row.get('kickoff_date_display_vietnam', row.get('kickoff_date_vietnam', ''))} "
                 f"lúc {row.get('kickoff_time_vietnam', '')}"
             )
-
-            venue = row.get("venue")
-            city = row.get("city")
-
-            if venue or city:
-                st.caption(f"🏟️ {venue or ''} {city or ''}")
 
             if is_finished:
                 actual_home_for_goal_button = to_optional_int(
@@ -4787,6 +4930,7 @@ def render_match_card(
 
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
+            render_match_venue_footer(row, match_id)
             return
 
         if existing:
@@ -4833,7 +4977,8 @@ def render_match_card(
 
             render_prediction_result_and_score_row(
                 result_info=prediction_result_info,
-                existing=existing
+                existing=existing,
+                match_row=row
             )
 
         else:
@@ -4842,8 +4987,8 @@ def render_match_card(
             pred_winner_team_id = None
             current_star_type = STAR_TYPE_NONE
             st.caption("Bạn chưa dự đoán trận này.")
-
         if not editable:
+            render_match_venue_footer(row, match_id)
             return
 
         with st.form(f"prediction_form_{match_id}"):
@@ -5055,6 +5200,8 @@ def render_match_card(
                 except ValueError as e:
                     st.error(str(e))
 
+        render_match_venue_footer(row, match_id)
+
 # ============================================================
 # 10. PAGES
 # ============================================================
@@ -5235,7 +5382,7 @@ def page_matches():
             filtered["is_finished"].apply(to_bool)
         ]
 
-    user_predictions = load_user_predictions(user_id)
+    user_predictions = load_predictions()
     user_prediction_map = build_user_prediction_map(
         predictions=user_predictions,
         user_id=user_id
@@ -5284,8 +5431,14 @@ def page_my_predictions():
     user_id = st.session_state["user"]["user_id"]
 
     matches = load_matches()
-    my_predictions = load_user_predictions(user_id).copy()
-    
+    predictions = load_predictions()
+
+    if predictions.empty:
+        st.info("Bạn chưa có dự đoán nào.")
+        return
+
+    my_predictions = predictions[predictions["user_id"] == user_id].copy()
+
     if my_predictions.empty:
         st.info("Bạn chưa có dự đoán nào.")
         return
@@ -6448,18 +6601,22 @@ def render_footer():
 # ============================================================
 # 11. MAIN APP
 # ============================================================
+
 def main():
     try:
         initialize_app_once()
     except Exception as e:
-        st.error("App không khởi động được ở bước kết nối/kiểm tra database.")
-        st.caption("Hãy kiểm tra DATABASE_URL, Supabase và log trong Streamlit Cloud.")
+        st.error("App không khởi động được ở bước kết nối/khởi tạo database.")
+        st.caption(
+            "Hãy kiểm tra DATABASE_URL, trạng thái Supabase và log trong Streamlit Cloud."
+        )
         st.exception(e)
         st.stop()
 
     try:
         restore_user_from_cookie()
     except Exception:
+        # Không để lỗi cookie làm sập app.
         st.session_state.pop("user", None)
 
     # Nếu chưa đăng nhập, hiển thị trang đăng nhập.
