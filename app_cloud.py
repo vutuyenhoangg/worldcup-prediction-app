@@ -4106,20 +4106,124 @@ def render_goal_scorers_for_match(match_id: int):
         unsafe_allow_html=True
     )
 
-@st.cache_data(ttl=7 * 24 * 60 * 60, show_spinner=False)
-def generate_match_ai_summary(match_id: int, pair_label: str) -> dict:
-    """
-    Tạo AI Summary cho 1 trận đã có kết quả bằng Gemini.
+def is_gemini_quota_error(error: Exception) -> bool:
+    error_text = str(error).lower()
 
-    Cache 7 ngày để:
-    - Không gọi Gemini lặp lại nhiều lần cho cùng 1 trận.
-    - Giảm chi phí.
-    - App phản hồi nhanh hơn sau lần đầu.
-    """
+    quota_keywords = [
+        "429",
+        "resource_exhausted",
+        "quota",
+        "rate limit",
+        "rate_limit",
+        "exceeded"
+    ]
+
+    return any(keyword in error_text for keyword in quota_keywords)
+
+
+def build_match_summary_context(row) -> str:
+    home_name = str(row.get("home_team_name", "")).strip()
+    away_name = str(row.get("away_team_name", "")).strip()
+
+    actual_home = to_optional_int(row.get("home_score_for_prediction"))
+    actual_away = to_optional_int(row.get("away_score_for_prediction"))
+
+    score_ft_home = to_optional_int(row.get("score_ft_home"))
+    score_ft_away = to_optional_int(row.get("score_ft_away"))
+
+    score_et_home = to_optional_int(row.get("score_et_home"))
+    score_et_away = to_optional_int(row.get("score_et_away"))
+
+    score_pen_home = to_optional_int(row.get("score_pen_home"))
+    score_pen_away = to_optional_int(row.get("score_pen_away"))
+
+    winner_name = row.get("winner_team_name")
+
+    if winner_name is None or pd.isna(winner_name) or str(winner_name).strip() == "":
+        winner_name = ""
+
+    venue = normalize_venue_text(row.get("venue"))
+
+    context_lines = [
+        f"Trận đấu: {home_name} vs {away_name}",
+        f"Vòng đấu: {row.get('round_name', '')}",
+        f"Thời gian VN: {row.get('kickoff_weekday_vietnam', '')} {row.get('kickoff_date_display_vietnam', row.get('kickoff_date_vietnam', ''))} lúc {row.get('kickoff_time_vietnam', '')}",
+        f"Sân: {venue}",
+        f"Tỉ số dùng để chấm dự đoán: {actual_home} - {actual_away}",
+        f"Tỉ số 90 phút: {score_ft_home} - {score_ft_away}",
+        f"Tỉ số sau hiệp phụ: {score_et_home} - {score_et_away}",
+        f"Penalty: {score_pen_home} - {score_pen_away}",
+        f"Đội thắng chung cuộc: {winner_name}",
+    ]
+
+    return "\n".join(context_lines)
+
+
+def build_local_match_summary(row) -> str:
+    home_name = str(row.get("home_team_name", "")).strip()
+    away_name = str(row.get("away_team_name", "")).strip()
+
+    actual_home = to_optional_int(row.get("home_score_for_prediction"))
+    actual_away = to_optional_int(row.get("away_score_for_prediction"))
+
+    score_pen_home = to_optional_int(row.get("score_pen_home"))
+    score_pen_away = to_optional_int(row.get("score_pen_away"))
+
+    winner_name = row.get("winner_team_name")
+
+    winner_valid = (
+        winner_name is not None
+        and not pd.isna(winner_name)
+        and str(winner_name).strip().lower() not in ["", "nan", "none"]
+    )
+
+    if actual_home is None or actual_away is None:
+        return "Trận đấu đã có kết quả, nhưng dữ liệu tỉ số chi tiết hiện chưa đủ để tạo tóm tắt."
+
+    if score_pen_home is not None and score_pen_away is not None and winner_valid:
+        return (
+            f"{home_name} và {away_name} hòa {actual_home}-{actual_away} sau hiệp phụ, "
+            f"trước khi {str(winner_name).strip()} thắng luân lưu {score_pen_home}-{score_pen_away}."
+        )
+
+    if winner_valid:
+        return (
+            f"{str(winner_name).strip()} vượt qua {home_name if str(winner_name).strip() == away_name else away_name} "
+            f"với tỉ số {actual_home}-{actual_away}, qua đó giành chiến thắng chung cuộc."
+        )
+
+    if actual_home == actual_away:
+        return (
+            f"{home_name} và {away_name} khép lại trận đấu với tỉ số hòa {actual_home}-{actual_away}. "
+            "Hiện chưa có thêm dữ liệu diễn biến chi tiết đáng tin cậy trong hệ thống."
+        )
+
+    winner = home_name if actual_home > actual_away else away_name
+    loser = away_name if actual_home > actual_away else home_name
+
+    return (
+        f"{winner} đánh bại {loser} với tỉ số {actual_home}-{actual_away}. "
+        "Tóm tắt này được tạo từ dữ liệu kết quả hiện có trong app."
+    )
+
+
+@st.cache_data(ttl=7 * 24 * 60 * 60, show_spinner=False)
+def generate_match_ai_summary(
+    match_id: int,
+    pair_label: str,
+    match_context: str,
+    local_fallback_summary: str,
+    use_google_search: bool = False
+) -> dict:
     api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
 
     if not api_key:
-        raise ValueError("Chưa cấu hình GEMINI_API_KEY trong Streamlit Secrets.")
+        return {
+            "summary": local_fallback_summary,
+            "sources": [],
+            "source_type": "local_fallback",
+            "note": "Chưa cấu hình Gemini API key, đã dùng tóm tắt từ dữ liệu trận."
+        }
 
     model_name = (
         os.getenv("GEMINI_SUMMARY_MODEL")
@@ -4130,80 +4234,121 @@ def generate_match_ai_summary(match_id: int, pair_label: str) -> dict:
 
     prompt = (
         "Bạn là một chuyên gia cập nhật tin tức World Cup 2026. "
-        f"Hãy cập nhật summary ngắn gọn 1-2 dòng về trận đấu gần nhất giữa {pair_label} "
-        "để cung cấp thêm cho người xem thông tin để họ hiểu hơn về những diễn biến trận đấu, "
-        "bổ sung thêm thông tin so với việc chỉ xem tỉ số và bàn thắng được ghi ở phút bao nhiêu. "
+        f"Hãy viết summary ngắn gọn 1-2 dòng về trận đấu gần nhất giữa {pair_label}. "
+        "Mục tiêu là giúp người xem hiểu thêm diễn biến trận đấu, không chỉ nhìn tỉ số. "
         "Chỉ trả lời bằng tiếng Việt. Không viết quá 2 dòng. "
-        "Nếu không tìm thấy thông tin đáng tin cậy, hãy nói ngắn gọn rằng hiện chưa có đủ dữ liệu diễn biến chi tiết."
+        "Không bịa thông tin. Nếu dữ liệu không đủ để mô tả thế trận hoặc bước ngoặt, "
+        "hãy tóm tắt dựa trên dữ liệu trận được cung cấp.\n\n"
+        "Dữ liệu trận trong app:\n"
+        f"{match_context}"
     )
 
-    response = client.models.generate_content(
-        model=model_name,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            tools=[
-                types.Tool(
-                    google_search=types.GoogleSearch()
-                )
-            ],
-            temperature=0.35,
-            max_output_tokens=220
+    def call_gemini(enable_search: bool):
+        if enable_search:
+            config = types.GenerateContentConfig(
+                tools=[
+                    types.Tool(
+                        google_search=types.GoogleSearch()
+                    )
+                ],
+                temperature=0.25,
+                max_output_tokens=180
+            )
+        else:
+            config = types.GenerateContentConfig(
+                temperature=0.25,
+                max_output_tokens=180
+            )
+
+        return client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=config
         )
-    )
-
-    summary_text = str(getattr(response, "text", "") or "").strip()
-
-    sources = []
 
     try:
-        candidates = getattr(response, "candidates", []) or []
+        try:
+            response = call_gemini(enable_search=use_google_search)
 
-        if candidates:
-            grounding_metadata = getattr(candidates[0], "grounding_metadata", None)
+        except Exception as first_error:
+            if use_google_search and is_gemini_quota_error(first_error):
+                response = call_gemini(enable_search=False)
+            else:
+                raise first_error
 
-            if grounding_metadata:
-                grounding_chunks = getattr(grounding_metadata, "grounding_chunks", []) or []
+        summary_text = str(getattr(response, "text", "") or "").strip()
 
-                for chunk in grounding_chunks:
-                    web = getattr(chunk, "web", None)
+        if not summary_text:
+            return {
+                "summary": local_fallback_summary,
+                "sources": [],
+                "source_type": "local_fallback",
+                "note": "Gemini chưa trả về nội dung phù hợp, đã dùng tóm tắt từ dữ liệu trận."
+            }
 
-                    if not web:
-                        continue
-
-                    source_url = getattr(web, "uri", "")
-                    source_title = getattr(web, "title", "")
-
-                    if source_url:
-                        sources.append({
-                            "title": source_title or "Nguồn tham khảo",
-                            "url": source_url
-                        })
-
-    except Exception:
         sources = []
 
-    unique_sources = []
-    seen_urls = set()
+        try:
+            candidates = getattr(response, "candidates", []) or []
 
-    for source in sources:
-        source_url = source.get("url", "")
+            if candidates:
+                grounding_metadata = getattr(candidates[0], "grounding_metadata", None)
 
-        if not source_url or source_url in seen_urls:
-            continue
+                if grounding_metadata:
+                    grounding_chunks = getattr(grounding_metadata, "grounding_chunks", []) or []
 
-        seen_urls.add(source_url)
-        unique_sources.append(source)
+                    for chunk in grounding_chunks:
+                        web = getattr(chunk, "web", None)
 
-    return {
-        "summary": summary_text,
-        "sources": unique_sources[:3]
-    }
+                        if not web:
+                            continue
+
+                        source_url = getattr(web, "uri", "")
+                        source_title = getattr(web, "title", "")
+
+                        if source_url:
+                            sources.append({
+                                "title": source_title or "Nguồn tham khảo",
+                                "url": source_url
+                            })
+
+        except Exception:
+            sources = []
+
+        unique_sources = []
+        seen_urls = set()
+
+        for source in sources:
+            source_url = source.get("url", "")
+
+            if not source_url or source_url in seen_urls:
+                continue
+
+            seen_urls.add(source_url)
+            unique_sources.append(source)
+
+        return {
+            "summary": summary_text,
+            "sources": unique_sources[:3],
+            "source_type": "gemini_search" if sources else "gemini_no_search",
+            "note": ""
+        }
+
+    except Exception as final_error:
+        note = (
+            "AI đang tạm quá tải hoặc hết quota, đã dùng tóm tắt từ dữ liệu trận."
+            if is_gemini_quota_error(final_error)
+            else "AI chưa phản hồi ổn định, đã dùng tóm tắt từ dữ liệu trận."
+        )
+
+        return {
+            "summary": local_fallback_summary,
+            "sources": [],
+            "source_type": "local_fallback",
+            "note": note
+        }
 
 def trigger_ai_summary_for_match(row):
-    """
-    Chỉ render nút AI Summary.
-    Đặt hàm này ở cột phải, phía trên box Kết quả.
-    """
     match_id = int(row["match_id"])
 
     home_name = row.get("home_team_name")
@@ -4217,11 +4362,7 @@ def trigger_ai_summary_for_match(row):
     summary_state_key = f"ai_summary_result_{match_id}"
     error_state_key = f"ai_summary_error_{match_id}"
 
-    button_label = (
-        "✨ AI Summary"
-        if summary_state_key in st.session_state
-        else "✨ AI Summary"
-    )
+    button_label = "✨ AI Summary"
 
     with stylable_container(
         key=f"ai_summary_top_right_button_shell_{match_id}",
@@ -4281,18 +4422,31 @@ def trigger_ai_summary_for_match(row):
     if clicked:
         st.session_state.pop(error_state_key, None)
 
-        try:
-            with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
-                ai_result = generate_match_ai_summary(
-                    match_id=match_id,
-                    pair_label=pair_label
-                )
+        use_google_search = str(
+            os.getenv(
+                "AI_SUMMARY_USE_GOOGLE_SEARCH",
+                st.secrets.get("AI_SUMMARY_USE_GOOGLE_SEARCH", "false")
+            )
+        ).strip().lower() in ["true", "1", "yes", "y"]
 
-            st.session_state[summary_state_key] = ai_result
+        match_context = build_match_summary_context(row)
+        local_fallback_summary = build_local_match_summary(row)
 
-        except Exception as e:
-            st.session_state[error_state_key] = str(e)
+        with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
+            ai_result = generate_match_ai_summary(
+                match_id=match_id,
+                pair_label=pair_label,
+                match_context=match_context,
+                local_fallback_summary=local_fallback_summary,
+                use_google_search=use_google_search
+            )
 
+        st.session_state[summary_state_key] = ai_result
+
+        note = str(ai_result.get("note", "")).strip()
+
+        if note:
+            st.session_state[error_state_key] = note
 
 def render_ai_summary_result_box(row):
     """
@@ -4306,10 +4460,7 @@ def render_ai_summary_result_box(row):
     error_state_key = f"ai_summary_error_{match_id}"
 
     if error_state_key in st.session_state:
-        st.error(
-            "Chưa tạo được AI Summary. "
-            f"Chi tiết lỗi: {st.session_state[error_state_key]}"
-        )
+        st.info(st.session_state[error_state_key])
 
     ai_result = st.session_state.get(summary_state_key)
 
@@ -4318,6 +4469,7 @@ def render_ai_summary_result_box(row):
 
     summary_text = str(ai_result.get("summary", "")).strip()
     sources = ai_result.get("sources", []) or []
+    source_type = str(ai_result.get("source_type", "")).strip()
 
     if not summary_text:
         st.warning("AI chưa trả về nội dung tóm tắt phù hợp.")
@@ -4329,7 +4481,7 @@ def render_ai_summary_result_box(row):
 
     if sources:
         source_links = []
-
+    
         for source in sources:
             safe_title = html.escape(
                 str(source.get("title", "Nguồn tham khảo")).strip()
@@ -4338,14 +4490,14 @@ def render_ai_summary_result_box(row):
                 str(source.get("url", "")).strip(),
                 quote=True
             )
-
+    
             if safe_url:
                 source_links.append(
                     f'<a href="{safe_url}" target="_blank" '
                     f'style="color:#0369A1;font-weight:800;text-decoration:none;">'
                     f'{safe_title}</a>'
                 )
-
+    
         if source_links:
             source_html = (
                 '<div style="'
@@ -4360,6 +4512,34 @@ def render_ai_summary_result_box(row):
                 + " · ".join(source_links)
                 + '</div>'
             )
+    
+    elif source_type == "local_fallback":
+        source_html = (
+            '<div style="'
+            'margin-top:10px;'
+            'padding-top:9px;'
+            'border-top:1px solid rgba(15,23,42,0.08);'
+            'font-size:12px;'
+            'color:#64748B;'
+            'line-height:1.45;'
+            '">'
+            'Nguồn: dữ liệu trận đấu trong app'
+            '</div>'
+        )
+    
+    elif source_type == "gemini_no_search":
+        source_html = (
+            '<div style="'
+            'margin-top:10px;'
+            'padding-top:9px;'
+            'border-top:1px solid rgba(15,23,42,0.08);'
+            'font-size:12px;'
+            'color:#64748B;'
+            'line-height:1.45;'
+            '">'
+            'Nguồn: Gemini + dữ liệu trận đấu trong app'
+            '</div>'
+        )
 
     st.markdown(
         f"""
