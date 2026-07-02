@@ -5,3 +5,4 @@ plotly
 sqlalchemy
 psycopg2-binary
 streamlit-cookies-controller
+openai>=1.99.0
