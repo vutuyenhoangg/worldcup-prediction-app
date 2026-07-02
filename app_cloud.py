@@ -5265,6 +5265,156 @@ def render_pending_star_transfer_box(user_id: int, match_id: int):
             st.session_state.pop("pending_star_transfer", None)
             st.rerun()
 
+@st.dialog("Xác nhận chuyển bổ trợ")
+def render_star_transfer_dialog(user_id: int):
+    pending = st.session_state.get("pending_star_transfer")
+
+    if not pending:
+        st.write("Không có bổ trợ nào cần chuyển.")
+        if st.button("Đóng", use_container_width=True):
+            st.rerun()
+        return
+
+    star_type = normalize_star_type(pending.get("star_type"))
+    star_label = format_star_short(star_type)
+    target_label = str(pending.get("target_label", "trận hiện tại"))
+
+    candidates = pending.get("candidates", [])
+
+    if not candidates:
+        st.session_state.pop("pending_star_transfer", None)
+        st.warning("Không còn trận hợp lệ để chuyển bổ trợ.")
+        if st.button("Đóng", use_container_width=True):
+            st.rerun()
+        return
+
+    candidate_options = {
+        candidate["label"]: candidate
+        for candidate in candidates
+    }
+
+    st.markdown(
+        f"""
+        <div style="
+            color:#475569;
+            font-size:14px;
+            line-height:1.5;
+            margin-bottom:14px;
+        ">
+            <b>{html.escape(star_label)}</b> đang được giữ ở trận khác.
+            Chọn trận muốn gỡ sao để chuyển sang
+            <b>{html.escape(target_label)}</b>.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    selected_source_label = st.selectbox(
+        "Chuyển từ trận:",
+        options=list(candidate_options.keys()),
+        key="star_transfer_source_modal"
+    )
+
+    col_confirm, col_cancel = st.columns([1, 1])
+
+    with col_confirm:
+        confirm_transfer = st.button(
+            "Chuyển sao",
+            type="primary",
+            use_container_width=True,
+            key="confirm_star_transfer_modal"
+        )
+
+    with col_cancel:
+        cancel_transfer = st.button(
+            "Hủy",
+            use_container_width=True,
+            key="cancel_star_transfer_modal"
+        )
+
+    if cancel_transfer:
+        st.session_state.pop("pending_star_transfer", None)
+        st.rerun()
+
+    if confirm_transfer:
+        selected_candidate = candidate_options[selected_source_label]
+        source_match_id = int(selected_candidate["match_id"])
+        target_match_id = int(pending["target_match_id"])
+
+        try:
+            source_match = get_match_by_id(source_match_id)
+
+            if source_match is None:
+                raise ValueError("Không tìm thấy trận đang giữ bổ trợ.")
+
+            if not can_edit_prediction(source_match["kickoff_time_utc"]):
+                raise ValueError(
+                    "Trận đang giữ bổ trợ đã khóa, không thể chuyển sao."
+                )
+
+            target_match = get_match_by_id(target_match_id)
+
+            if target_match is None:
+                raise ValueError("Không tìm thấy trận cần chuyển bổ trợ sang.")
+
+            if not can_edit_prediction(target_match["kickoff_time_utc"]):
+                raise ValueError(
+                    "Trận này vừa khóa dự đoán, không thể chuyển sao."
+                )
+
+            source_prediction = get_user_prediction_from_db(
+                user_id=user_id,
+                match_id=source_match_id
+            )
+
+            if source_prediction is None:
+                raise ValueError("Trận được chọn không còn giữ bổ trợ này.")
+
+            if normalize_star_type(source_prediction.get("star_type")) != star_type:
+                raise ValueError("Trận được chọn không còn giữ đúng loại bổ trợ này.")
+
+            execute_sql(
+                """
+                UPDATE predictions
+                SET
+                    star_type = 'none',
+                    base_points = NULL,
+                    star_bonus_points = NULL,
+                    points = NULL,
+                    updated_at = :updated_at
+                WHERE user_id = :user_id
+                  AND match_id = :source_match_id
+                  AND star_type = :star_type
+                """,
+                {
+                    "updated_at": now_utc_iso(),
+                    "user_id": int(user_id),
+                    "source_match_id": source_match_id,
+                    "star_type": star_type
+                }
+            )
+
+            clear_data_cache()
+
+            save_prediction(
+                user_id=user_id,
+                match_id=target_match_id,
+                predicted_home_score=int(pending["predicted_home_score"]),
+                predicted_away_score=int(pending["predicted_away_score"]),
+                predicted_winner_team_id=pending["predicted_winner_team_id"],
+                star_type=star_type
+            )
+
+            st.session_state.pop("pending_star_transfer", None)
+            st.session_state["star_transfer_success_message"] = (
+                "Đã chuyển bổ trợ và lưu dự đoán."
+            )
+
+            st.rerun()
+
+        except ValueError as e:
+            st.error(str(e))
+
 def render_match_card(
     row,
     user_id: int,
@@ -5367,188 +5517,6 @@ def render_match_card(
             })
 
         return candidates
-
-    def render_star_transfer_confirm_box():
-        """
-        Box xác nhận chuyển sao từ trận khác sang trận hiện tại.
-        Box này nằm ngoài form để Streamlit xử lý button xác nhận/hủy ổn định.
-        """
-        pending = st.session_state.get("pending_star_transfer")
-
-        if not pending:
-            return
-
-        if int(pending.get("target_match_id")) != int(match_id):
-            return
-
-        pending_star_type = normalize_star_type(pending.get("star_type"))
-        pending_star_label = format_star_short(pending_star_type)
-        candidates = pending.get("candidates", [])
-
-        if not candidates:
-            st.session_state.pop("pending_star_transfer", None)
-            return
-
-        candidate_options = {
-            candidate["label"]: candidate
-            for candidate in candidates
-        }
-
-        with stylable_container(
-            key=f"star_transfer_confirm_box_{match_id}",
-            css_styles="""
-            {
-                margin-top: 18px;
-                margin-bottom: 18px;
-                padding: 18px 20px;
-                border-radius: 20px;
-                border: 1px solid rgba(245, 158, 11, 0.42);
-                background:
-                    radial-gradient(circle at top left, rgba(245, 197, 66, 0.18), transparent 34%),
-                    linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.96));
-                box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
-            }
-
-            div[data-testid="stSelectbox"] label {
-                color: #07111F !important;
-                font-weight: 850 !important;
-            }
-
-            .stButton > button {
-                white-space: nowrap !important;
-            }
-
-            @media (max-width: 768px) {
-                {
-                    padding: 16px 14px !important;
-                }
-
-                .stButton > button {
-                    font-size: 13px !important;
-                    padding-left: 10px !important;
-                    padding-right: 10px !important;
-                }
-            }
-            """
-        ):
-            st.markdown(
-                f"""
-                <div style="
-                    color:#07111F;
-                    font-weight:950;
-                    font-size:18px;
-                    margin-bottom:6px;
-                    letter-spacing:-0.02em;
-                ">
-                    Xác nhận chuyển bổ trợ
-                </div>
-
-                <div style="
-                    color:#475569;
-                    font-size:14px;
-                    line-height:1.55;
-                    margin-bottom:14px;
-                ">
-                    Bạn đang muốn dùng <b>{html.escape(pending_star_label)}</b> cho trận
-                    <b>{html.escape(str(pending.get("target_label")))}</b>.
-                    Tuy nhiên bổ trợ này đang được giữ tạm ở trận khác chưa diễn ra.
-                    Hãy chọn trận muốn gỡ sao để chuyển sang trận hiện tại.
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            selected_source_label = st.selectbox(
-                "Chọn trận muốn chuyển sao từ:",
-                options=list(candidate_options.keys()),
-                key=f"star_transfer_source_{match_id}"
-            )
-
-            confirm_col, cancel_col = st.columns([1, 1])
-
-            with confirm_col:
-                confirm_transfer = st.button(
-                    "Xác nhận chuyển sao",
-                    key=f"confirm_star_transfer_{match_id}",
-                    use_container_width=True
-                )
-
-            with cancel_col:
-                cancel_transfer = st.button(
-                    "Hủy",
-                    key=f"cancel_star_transfer_{match_id}",
-                    use_container_width=True
-                )
-
-            if confirm_transfer:
-                selected_candidate = candidate_options[selected_source_label]
-                source_match_id = int(selected_candidate["match_id"])
-
-                try:
-                    source_match = get_match_by_id(source_match_id)
-
-                    if source_match is None:
-                        raise ValueError("Không tìm thấy trận đang giữ bổ trợ.")
-
-                    if not can_edit_prediction(source_match["kickoff_time_utc"]):
-                        raise ValueError(
-                            "Trận đang giữ bổ trợ đã khóa dự đoán, không thể chuyển sao nữa."
-                        )
-
-                    source_prediction = get_user_prediction_from_db(
-                        user_id=user_id,
-                        match_id=source_match_id
-                    )
-
-                    if source_prediction is None:
-                        raise ValueError("Trận được chọn không còn giữ bổ trợ này.")
-
-                    if normalize_star_type(source_prediction.get("star_type")) != pending_star_type:
-                        raise ValueError("Trận được chọn không còn giữ đúng loại bổ trợ này.")
-
-                    execute_sql(
-                        """
-                        UPDATE predictions
-                        SET
-                            star_type = 'none',
-                            base_points = NULL,
-                            star_bonus_points = NULL,
-                            points = NULL,
-                            updated_at = :updated_at
-                        WHERE user_id = :user_id
-                          AND match_id = :source_match_id
-                          AND star_type = :star_type
-                        """,
-                        {
-                            "updated_at": now_utc_iso(),
-                            "user_id": int(user_id),
-                            "source_match_id": source_match_id,
-                            "star_type": pending_star_type
-                        }
-                    )
-
-                    clear_data_cache()
-
-                    save_prediction(
-                        user_id=user_id,
-                        match_id=int(pending["target_match_id"]),
-                        predicted_home_score=int(pending["predicted_home_score"]),
-                        predicted_away_score=int(pending["predicted_away_score"]),
-                        predicted_winner_team_id=pending["predicted_winner_team_id"],
-                        star_type=pending_star_type
-                    )
-
-                    st.session_state.pop("pending_star_transfer", None)
-
-                    st.success("Đã chuyển bổ trợ và lưu dự đoán.")
-                    st.rerun()
-
-                except ValueError as e:
-                    st.error(str(e))
-
-            if cancel_transfer:
-                st.session_state.pop("pending_star_transfer", None)
-                st.rerun()
 
     with stylable_container(
         key=f"match_card_{match_id}",
@@ -5907,33 +5875,70 @@ def render_match_card(
             if disable_hope_option:
                 star_radio_css += """
                 label[data-baseweb="radio"]:nth-of-type(2) {
-                    opacity: 0.48 !important;
+                    opacity: 0.46 !important;
                     pointer-events: none !important;
                     color: #94A3B8 !important;
-                    background: rgba(148, 163, 184, 0.08) !important;
-                    border-color: rgba(148, 163, 184, 0.16) !important;
+                    background: transparent !important;
+                    border-color: transparent !important;
+                    box-shadow: none !important;
                 }
-
+            
                 label[data-baseweb="radio"]:nth-of-type(2) * {
                     color: #94A3B8 !important;
+                }
+            
+                label[data-baseweb="radio"]:nth-of-type(2) > div:first-child {
+                    border-color: #CBD5E1 !important;
+                    background: #F8FAFC !important;
+                    box-shadow: none !important;
+                }
+            
+                label[data-baseweb="radio"]:nth-of-type(2):hover {
+                    background: transparent !important;
+                    border-color: transparent !important;
+                    box-shadow: none !important;
+                }
+            
+                label[data-baseweb="radio"]:nth-of-type(2):hover > div:first-child {
+                    border-color: #CBD5E1 !important;
+                    background: #F8FAFC !important;
+                    box-shadow: none !important;
                 }
                 """
 
             if disable_super_option:
                 star_radio_css += """
                 label[data-baseweb="radio"]:nth-of-type(3) {
-                    opacity: 0.48 !important;
+                    opacity: 0.46 !important;
                     pointer-events: none !important;
                     color: #94A3B8 !important;
-                    background: rgba(148, 163, 184, 0.08) !important;
-                    border-color: rgba(148, 163, 184, 0.16) !important;
+                    background: transparent !important;
+                    border-color: transparent !important;
+                    box-shadow: none !important;
                 }
-
+            
                 label[data-baseweb="radio"]:nth-of-type(3) * {
                     color: #94A3B8 !important;
                 }
+            
+                label[data-baseweb="radio"]:nth-of-type(3) > div:first-child {
+                    border-color: #CBD5E1 !important;
+                    background: #F8FAFC !important;
+                    box-shadow: none !important;
+                }
+            
+                label[data-baseweb="radio"]:nth-of-type(3):hover {
+                    background: transparent !important;
+                    border-color: transparent !important;
+                    box-shadow: none !important;
+                }
+            
+                label[data-baseweb="radio"]:nth-of-type(3):hover > div:first-child {
+                    border-color: #CBD5E1 !important;
+                    background: #F8FAFC !important;
+                    box-shadow: none !important;
+                }
                 """
-
             def format_star_option_label_for_card(star_type):
                 star_type = normalize_star_type(star_type)
 
@@ -6141,8 +6146,6 @@ def render_match_card(
                 except ValueError as e:
                     st.error(str(e))
 
-        render_star_transfer_confirm_box()
-
         render_match_venue_footer(row, match_id)
 
 # ============================================================
@@ -6166,6 +6169,16 @@ def page_matches():
     render_kpi_tiles(matches)
 
     user_id = st.session_state["user"]["user_id"]
+    success_message = st.session_state.pop(
+        "star_transfer_success_message",
+        None
+    )
+    
+    if success_message:
+        st.success(success_message)
+    
+    if st.session_state.get("pending_star_transfer"):
+        render_star_transfer_dialog(user_id)
     render_star_balance(user_id)
     render_scoring_rules()
 
