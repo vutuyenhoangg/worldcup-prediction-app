@@ -22,9 +22,7 @@ import plotly.express as px
 from streamlit_extras.stylable_container import stylable_container
 import secrets
 from streamlit_cookies_controller import CookieController
-from google import genai
-from google.genai import types
-import re
+
 
 # ============================================================
 # 1. CONFIG
@@ -745,6 +743,52 @@ def inject_worldcup_theme():
             color: #64748B !important;
             stroke: #64748B !important;
         }}
+        .wc-match-title-mobile {{
+            display: none;
+        }}
+
+        @media (max-width: 768px) {{
+            .wc-match-title-mobile {{
+                display: block;
+                width: 100%;
+                max-width: 100%;
+                margin: 2px 0 10px 0;
+            }}
+
+            .wc-match-title-mobile .wc-match-team {{
+                display: block;
+                width: 100%;
+                max-width: 100%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                color: #07111F;
+                font-size: clamp(20px, 5.6vw, 23px);
+                line-height: 1.13;
+                font-weight: 950;
+                letter-spacing: -0.035em;
+            }}
+
+            .wc-match-title-mobile .wc-match-vs {{
+                display: block;
+                width: 100%;
+                color: #07111F;
+                font-size: clamp(18px, 5vw, 21px);
+                line-height: 1.08;
+                font-weight: 950;
+                letter-spacing: -0.025em;
+            }}
+        }}
+
+        @media (max-width: 390px) {{
+            .wc-match-title-mobile .wc-match-team {{
+                font-size: 20px;
+            }}
+
+            .wc-match-title-mobile .wc-match-vs {{
+                font-size: 18px;
+            }}
+        }}
         @media (max-width: 900px) {{
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
@@ -1043,6 +1087,43 @@ def get_prediction_radio_css():
     }
     """
 
+def get_star_radio_css(
+    disable_hope: bool = False,
+    disable_super: bool = False
+) -> str:
+    css = get_prediction_radio_css()
+
+    if disable_hope:
+        css += """
+        label[data-baseweb="radio"]:nth-of-type(2) {
+            opacity: 0.48 !important;
+            pointer-events: none !important;
+            color: #94A3B8 !important;
+            background: rgba(148, 163, 184, 0.08) !important;
+            border-color: rgba(148, 163, 184, 0.16) !important;
+        }
+
+        label[data-baseweb="radio"]:nth-of-type(2) * {
+            color: #94A3B8 !important;
+        }
+        """
+
+    if disable_super:
+        css += """
+        label[data-baseweb="radio"]:nth-of-type(3) {
+            opacity: 0.48 !important;
+            pointer-events: none !important;
+            color: #94A3B8 !important;
+            background: rgba(148, 163, 184, 0.08) !important;
+            border-color: rgba(148, 163, 184, 0.16) !important;
+        }
+
+        label[data-baseweb="radio"]:nth-of-type(3) * {
+            color: #94A3B8 !important;
+        }
+        """
+
+    return css
 
 def get_prediction_action_spacing_css():
     return """
@@ -1267,6 +1348,18 @@ def render_page_title(title: str, subtitle: str = ""):
     )
 
 
+def render_status_legend():
+    st.markdown(
+        """
+        <div class="wc-status-legend">
+            <div class="wc-legend-item"><span class="wc-dot" style="background:#2563EB;"></span>Đang mở dự đoán</div>
+            <div class="wc-legend-item"><span class="wc-dot" style="background:#F59E0B;"></span>Đã khóa</div>
+            <div class="wc-legend-item"><span class="wc-dot" style="background:#16A34A;"></span>Đã có kết quả</div>
+            <div class="wc-legend-item"><span class="wc-dot" style="background:#9CA3AF;"></span>Chưa xác định đội</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 def render_kpi_tiles(matches: pd.DataFrame):
@@ -2701,8 +2794,79 @@ def validate_star_quota(user_id: int, match_id: int, star_type: str):
         raise ValueError("Bạn đã dùng hết Siêu sao.")
 
 
+def get_available_star_options(
+    user_id: int,
+    match_id: int,
+    current_star_type: str,
+    usage: dict | None = None
+) -> list[str]:
+    """
+    Luôn hiển thị đủ các option bổ trợ.
+    Option hết thật sẽ được xử lý bằng label xám + validate khi lưu.
+    """
+    return [
+        STAR_TYPE_NONE,
+        STAR_TYPE_HOPE,
+        STAR_TYPE_SUPER
+    ]
 
 
+def format_star_option_label(
+    star_type: str,
+    current_star_type: str,
+    usage: dict
+) -> str:
+    star_type = normalize_star_type(star_type)
+    current_star_type = normalize_star_type(current_star_type)
+
+    if star_type == STAR_TYPE_NONE:
+        return "Không dùng sao"
+
+    if star_type == STAR_TYPE_HOPE:
+        hope_label = STAR_CONFIG[STAR_TYPE_HOPE]["label"]
+
+        hope_left = int(usage.get("hope_left", 0))
+        hope_reserved_used = int(usage.get("hope_reserved_used", 0))
+
+        if hope_left <= 0 and current_star_type != STAR_TYPE_HOPE:
+            return f"{hope_label} (đã hết)"
+
+        if current_star_type == STAR_TYPE_HOPE:
+            return (
+                f"{hope_label} "
+                f"(Đang dùng; Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
+                f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
+            )
+
+        return (
+            f"{hope_label} "
+            f"(Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
+            f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
+        )
+
+    if star_type == STAR_TYPE_SUPER:
+        super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
+
+        super_left = int(usage.get("super_left", 0))
+        super_reserved_used = int(usage.get("super_reserved_used", 0))
+
+        if super_left <= 0 and current_star_type != STAR_TYPE_SUPER:
+            return f"{super_label} (đã hết)"
+
+        if current_star_type == STAR_TYPE_SUPER:
+            return (
+                f"{super_label} "
+                f"(Đang dùng; Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
+                f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
+            )
+
+        return (
+            f"{super_label} "
+            f"(Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
+            f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
+        )
+
+    return STAR_CONFIG[star_type]["label"]
 
 def get_prediction_result_info(
     pred_home,
@@ -2786,6 +2950,36 @@ def get_prediction_result_info(
     }
 
 
+def render_prediction_result_line(result_info):
+    if result_info is None:
+        return
+
+    st.markdown(
+        f"""
+        <div style="
+            margin-top: 8px;
+            margin-bottom: 8px;
+            font-size: 15px;
+            color: #07111F;
+        ">
+            Kết quả dự đoán:
+            <span style="
+                display: inline-block;
+                margin-left: 6px;
+                padding: 5px 11px;
+                border-radius: 999px;
+                background: {result_info["bg_color"]};
+                color: {result_info["text_color"]};
+                border: 1px solid {result_info["border_color"]};
+                font-weight: 850;
+                font-size: 14px;
+            ">
+                {result_info["label"]}
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def calculate_display_points_for_prediction(existing, match_row) -> dict | None:
     """
@@ -3897,622 +4091,6 @@ def render_goal_scorers_for_match(match_id: int):
         unsafe_allow_html=True
     )
 
-
-
-def get_config_value(name: str, default: str = "") -> str:
-    """
-    Lấy config ưu tiên từ st.secrets trước, rồi mới tới env.
-    Tránh trường hợp app dùng nhầm env var/API key cũ.
-    """
-    try:
-        value = st.secrets.get(name, None)
-    except Exception:
-        value = None
-
-    if value is None:
-        value = os.getenv(name, default)
-
-    return str(value or default).strip()
-
-
-def is_truthy_config(name: str, default: str = "false") -> bool:
-    return get_config_value(name, default).strip().lower() in [
-        "true",
-        "1",
-        "yes",
-        "y",
-        "on"
-    ]
-
-
-def mask_api_key(api_key: str) -> str:
-    api_key = str(api_key or "").strip()
-
-    if len(api_key) <= 12:
-        return "***"
-
-    return f"{api_key[:6]}...{api_key[-4:]}"
-
-
-def extract_gemini_error_text(error: Exception) -> str:
-    """
-    Lấy lỗi Gemini ở dạng text ngắn để debug.
-    Không hiển thị API key.
-    """
-    text = str(error or "").strip()
-
-    if not text:
-        return "Không rõ lỗi."
-
-    text = re.sub(r"AIza[0-9A-Za-z_\-]+", "AIza***", text)
-    text = re.sub(r"\s+", " ", text)
-
-    return text[:1200]
-
-
-def build_match_summary_context(row) -> str:
-    home_name = str(row.get("home_team_name", "")).strip()
-    away_name = str(row.get("away_team_name", "")).strip()
-
-    actual_home = to_optional_int(row.get("home_score_for_prediction"))
-    actual_away = to_optional_int(row.get("away_score_for_prediction"))
-
-    score_ft_home = to_optional_int(row.get("score_ft_home"))
-    score_ft_away = to_optional_int(row.get("score_ft_away"))
-
-    score_et_home = to_optional_int(row.get("score_et_home"))
-    score_et_away = to_optional_int(row.get("score_et_away"))
-
-    score_pen_home = to_optional_int(row.get("score_pen_home"))
-    score_pen_away = to_optional_int(row.get("score_pen_away"))
-
-    winner_name = row.get("winner_team_name")
-
-    if winner_name is None or pd.isna(winner_name) or str(winner_name).strip() == "":
-        winner_name = ""
-
-    venue = normalize_venue_text(row.get("venue"))
-
-    context_lines = [
-        f"Trận đấu: {home_name} vs {away_name}",
-        f"Vòng đấu: {row.get('round_name', '')}",
-        f"Thời gian VN: {row.get('kickoff_weekday_vietnam', '')} {row.get('kickoff_date_display_vietnam', row.get('kickoff_date_vietnam', ''))} lúc {row.get('kickoff_time_vietnam', '')}",
-        f"Sân: {venue}",
-        f"Tỉ số dùng để chấm dự đoán: {actual_home} - {actual_away}",
-        f"Tỉ số 90 phút: {score_ft_home} - {score_ft_away}",
-        f"Tỉ số sau hiệp phụ: {score_et_home} - {score_et_away}",
-        f"Penalty: {score_pen_home} - {score_pen_away}",
-        f"Đội thắng chung cuộc: {winner_name}",
-    ]
-
-    return "\n".join(context_lines)
-
-
-def build_local_match_summary(row) -> str:
-    home_name = str(row.get("home_team_name", "")).strip()
-    away_name = str(row.get("away_team_name", "")).strip()
-
-    actual_home = to_optional_int(row.get("home_score_for_prediction"))
-    actual_away = to_optional_int(row.get("away_score_for_prediction"))
-
-    score_pen_home = to_optional_int(row.get("score_pen_home"))
-    score_pen_away = to_optional_int(row.get("score_pen_away"))
-
-    winner_name = row.get("winner_team_name")
-
-    winner_valid = (
-        winner_name is not None
-        and not pd.isna(winner_name)
-        and str(winner_name).strip().lower() not in ["", "nan", "none"]
-    )
-
-    if actual_home is None or actual_away is None:
-        return "Trận đấu đã có kết quả, nhưng dữ liệu tỉ số chi tiết hiện chưa đủ để tạo tóm tắt."
-
-    if score_pen_home is not None and score_pen_away is not None and winner_valid:
-        return (
-            f"{home_name} và {away_name} hòa {actual_home}-{actual_away} sau hiệp phụ, "
-            f"trước khi {str(winner_name).strip()} thắng luân lưu {score_pen_home}-{score_pen_away}."
-        )
-
-    if winner_valid:
-        return (
-            f"{str(winner_name).strip()} vượt qua {home_name if str(winner_name).strip() == away_name else away_name} "
-            f"với tỉ số {actual_home}-{actual_away}, qua đó giành chiến thắng chung cuộc."
-        )
-
-    if actual_home == actual_away:
-        return (
-            f"{home_name} và {away_name} khép lại trận đấu với tỉ số hòa {actual_home}-{actual_away}. "
-            "Hiện chưa có thêm dữ liệu diễn biến chi tiết đáng tin cậy trong hệ thống."
-        )
-
-    winner = home_name if actual_home > actual_away else away_name
-    loser = away_name if actual_home > actual_away else home_name
-
-    return (
-        f"{winner} đánh bại {loser} với tỉ số {actual_home}-{actual_away}. "
-        "Tóm tắt này được tạo từ dữ liệu kết quả hiện có trong app."
-    )
-
-def generate_match_ai_summary(
-    match_id: int,
-    pair_label: str,
-    match_context: str,
-    local_fallback_summary: str,
-    use_google_search: bool = False
-) -> dict:
-    api_key = get_config_value("GEMINI_API_KEY", "")
-
-    if not api_key:
-        return {
-            "summary": clean_ai_summary_text(local_fallback_summary),
-            "sources": [],
-            "source_type": "local_fallback",
-            "note": "Chưa cấu hình GEMINI_API_KEY, đã dùng tóm tắt từ dữ liệu trận.",
-            "debug_error": "Missing GEMINI_API_KEY"
-        }
-
-    model_name = get_config_value(
-        "GEMINI_SUMMARY_MODEL",
-        "gemini-2.5-flash"
-    )
-
-    client = genai.Client(api_key=api_key)
-
-    match_date_text = ""
-
-    try:
-        for line in str(match_context or "").splitlines():
-            if line.startswith("Thời gian VN:"):
-                match_date_text = line.replace("Thời gian VN:", "").strip()
-                break
-    except Exception:
-        match_date_text = ""
-
-    if not match_date_text:
-        match_date_text = "không rõ ngày"
-    
-    prompt = (
-            "Bạn là một chuyên gia cập nhật tin tức bóng đá và World Cup 2026. "
-            f"Hãy viết summary về trận đấu ngày {match_date_text} giữa {pair_label} trong khuôn khổ World Cup 2026. "
-            "Mục tiêu là giúp người xem hiểu thêm về diễn biến trận đấu, thế trận, các tình huống đáng chú ý, "
-            "bổ sung thêm thông tin so với việc chỉ nhìn tỉ số và cầu thủ ghi bàn. "
-            "Chỉ trả lời bằng tiếng Việt, không quá 100 chữ. "
-            "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
-            "Không thêm tiêu đề, không thêm nhãn 'AI Summary', không thêm phần 'Nguồn'. "
-            "Có thể viết đầy đủ nhiều câu nếu cần, miễn là rõ ràng và dễ hiểu.\n\n"
-            "Dữ liệu trận trong app để đối chiếu:\n"
-            f"{match_context}"
-        )
-
-    def call_gemini(enable_search: bool):
-        if enable_search:
-            config = types.GenerateContentConfig(
-                tools=[
-                    types.Tool(
-                        google_search=types.GoogleSearch()
-                    )
-                ],
-                temperature=0.25,
-                max_output_tokens=700
-            )
-        else:
-            config = types.GenerateContentConfig(
-                temperature=0.25,
-                max_output_tokens=700
-            )
-
-        return client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=config
-        )
-
-    try:
-        response = call_gemini(enable_search=use_google_search)
-
-        summary_text = clean_ai_summary_text(
-            getattr(response, "text", "") or ""
-        )
-
-        if not summary_text:
-            return {
-                "summary": clean_ai_summary_text(local_fallback_summary),
-                "sources": [],
-                "source_type": "local_fallback",
-                "note": "AI chưa trả về nội dung phù hợp, đã dùng tóm tắt từ dữ liệu trận.",
-                "debug_error": "Empty Gemini response"
-            }
-
-        return {
-            "summary": summary_text,
-            "sources": [],
-            "source_type": "gemini_google_search" if use_google_search else "gemini_no_search",
-            "note": "",
-            "debug_error": ""
-        }
-
-    except Exception as search_error:
-        search_error_text = extract_gemini_error_text(search_error)
-
-        # Nếu đang bật Google Search mà search lỗi, thử gọi Gemini không search
-        # để app vẫn có summary tốt hơn fallback cứng.
-        if use_google_search:
-            try:
-                response_no_search = call_gemini(enable_search=False)
-
-                summary_text = clean_ai_summary_text(
-                    getattr(response_no_search, "text", "") or ""
-                )
-
-                if summary_text:
-                    return {
-                        "summary": summary_text,
-                        "sources": [],
-                        "source_type": "gemini_no_search_after_search_failed",
-                        "note": "Google Search Grounding chưa khả dụng, đã dùng Gemini không search.",
-                        "debug_error": search_error_text
-                    }
-
-            except Exception as no_search_error:
-                no_search_error_text = extract_gemini_error_text(no_search_error)
-
-                return {
-                    "summary": clean_ai_summary_text(local_fallback_summary),
-                    "sources": [],
-                    "source_type": "local_fallback",
-                    "note": "AI Search chưa khả dụng, đã dùng tóm tắt từ dữ liệu trận.",
-                    "debug_error": (
-                        "Search error: "
-                        + search_error_text
-                        + " | No-search error: "
-                        + no_search_error_text
-                    )
-                }
-
-        return {
-            "summary": clean_ai_summary_text(local_fallback_summary),
-            "sources": [],
-            "source_type": "local_fallback",
-            "note": "AI chưa phản hồi ổn định, đã dùng tóm tắt từ dữ liệu trận.",
-            "debug_error": search_error_text
-        }
-def clean_ai_summary_text(value) -> str:
-    """
-    Làm sạch nội dung AI trả về:
-    - Bỏ HTML/CSS/code block.
-    - Bỏ phần nguồn nếu AI tự thêm.
-    - Giữ lại toàn bộ phần summary chính, không cắt cụt câu trả lời.
-    """
-    text = str(value or "").strip()
-
-    if not text:
-        return ""
-
-    text = html.unescape(text)
-
-    text = text.replace("```html", "")
-    text = text.replace("```HTML", "")
-    text = text.replace("```python", "")
-    text = text.replace("```", "")
-
-    text = re.sub(
-        r"<script[\s\S]*?</script>",
-        " ",
-        text,
-        flags=re.IGNORECASE
-    )
-
-    text = re.sub(
-        r"<style[\s\S]*?</style>",
-        " ",
-        text,
-        flags=re.IGNORECASE
-    )
-
-    text = re.sub(
-        r"<[^>]+>",
-        " ",
-        text
-    )
-
-    source_markers = [
-        "Nguồn:",
-        "Nguồn tham khảo:",
-        "Sources:",
-        "Source:"
-    ]
-
-    for marker in source_markers:
-        if marker in text:
-            text = text.split(marker, 1)[0].strip()
-
-    text = re.sub(r"\s+", " ", text).strip()
-
-    return text
-
-def clear_ai_summary_session_state():
-    """
-    Xóa AI Summary đang lưu trong session hiện tại.
-    Dùng khi đổi logic AI, đổi quota, đổi model hoặc bật/tắt Google Search.
-    """
-    for key in list(st.session_state.keys()):
-        key_text = str(key)
-
-        if (
-            key_text.startswith("ai_summary_result_")
-            or key_text.startswith("ai_summary_error_")
-            or key_text.startswith("ai_summary_refresh_")
-            or key_text == "active_ai_summary_dialog_match_id"
-        ):
-            st.session_state.pop(key, None)
-
-def trigger_ai_summary_for_match(row):
-    """
-    Render nút AI Summary ở góc phải card.
-    - Nếu đã có summary Google Search hợp lệ: chỉ mở popup xem lại.
-    - Nếu lần trước bị fallback/no-search/quota/lỗi: cho phép gọi lại Gemini Search.
-    """
-    match_id = int(row["match_id"])
-
-    home_name = row.get("home_team_name")
-    away_name = row.get("away_team_name")
-
-    if is_unknown_team(home_name) or is_unknown_team(away_name):
-        return
-
-    pair_label = f"{home_name} và {away_name}"
-
-    summary_state_key = f"ai_summary_result_{match_id}"
-    error_state_key = f"ai_summary_error_{match_id}"
-
-    use_google_search = is_truthy_config(
-        "AI_SUMMARY_USE_GOOGLE_SEARCH",
-        "false"
-    )
-
-    with stylable_container(
-        key=f"ai_summary_top_right_button_shell_{match_id}",
-        css_styles="""
-        {
-            width: 100%;
-            margin: 0 0 10px 0;
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        button {
-            width: auto !important;
-            min-height: 36px !important;
-            padding: 7px 14px !important;
-            border-radius: 999px !important;
-            font-size: 13px !important;
-            font-weight: 850 !important;
-            white-space: nowrap !important;
-            background: rgba(255, 255, 255, 0.88) !important;
-            border: 1px solid rgba(245, 197, 66, 0.55) !important;
-            color: #07111F !important;
-            box-shadow: 0 7px 18px rgba(18, 60, 105, 0.08) !important;
-        }
-
-        button:hover {
-            border-color: #F5C542 !important;
-            background: #FFF7ED !important;
-            transform: translateY(-1px) !important;
-        }
-
-        button * {
-            white-space: nowrap !important;
-        }
-
-        @media (max-width: 768px) {
-            {
-                justify-content: flex-start;
-                margin-top: 12px;
-                margin-bottom: 10px;
-            }
-
-            button {
-                min-height: 40px !important;
-                padding: 8px 14px !important;
-                font-size: 13px !important;
-            }
-        }
-        """
-    ):
-        clicked = st.button(
-            "✨ AI Summary",
-            key=f"ai_summary_button_{match_id}",
-            help="Xem tóm tắt diễn biến trận đấu."
-        )
-
-    if not clicked:
-        return
-
-    existing_ai_result = st.session_state.get(summary_state_key)
-
-    if existing_ai_result:
-        existing_source_type = str(
-            existing_ai_result.get("source_type", "")
-        ).strip()
-
-        existing_note = str(
-            existing_ai_result.get("note", "")
-        ).strip()
-
-        existing_summary = clean_ai_summary_text(
-            existing_ai_result.get("summary", "")
-        )
-
-        if use_google_search:
-            is_valid_saved_summary = (
-                existing_source_type == "gemini_google_search"
-                and not existing_note
-                and existing_summary
-            )
-        else:
-            is_valid_saved_summary = (
-                existing_source_type in [
-                    "gemini_google_search",
-                    "gemini_no_search",
-                    "gemini_no_search_after_search_failed",
-                    "gemini_no_source_display"
-                ]
-                and existing_summary
-            )
-
-        if is_valid_saved_summary:
-            st.session_state["active_ai_summary_dialog_match_id"] = match_id
-            st.rerun()
-
-        # Nếu lần trước là fallback/no-search/search failed thì xóa để gọi lại.
-        st.session_state.pop(summary_state_key, None)
-        st.session_state.pop(error_state_key, None)
-
-    match_context = build_match_summary_context(row)
-    local_fallback_summary = build_local_match_summary(row)
-
-    with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
-        ai_result = generate_match_ai_summary(
-            match_id=match_id,
-            pair_label=pair_label,
-            match_context=match_context,
-            local_fallback_summary=local_fallback_summary,
-            use_google_search=use_google_search
-        )
-
-    ai_result["summary"] = clean_ai_summary_text(
-        ai_result.get("summary", "")
-    )
-
-    st.session_state[summary_state_key] = ai_result
-
-    note = str(ai_result.get("note", "")).strip()
-
-    if note:
-        st.session_state[error_state_key] = note
-    else:
-        st.session_state.pop(error_state_key, None)
-
-    st.session_state["active_ai_summary_dialog_match_id"] = match_id
-    st.rerun()
-
-@st.dialog("✨ AI Summary")
-def render_ai_summary_dialog(row):
-    match_id = int(row["match_id"])
-
-    home_name = str(row.get("home_team_name", "")).strip()
-    away_name = str(row.get("away_team_name", "")).strip()
-
-    summary_state_key = f"ai_summary_result_{match_id}"
-    error_state_key = f"ai_summary_error_{match_id}"
-
-    actual_home = to_optional_int(row.get("home_score_for_prediction"))
-    actual_away = to_optional_int(row.get("away_score_for_prediction"))
-
-    score_text = ""
-
-    if actual_home is not None and actual_away is not None:
-        score_text = f"{actual_home} - {actual_away}"
-
-    st.markdown(
-        f"""
-        <div style="
-            margin-bottom: 14px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-        ">
-            <div style="
-                color:#07111F;
-                font-weight:950;
-                font-size:18px;
-                line-height:1.25;
-                letter-spacing:-0.02em;
-            ">
-                {html.escape(home_name)} vs {html.escape(away_name)}
-            </div>
-            <div style="
-                color:#64748B;
-                font-size:13px;
-                margin-top:5px;
-                line-height:1.4;
-            ">
-                {html.escape(str(row.get("round_name", "")))}{f" · Kết quả: {html.escape(score_text)}" if score_text else ""}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    if error_state_key in st.session_state:
-        st.info(st.session_state[error_state_key])
-
-    ai_result = st.session_state.get(summary_state_key)
-    show_ai_debug = (
-        st.session_state.get("user", {}).get("role") == "admin"
-        and is_truthy_config("AI_SUMMARY_DEBUG", "false")
-    )
-
-    if show_ai_debug and ai_result:
-        with st.expander("Debug AI Summary", expanded=False):
-            st.write({
-                "source_type": ai_result.get("source_type"),
-                "note": ai_result.get("note"),
-                "debug_error": ai_result.get("debug_error"),
-                "model": get_config_value("GEMINI_SUMMARY_MODEL", "gemini-2.5-flash"),
-                "use_google_search": is_truthy_config("AI_SUMMARY_USE_GOOGLE_SEARCH", "false"),
-                "api_key": mask_api_key(get_config_value("GEMINI_API_KEY", ""))
-            })
-
-    if not ai_result:
-        st.info("Chưa có AI Summary cho trận này.")
-
-    else:
-        summary_text = clean_ai_summary_text(
-            ai_result.get("summary", "")
-        )
-
-        if summary_text:
-            safe_summary = html.escape(summary_text).replace("\n", "<br>")
-
-            st.markdown(
-                f"""
-                <div style="
-                    padding: 15px 17px;
-                    border-radius: 18px;
-                    border: 1px solid rgba(37, 99, 235, 0.18);
-                    background:
-                        radial-gradient(circle at top left, rgba(0, 180, 216, 0.10), transparent 32%),
-                        linear-gradient(135deg, rgba(239, 246, 255, 0.96), rgba(255, 255, 255, 0.96));
-                    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
-                    color:#334155;
-                    font-size:14px;
-                    line-height:1.65;
-                    margin-bottom: 16px;
-                    white-space: normal;
-                    word-break: normal;
-                    overflow-wrap: break-word;
-                ">
-                    {safe_summary}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        else:
-            st.info("AI chưa trả về nội dung tóm tắt phù hợp.")
-
-    close_clicked = st.button(
-        "Đóng",
-        use_container_width=True,
-        key=f"close_ai_summary_dialog_{match_id}"
-    )
-
-    if close_clicked:
-        st.session_state.pop("active_ai_summary_dialog_match_id", None)
-        st.rerun()
-
 def clear_data_cache():
     """
     Xóa cache dữ liệu đọc từ Supabase sau khi có thao tác ghi dữ liệu.
@@ -4812,6 +4390,84 @@ def get_star_transfer_candidates(
     return candidates
 
 
+def get_star_save_plan(
+    user_id: int,
+    match_id: int,
+    selected_star_type: str,
+    current_star_type: str
+) -> dict:
+    """
+    Quyết định khi lưu:
+    - save_direct: lưu thẳng.
+    - exhausted: sao đã hết thật.
+    - transfer_required: cần hỏi chuyển sao từ trận khác.
+    """
+    selected_star_type = normalize_star_type(selected_star_type)
+    current_star_type = normalize_star_type(current_star_type)
+
+    if selected_star_type == STAR_TYPE_NONE:
+        return {
+            "status": "save_direct",
+            "candidates": []
+        }
+
+    if selected_star_type == current_star_type:
+        return {
+            "status": "save_direct",
+            "candidates": []
+        }
+
+    usage = get_user_star_usage_from_db(
+        user_id=user_id,
+        exclude_match_id=match_id
+    )
+
+    if selected_star_type == STAR_TYPE_HOPE:
+        left_key = "hope_left"
+        free_key = "hope_free_left"
+        star_name = "Ngôi sao hy vọng"
+
+    elif selected_star_type == STAR_TYPE_SUPER:
+        left_key = "super_left"
+        free_key = "super_free_left"
+        star_name = "Siêu sao"
+
+    else:
+        return {
+            "status": "save_direct",
+            "candidates": []
+        }
+
+    if usage[left_key] <= 0:
+        return {
+            "status": "exhausted",
+            "message": f"Bạn đã dùng hết {star_name}.",
+            "candidates": []
+        }
+
+    if usage[free_key] > 0:
+        return {
+            "status": "save_direct",
+            "candidates": []
+        }
+
+    candidates = get_star_transfer_candidates(
+        user_id=user_id,
+        target_match_id=match_id,
+        star_type=selected_star_type
+    )
+
+    if not candidates:
+        return {
+            "status": "exhausted",
+            "message": f"Hiện không còn {star_name} trống để dùng cho trận này.",
+            "candidates": []
+        }
+
+    return {
+        "status": "transfer_required",
+        "candidates": candidates
+    }
 
 def save_prediction(
     user_id: int,
@@ -4982,6 +4638,74 @@ def save_prediction(
 
     clear_data_cache()
 
+def transfer_star_and_save_prediction(
+    user_id: int,
+    source_match_id: int,
+    target_match_id: int,
+    predicted_home_score: int,
+    predicted_away_score: int,
+    predicted_winner_team_id: int | None,
+    star_type: str
+):
+    """
+    Gỡ sao khỏi trận nguồn rồi lưu sao cho trận đích.
+    Chỉ cho chuyển từ trận còn mở dự đoán.
+    """
+    star_type = normalize_star_type(star_type)
+
+    if star_type == STAR_TYPE_NONE:
+        raise ValueError("Không có bổ trợ nào cần chuyển.")
+
+    source_match = get_match_by_id(source_match_id)
+
+    if source_match is None:
+        raise ValueError("Không tìm thấy trận đang giữ sao.")
+
+    if not can_edit_prediction(source_match["kickoff_time_utc"]):
+        raise ValueError("Trận đang giữ sao đã khóa, không thể chuyển sao nữa.")
+
+    source_prediction = get_user_prediction_from_db(
+        user_id=user_id,
+        match_id=source_match_id
+    )
+
+    if source_prediction is None:
+        raise ValueError("Trận được chọn không còn giữ bổ trợ này.")
+
+    if normalize_star_type(source_prediction.get("star_type")) != star_type:
+        raise ValueError("Trận được chọn không còn giữ đúng loại bổ trợ này.")
+
+    execute_sql(
+        """
+        UPDATE predictions
+        SET
+            star_type = 'none',
+            base_points = NULL,
+            star_bonus_points = NULL,
+            points = NULL,
+            updated_at = :updated_at
+        WHERE user_id = :user_id
+          AND match_id = :source_match_id
+          AND star_type = :star_type
+        """,
+        {
+            "updated_at": now_utc_iso(),
+            "user_id": int(user_id),
+            "source_match_id": int(source_match_id),
+            "star_type": star_type
+        }
+    )
+
+    clear_data_cache()
+
+    save_prediction(
+        user_id=user_id,
+        match_id=target_match_id,
+        predicted_home_score=predicted_home_score,
+        predicted_away_score=predicted_away_score,
+        predicted_winner_team_id=predicted_winner_team_id,
+        star_type=star_type
+    )
 
 def delete_prediction(user_id: int, match_id: int):
     """
@@ -5297,6 +5021,41 @@ def render_auth_page():
 # ============================================================
 # 9. MATCH CARD UI
 # ============================================================
+def render_match_title(home_name, away_name, match_id: int):
+    home_display = "TBD" if home_name is None or pd.isna(home_name) else str(home_name)
+    away_display = "TBD" if away_name is None or pd.isna(away_name) else str(away_name)
+
+    safe_home = html.escape(home_display)
+    safe_away = html.escape(away_display)
+
+    # Desktop: giữ nguyên st.subheader như cũ, chỉ ẩn nó trên mobile
+    with stylable_container(
+        key=f"match_title_desktop_{match_id}",
+        css_styles="""
+        {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            {
+                display: none !important;
+            }
+        }
+        """
+    ):
+        st.subheader(f"{home_display} vs {away_display}")
+
+    # Mobile: title riêng, mỗi đội đúng 1 dòng
+    st.markdown(
+        f"""
+        <div class="wc-match-title-mobile" aria-label="{safe_home} vs {safe_away}">
+            <div class="wc-match-team">{safe_home}</div>
+            <div class="wc-match-vs">vs</div>
+            <div class="wc-match-team">{safe_away}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def render_match_title(home_name, away_name, match_id: int):
     home_display = "TBD" if home_name is None or pd.isna(home_name) else str(home_name)
@@ -5405,6 +5164,122 @@ def render_match_venue_footer(row, match_id: int):
         """,
         unsafe_allow_html=True
     )
+
+def render_pending_star_transfer_box(user_id: int, match_id: int):
+    pending = st.session_state.get("pending_star_transfer")
+
+    if not pending:
+        return
+
+    if int(pending.get("target_match_id")) != int(match_id):
+        return
+
+    star_type = normalize_star_type(pending.get("star_type"))
+    star_label = format_star_short(star_type)
+    candidates = pending.get("candidates", [])
+
+    if not candidates:
+        st.session_state.pop("pending_star_transfer", None)
+        return
+
+    candidate_options = {
+        candidate["label"]: candidate
+        for candidate in candidates
+    }
+
+    with stylable_container(
+        key=f"star_transfer_confirm_box_{match_id}",
+        css_styles="""
+        {
+            margin-top: 18px;
+            margin-bottom: 18px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(245, 158, 11, 0.42);
+            background:
+                radial-gradient(circle at top left, rgba(245, 197, 66, 0.18), transparent 34%),
+                linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.96));
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+        }
+
+        div[data-testid="stSelectbox"] label {
+            color: #07111F !important;
+            font-weight: 850 !important;
+        }
+        """
+    ):
+        st.markdown(
+            f"""
+            <div style="
+                color:#07111F;
+                font-weight:950;
+                font-size:18px;
+                margin-bottom:6px;
+            ">
+                Xác nhận chuyển bổ trợ
+            </div>
+
+            <div style="
+                color:#475569;
+                font-size:14px;
+                line-height:1.55;
+                margin-bottom:14px;
+            ">
+                Bạn đang muốn dùng <b>{html.escape(star_label)}</b> cho trận
+                <b>{html.escape(str(pending.get("target_label")))}</b>.
+                Tuy nhiên bổ trợ còn lại này đang được đặt ở trận khác chưa diễn ra.
+                Hãy chọn trận muốn gỡ sao để chuyển sang trận hiện tại.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        selected_source_label = st.selectbox(
+            "Chọn trận muốn chuyển sao từ:",
+            options=list(candidate_options.keys()),
+            key=f"star_transfer_source_{match_id}"
+        )
+
+        confirm_col, cancel_col = st.columns([1, 1])
+
+        with confirm_col:
+            confirm_transfer = st.button(
+                "Xác nhận chuyển sao",
+                key=f"confirm_star_transfer_{match_id}",
+                use_container_width=True
+            )
+
+        with cancel_col:
+            cancel_transfer = st.button(
+                "Hủy",
+                key=f"cancel_star_transfer_{match_id}",
+                use_container_width=True
+            )
+
+        if confirm_transfer:
+            selected_candidate = candidate_options[selected_source_label]
+
+            try:
+                transfer_star_and_save_prediction(
+                    user_id=user_id,
+                    source_match_id=int(selected_candidate["match_id"]),
+                    target_match_id=int(pending["target_match_id"]),
+                    predicted_home_score=int(pending["predicted_home_score"]),
+                    predicted_away_score=int(pending["predicted_away_score"]),
+                    predicted_winner_team_id=pending["predicted_winner_team_id"],
+                    star_type=star_type
+                )
+
+                st.session_state.pop("pending_star_transfer", None)
+                st.success("Đã chuyển bổ trợ và lưu dự đoán.")
+                st.rerun()
+
+            except ValueError as e:
+                st.error(str(e))
+
+        if cancel_transfer:
+            st.session_state.pop("pending_star_transfer", None)
+            st.rerun()
 
 @st.dialog("Xác nhận chuyển bổ trợ")
 def render_star_transfer_dialog(user_id: int):
@@ -5693,10 +5568,8 @@ def render_match_card(
 
                 if has_any_goal:
                     render_goal_scorers_for_match(match_id)
-        with top_right:
-            if is_finished:
-                trigger_ai_summary_for_match(row)
 
+        with top_right:
             actual_home = to_optional_int(row.get("home_score_for_prediction"))
             actual_away = to_optional_int(row.get("away_score_for_prediction"))
 
@@ -5840,12 +5713,6 @@ def render_match_card(
 
             else:
                 render_match_status_box(status_info)
-
-        if (
-            is_finished
-            and st.session_state.get("active_ai_summary_dialog_match_id") == match_id
-        ):
-            render_ai_summary_dialog(row)
 
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
@@ -6330,11 +6197,6 @@ def page_matches():
     render_kpi_tiles(matches)
 
     user_id = st.session_state["user"]["user_id"]
-    AI_SUMMARY_RUNTIME_VERSION = "gemini_search_v3_secret_first_debug"
-    
-    if st.session_state.get("ai_summary_runtime_version") != AI_SUMMARY_RUNTIME_VERSION:
-        clear_ai_summary_session_state()
-        st.session_state["ai_summary_runtime_version"] = AI_SUMMARY_RUNTIME_VERSION
     success_message = st.session_state.pop(
         "star_transfer_success_message",
         None
