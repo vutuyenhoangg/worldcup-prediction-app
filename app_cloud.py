@@ -24,6 +24,7 @@ import secrets
 from streamlit_cookies_controller import CookieController
 from google import genai
 from google.genai import types
+import re
 
 # ============================================================
 # 1. CONFIG
@@ -4215,6 +4216,16 @@ def generate_match_ai_summary(
     local_fallback_summary: str,
     use_google_search: bool = False
 ) -> dict:
+    """
+    Tạo AI Summary cho 1 trận đã có kết quả bằng Gemini.
+
+    Thiết kế an toàn:
+    - Mặc định không dùng Google Search Grounding nếu chưa bật bằng secrets.
+    - Nếu Gemini/Search hết quota thì dùng fallback từ dữ liệu trận.
+    - Output được làm sạch để tránh hiện HTML/CSS/code lên UI.
+    """
+    local_fallback_summary = clean_ai_summary_text(local_fallback_summary)
+
     api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
 
     if not api_key:
@@ -4236,7 +4247,9 @@ def generate_match_ai_summary(
         "Bạn là một chuyên gia cập nhật tin tức World Cup 2026. "
         f"Hãy viết summary ngắn gọn 1-2 dòng về trận đấu gần nhất giữa {pair_label}. "
         "Mục tiêu là giúp người xem hiểu thêm diễn biến trận đấu, không chỉ nhìn tỉ số. "
-        "Chỉ trả lời bằng tiếng Việt. Không viết quá 2 dòng. "
+        "Chỉ trả lời bằng tiếng Việt. "
+        "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
+        "Không thêm tiêu đề, không thêm nhãn 'AI Summary', không thêm phần 'Nguồn'. "
         "Không bịa thông tin. Nếu dữ liệu không đủ để mô tả thế trận hoặc bước ngoặt, "
         "hãy tóm tắt dựa trên dữ liệu trận được cung cấp.\n\n"
         "Dữ liệu trận trong app:\n"
@@ -4276,7 +4289,9 @@ def generate_match_ai_summary(
             else:
                 raise first_error
 
-        summary_text = str(getattr(response, "text", "") or "").strip()
+        summary_text = clean_ai_summary_text(
+            getattr(response, "text", "") or ""
+        )
 
         if not summary_text:
             return {
@@ -4319,18 +4334,21 @@ def generate_match_ai_summary(
         seen_urls = set()
 
         for source in sources:
-            source_url = source.get("url", "")
+            source_url = str(source.get("url", "")).strip()
 
             if not source_url or source_url in seen_urls:
                 continue
 
             seen_urls.add(source_url)
-            unique_sources.append(source)
+            unique_sources.append({
+                "title": str(source.get("title", "Nguồn tham khảo")).strip(),
+                "url": source_url
+            })
 
         return {
             "summary": summary_text,
             "sources": unique_sources[:3],
-            "source_type": "gemini_search" if sources else "gemini_no_search",
+            "source_type": "gemini_search" if unique_sources else "gemini_no_search",
             "note": ""
         }
 
@@ -4348,7 +4366,59 @@ def generate_match_ai_summary(
             "note": note
         }
 
+
+def clean_ai_summary_text(value) -> str:
+    """
+    Làm sạch nội dung AI trả về để tránh hiện HTML/CSS/code block lên UI.
+    """
+    text = str(value or "").strip()
+
+    if not text:
+        return ""
+
+    text = html.unescape(text)
+
+    text = text.replace("```html", "")
+    text = text.replace("```HTML", "")
+    text = text.replace("```python", "")
+    text = text.replace("```", "")
+
+    text = re.sub(
+        r"<script[\s\S]*?</script>",
+        " ",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    text = re.sub(
+        r"<style[\s\S]*?</style>",
+        " ",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    text = re.sub(
+        r"<[^>]+>",
+        " ",
+        text
+    )
+
+    for marker in ["Nguồn:", "Source:", "Sources:", "Tài liệu tham khảo:"]:
+        if marker in text:
+            text = text.split(marker, 1)[0].strip()
+
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text
+
+
 def trigger_ai_summary_for_match(row):
+    """
+    Chỉ render nút AI Summary.
+    Khi bấm nút:
+    - Nếu chưa có summary trong session thì gọi Gemini/fallback.
+    - Sau đó mở popup bằng active_ai_summary_dialog_match_id.
+    """
     match_id = int(row["match_id"])
 
     home_name = row.get("home_team_name")
@@ -4361,8 +4431,6 @@ def trigger_ai_summary_for_match(row):
 
     summary_state_key = f"ai_summary_result_{match_id}"
     error_state_key = f"ai_summary_error_{match_id}"
-
-    button_label = "✨ AI Summary"
 
     with stylable_container(
         key=f"ai_summary_top_right_button_shell_{match_id}",
@@ -4414,7 +4482,7 @@ def trigger_ai_summary_for_match(row):
         """
     ):
         clicked = st.button(
-            button_label,
+            "✨ AI Summary",
             key=f"ai_summary_button_{match_id}",
             help="Tạo tóm tắt ngắn về diễn biến trận đấu bằng AI."
         )
@@ -4422,42 +4490,91 @@ def trigger_ai_summary_for_match(row):
     if clicked:
         st.session_state.pop(error_state_key, None)
 
-        use_google_search = str(
-            os.getenv(
-                "AI_SUMMARY_USE_GOOGLE_SEARCH",
-                st.secrets.get("AI_SUMMARY_USE_GOOGLE_SEARCH", "false")
+        if summary_state_key not in st.session_state:
+            use_google_search = str(
+                os.getenv(
+                    "AI_SUMMARY_USE_GOOGLE_SEARCH",
+                    st.secrets.get("AI_SUMMARY_USE_GOOGLE_SEARCH", "false")
+                )
+            ).strip().lower() in ["true", "1", "yes", "y"]
+
+            match_context = build_match_summary_context(row)
+            local_fallback_summary = build_local_match_summary(row)
+
+            with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
+                ai_result = generate_match_ai_summary(
+                    match_id=match_id,
+                    pair_label=pair_label,
+                    match_context=match_context,
+                    local_fallback_summary=local_fallback_summary,
+                    use_google_search=use_google_search
+                )
+
+            ai_result["summary"] = clean_ai_summary_text(
+                ai_result.get("summary", "")
             )
-        ).strip().lower() in ["true", "1", "yes", "y"]
 
-        match_context = build_match_summary_context(row)
-        local_fallback_summary = build_local_match_summary(row)
+            st.session_state[summary_state_key] = ai_result
 
-        with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
-            ai_result = generate_match_ai_summary(
-                match_id=match_id,
-                pair_label=pair_label,
-                match_context=match_context,
-                local_fallback_summary=local_fallback_summary,
-                use_google_search=use_google_search
-            )
+            note = str(ai_result.get("note", "")).strip()
 
-        st.session_state[summary_state_key] = ai_result
+            if note:
+                st.session_state[error_state_key] = note
 
-        note = str(ai_result.get("note", "")).strip()
+        st.session_state["active_ai_summary_dialog_match_id"] = match_id
+        st.rerun()
 
-        if note:
-            st.session_state[error_state_key] = note
 
-def render_ai_summary_result_box(row):
+@st.dialog("✨ AI Summary")
+def render_ai_summary_dialog(row):
     """
-    Chỉ render box kết quả AI Summary.
-    Đặt hàm này sau cụm top_left/top_right để box trải ngang card,
-    không làm méo cột Kết quả.
+    Hiển thị AI Summary trong popup.
+    Không render thêm box xuống dưới card.
     """
     match_id = int(row["match_id"])
 
+    home_name = str(row.get("home_team_name", "")).strip()
+    away_name = str(row.get("away_team_name", "")).strip()
+
     summary_state_key = f"ai_summary_result_{match_id}"
     error_state_key = f"ai_summary_error_{match_id}"
+
+    actual_home = to_optional_int(row.get("home_score_for_prediction"))
+    actual_away = to_optional_int(row.get("away_score_for_prediction"))
+
+    score_text = ""
+
+    if actual_home is not None and actual_away is not None:
+        score_text = f"{actual_home} - {actual_away}"
+
+    st.markdown(
+        f"""
+        <div style="
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        ">
+            <div style="
+                color:#07111F;
+                font-weight:950;
+                font-size:18px;
+                line-height:1.25;
+                letter-spacing:-0.02em;
+            ">
+                {html.escape(home_name)} vs {html.escape(away_name)}
+            </div>
+            <div style="
+                color:#64748B;
+                font-size:13px;
+                margin-top:5px;
+                line-height:1.4;
+            ">
+                {html.escape(str(row.get("round_name", "")))}{f" · Kết quả: {html.escape(score_text)}" if score_text else ""}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     if error_state_key in st.session_state:
         st.info(st.session_state[error_state_key])
@@ -4465,118 +4582,111 @@ def render_ai_summary_result_box(row):
     ai_result = st.session_state.get(summary_state_key)
 
     if not ai_result:
-        return
+        st.warning("Chưa có nội dung AI Summary cho trận này.")
+    else:
+        summary_text = clean_ai_summary_text(
+            ai_result.get("summary", "")
+        )
 
-    summary_text = str(ai_result.get("summary", "")).strip()
-    sources = ai_result.get("sources", []) or []
-    source_type = str(ai_result.get("source_type", "")).strip()
+        sources = ai_result.get("sources", []) or []
+        source_type = str(ai_result.get("source_type", "")).strip()
 
-    if not summary_text:
-        st.warning("AI chưa trả về nội dung tóm tắt phù hợp.")
-        return
-
-    safe_summary = html.escape(summary_text).replace("\n", "<br>")
-
-    source_html = ""
-
-    if sources:
-        source_links = []
-    
-        for source in sources:
-            safe_title = html.escape(
-                str(source.get("title", "Nguồn tham khảo")).strip()
+        if summary_text:
+            st.markdown(
+                f"""
+                <div style="
+                    padding: 14px 16px;
+                    border-radius: 18px;
+                    border: 1px solid rgba(37, 99, 235, 0.18);
+                    background:
+                        radial-gradient(circle at top left, rgba(0, 180, 216, 0.10), transparent 32%),
+                        linear-gradient(135deg, rgba(239, 246, 255, 0.96), rgba(255, 255, 255, 0.96));
+                    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+                    color:#334155;
+                    font-size:14px;
+                    line-height:1.6;
+                    margin-bottom: 12px;
+                ">
+                    {html.escape(summary_text)}
+                </div>
+                """,
+                unsafe_allow_html=True
             )
-            safe_url = html.escape(
-                str(source.get("url", "")).strip(),
-                quote=True
-            )
-    
-            if safe_url:
-                source_links.append(
-                    f'<a href="{safe_url}" target="_blank" '
-                    f'style="color:#0369A1;font-weight:800;text-decoration:none;">'
-                    f'{safe_title}</a>'
+        else:
+            st.info("AI chưa trả về nội dung tóm tắt phù hợp.")
+
+        if sources:
+            source_links = []
+
+            for source in sources[:3]:
+                source_title = html.escape(
+                    str(source.get("title", "Nguồn tham khảo")).strip()
                 )
-    
-        if source_links:
-            source_html = (
-                '<div style="'
-                'margin-top:10px;'
-                'padding-top:9px;'
-                'border-top:1px solid rgba(15,23,42,0.08);'
-                'font-size:12px;'
-                'color:#64748B;'
-                'line-height:1.45;'
-                '">'
-                'Nguồn: '
-                + " · ".join(source_links)
-                + '</div>'
-            )
-    
-    elif source_type == "local_fallback":
-        source_html = (
-            '<div style="'
-            'margin-top:10px;'
-            'padding-top:9px;'
-            'border-top:1px solid rgba(15,23,42,0.08);'
-            'font-size:12px;'
-            'color:#64748B;'
-            'line-height:1.45;'
-            '">'
-            'Nguồn: dữ liệu trận đấu trong app'
-            '</div>'
+                source_url = html.escape(
+                    str(source.get("url", "")).strip(),
+                    quote=True
+                )
+
+                if source_url:
+                    source_links.append(
+                        f'<a href="{source_url}" target="_blank" '
+                        f'style="color:#0369A1;font-weight:800;text-decoration:none;">'
+                        f'{source_title}</a>'
+                    )
+
+            if source_links:
+                st.markdown(
+                    (
+                        '<div style="'
+                        'margin-top:8px;'
+                        'font-size:12px;'
+                        'line-height:1.45;'
+                        'color:#64748B;'
+                        '">'
+                        'Nguồn: '
+                        + " · ".join(source_links)
+                        + '</div>'
+                    ),
+                    unsafe_allow_html=True
+                )
+
+        elif source_type == "local_fallback":
+            st.caption("Nguồn: dữ liệu trận đấu trong app")
+
+        elif source_type == "gemini_no_search":
+            st.caption("Nguồn: Gemini + dữ liệu trận đấu trong app")
+
+    col_close, col_refresh = st.columns([1, 1])
+
+    with col_close:
+        close_clicked = st.button(
+            "Đóng",
+            use_container_width=True,
+            key=f"close_ai_summary_dialog_{match_id}"
         )
-    
-    elif source_type == "gemini_no_search":
-        source_html = (
-            '<div style="'
-            'margin-top:10px;'
-            'padding-top:9px;'
-            'border-top:1px solid rgba(15,23,42,0.08);'
-            'font-size:12px;'
-            'color:#64748B;'
-            'line-height:1.45;'
-            '">'
-            'Nguồn: Gemini + dữ liệu trận đấu trong app'
-            '</div>'
+
+    with col_refresh:
+        refresh_clicked = st.button(
+            "Tạo lại",
+            use_container_width=True,
+            key=f"refresh_ai_summary_dialog_{match_id}"
         )
 
-    st.markdown(
-        f"""
-        <div style="
-            margin-top: 14px;
-            margin-bottom: 16px;
-            padding: 14px 16px;
-            border-radius: 18px;
-            border: 1px solid rgba(37, 99, 235, 0.18);
-            background:
-                radial-gradient(circle at top left, rgba(0, 180, 216, 0.10), transparent 32%),
-                linear-gradient(135deg, rgba(239, 246, 255, 0.96), rgba(255, 255, 255, 0.96));
-            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
-        ">
-            <div style="
-                color:#07111F;
-                font-weight:950;
-                font-size:14px;
-                margin-bottom:6px;
-                letter-spacing:-0.01em;
-            ">
-                ✨ AI Summary
-            </div>
+    if close_clicked:
+        st.session_state.pop("active_ai_summary_dialog_match_id", None)
+        st.rerun()
 
-            <div style="
-                color:#334155;
-                font-size:13.5px;
-                line-height:1.55;
-            ">
-                {safe_summary}
-            </div>
+    if refresh_clicked:
+        st.session_state.pop(summary_state_key, None)
+        st.session_state.pop(error_state_key, None)
+        st.session_state.pop("active_ai_summary_dialog_match_id", None)
 
-            {source_html}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        try:
+            generate_match_ai_summary.clear()
+        except Exception:
+            pass
+
+        st.rerun()
 
 def clear_data_cache():
     """
@@ -6053,8 +6163,12 @@ def render_match_card(
             else:
                 render_match_status_box(status_info)
         
-        if is_finished:
-            render_ai_summary_result_box(row)
+        if (
+            is_finished
+            and st.session_state.get("active_ai_summary_dialog_match_id") == match_id
+        ):
+            render_ai_summary_dialog(row)
+
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
             render_match_venue_footer(row, match_id)
