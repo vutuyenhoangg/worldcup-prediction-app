@@ -5301,7 +5301,7 @@ def render_star_transfer_dialog(user_id: int):
             line-height:1.5;
             margin-bottom:14px;
         ">
-            <b>{html.escape(star_label)}</b> còn lại đang được đặt ở trận khác.
+            <b>{html.escape(star_label)}</b> đã được đặt hết.
             Chọn trận muốn gỡ sao để chuyển sang
             <b>{html.escape(target_label)}</b>.
         </div>
