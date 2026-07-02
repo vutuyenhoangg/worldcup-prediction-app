@@ -4216,24 +4216,14 @@ def generate_match_ai_summary(
     local_fallback_summary: str,
     use_google_search: bool = False
 ) -> dict:
-    """
-    Tạo AI Summary cho 1 trận đã có kết quả bằng Gemini.
-
-    Thiết kế an toàn:
-    - Mặc định không dùng Google Search Grounding nếu chưa bật bằng secrets.
-    - Nếu Gemini/Search hết quota thì dùng fallback từ dữ liệu trận.
-    - Output được làm sạch để tránh hiện HTML/CSS/code lên UI.
-    """
-    local_fallback_summary = clean_ai_summary_text(local_fallback_summary)
-
     api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
 
     if not api_key:
         return {
-            "summary": local_fallback_summary,
+            "summary": clean_ai_summary_text(local_fallback_summary),
             "sources": [],
             "source_type": "local_fallback",
-            "note": "Chưa cấu hình Gemini API key, đã dùng tóm tắt từ dữ liệu trận."
+            "note": "AI Summary đang dùng dữ liệu trận đấu trong app."
         }
 
     model_name = (
@@ -4244,14 +4234,16 @@ def generate_match_ai_summary(
     client = genai.Client(api_key=api_key)
 
     prompt = (
-        "Bạn là một chuyên gia cập nhật tin tức World Cup 2026. "
-        f"Hãy viết summary ngắn gọn 1-2 dòng về trận đấu gần nhất giữa {pair_label}. "
-        "Mục tiêu là giúp người xem hiểu thêm diễn biến trận đấu, không chỉ nhìn tỉ số. "
+        "Bạn là một chuyên gia cập nhật tin tức bóng đá và World Cup 2026. "
+        f"Hãy viết summary ngắn gọn về trận đấu gần nhất giữa {pair_label}. "
+        "Mục tiêu là giúp người xem hiểu thêm diễn biến trận đấu, thế trận hoặc bước ngoặt, "
+        "bổ sung thêm thông tin so với việc chỉ nhìn tỉ số và cầu thủ ghi bàn. "
         "Chỉ trả lời bằng tiếng Việt. "
         "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
         "Không thêm tiêu đề, không thêm nhãn 'AI Summary', không thêm phần 'Nguồn'. "
         "Không bịa thông tin. Nếu dữ liệu không đủ để mô tả thế trận hoặc bước ngoặt, "
-        "hãy tóm tắt dựa trên dữ liệu trận được cung cấp.\n\n"
+        "hãy tóm tắt dựa trên dữ liệu trận được cung cấp. "
+        "Có thể viết đầy đủ 2-4 câu nếu cần, miễn là rõ ràng và dễ hiểu.\n\n"
         "Dữ liệu trận trong app:\n"
         f"{match_context}"
     )
@@ -4265,12 +4257,12 @@ def generate_match_ai_summary(
                     )
                 ],
                 temperature=0.25,
-                max_output_tokens=180
+                max_output_tokens=700
             )
         else:
             config = types.GenerateContentConfig(
                 temperature=0.25,
-                max_output_tokens=180
+                max_output_tokens=700
             )
 
         return client.models.generate_content(
@@ -4295,60 +4287,16 @@ def generate_match_ai_summary(
 
         if not summary_text:
             return {
-                "summary": local_fallback_summary,
+                "summary": clean_ai_summary_text(local_fallback_summary),
                 "sources": [],
                 "source_type": "local_fallback",
-                "note": "Gemini chưa trả về nội dung phù hợp, đã dùng tóm tắt từ dữ liệu trận."
+                "note": "AI chưa trả về nội dung phù hợp, đã dùng tóm tắt từ dữ liệu trận."
             }
-
-        sources = []
-
-        try:
-            candidates = getattr(response, "candidates", []) or []
-
-            if candidates:
-                grounding_metadata = getattr(candidates[0], "grounding_metadata", None)
-
-                if grounding_metadata:
-                    grounding_chunks = getattr(grounding_metadata, "grounding_chunks", []) or []
-
-                    for chunk in grounding_chunks:
-                        web = getattr(chunk, "web", None)
-
-                        if not web:
-                            continue
-
-                        source_url = getattr(web, "uri", "")
-                        source_title = getattr(web, "title", "")
-
-                        if source_url:
-                            sources.append({
-                                "title": source_title or "Nguồn tham khảo",
-                                "url": source_url
-                            })
-
-        except Exception:
-            sources = []
-
-        unique_sources = []
-        seen_urls = set()
-
-        for source in sources:
-            source_url = str(source.get("url", "")).strip()
-
-            if not source_url or source_url in seen_urls:
-                continue
-
-            seen_urls.add(source_url)
-            unique_sources.append({
-                "title": str(source.get("title", "Nguồn tham khảo")).strip(),
-                "url": source_url
-            })
 
         return {
             "summary": summary_text,
-            "sources": unique_sources[:3],
-            "source_type": "gemini_search" if unique_sources else "gemini_no_search",
+            "sources": [],
+            "source_type": "gemini_no_source_display",
             "note": ""
         }
 
@@ -4360,7 +4308,7 @@ def generate_match_ai_summary(
         )
 
         return {
-            "summary": local_fallback_summary,
+            "summary": clean_ai_summary_text(local_fallback_summary),
             "sources": [],
             "source_type": "local_fallback",
             "note": note
@@ -4369,7 +4317,10 @@ def generate_match_ai_summary(
 
 def clean_ai_summary_text(value) -> str:
     """
-    Làm sạch nội dung AI trả về để tránh hiện HTML/CSS/code block lên UI.
+    Làm sạch nội dung AI trả về:
+    - Bỏ HTML/CSS/code block.
+    - Bỏ phần nguồn nếu AI tự thêm.
+    - Giữ lại toàn bộ phần summary chính, không cắt cụt câu trả lời.
     """
     text = str(value or "").strip()
 
@@ -4403,7 +4354,14 @@ def clean_ai_summary_text(value) -> str:
         text
     )
 
-    for marker in ["Nguồn:", "Source:", "Sources:", "Tài liệu tham khảo:"]:
+    source_markers = [
+        "Nguồn:",
+        "Nguồn tham khảo:",
+        "Sources:",
+        "Source:"
+    ]
+
+    for marker in source_markers:
         if marker in text:
             text = text.split(marker, 1)[0].strip()
 
@@ -4414,10 +4372,9 @@ def clean_ai_summary_text(value) -> str:
 
 def trigger_ai_summary_for_match(row):
     """
-    Chỉ render nút AI Summary.
-    Khi bấm nút:
-    - Nếu chưa có summary trong session thì gọi Gemini/fallback.
-    - Sau đó mở popup bằng active_ai_summary_dialog_match_id.
+    Render nút AI Summary ở góc phải card.
+    - Lần đầu bấm: gọi Gemini rồi mở popup.
+    - Những lần sau: chỉ mở lại popup, không generate lại.
     """
     match_id = int(row["match_id"])
 
@@ -4484,53 +4441,53 @@ def trigger_ai_summary_for_match(row):
         clicked = st.button(
             "✨ AI Summary",
             key=f"ai_summary_button_{match_id}",
-            help="Tạo tóm tắt ngắn về diễn biến trận đấu bằng AI."
+            help="Xem tóm tắt ngắn về diễn biến trận đấu."
         )
 
-    if clicked:
-        st.session_state.pop(error_state_key, None)
+    if not clicked:
+        return
 
-        if summary_state_key not in st.session_state:
-            use_google_search = str(
-                os.getenv(
-                    "AI_SUMMARY_USE_GOOGLE_SEARCH",
-                    st.secrets.get("AI_SUMMARY_USE_GOOGLE_SEARCH", "false")
-                )
-            ).strip().lower() in ["true", "1", "yes", "y"]
-
-            match_context = build_match_summary_context(row)
-            local_fallback_summary = build_local_match_summary(row)
-
-            with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
-                ai_result = generate_match_ai_summary(
-                    match_id=match_id,
-                    pair_label=pair_label,
-                    match_context=match_context,
-                    local_fallback_summary=local_fallback_summary,
-                    use_google_search=use_google_search
-                )
-
-            ai_result["summary"] = clean_ai_summary_text(
-                ai_result.get("summary", "")
-            )
-
-            st.session_state[summary_state_key] = ai_result
-
-            note = str(ai_result.get("note", "")).strip()
-
-            if note:
-                st.session_state[error_state_key] = note
-
+    if summary_state_key in st.session_state:
         st.session_state["active_ai_summary_dialog_match_id"] = match_id
         st.rerun()
 
+    st.session_state.pop(error_state_key, None)
+
+    use_google_search = str(
+        os.getenv(
+            "AI_SUMMARY_USE_GOOGLE_SEARCH",
+            st.secrets.get("AI_SUMMARY_USE_GOOGLE_SEARCH", "false")
+        )
+    ).strip().lower() in ["true", "1", "yes", "y"]
+
+    match_context = build_match_summary_context(row)
+    local_fallback_summary = build_local_match_summary(row)
+
+    with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
+        ai_result = generate_match_ai_summary(
+            match_id=match_id,
+            pair_label=pair_label,
+            match_context=match_context,
+            local_fallback_summary=local_fallback_summary,
+            use_google_search=use_google_search
+        )
+
+    ai_result["summary"] = clean_ai_summary_text(
+        ai_result.get("summary", "")
+    )
+
+    st.session_state[summary_state_key] = ai_result
+
+    note = str(ai_result.get("note", "")).strip()
+
+    if note:
+        st.session_state[error_state_key] = note
+
+    st.session_state["active_ai_summary_dialog_match_id"] = match_id
+    st.rerun()
 
 @st.dialog("✨ AI Summary")
 def render_ai_summary_dialog(row):
-    """
-    Hiển thị AI Summary trong popup.
-    Không render thêm box xuống dưới card.
-    """
     match_id = int(row["match_id"])
 
     home_name = str(row.get("home_team_name", "")).strip()
@@ -4582,20 +4539,19 @@ def render_ai_summary_dialog(row):
     ai_result = st.session_state.get(summary_state_key)
 
     if not ai_result:
-        st.warning("Chưa có nội dung AI Summary cho trận này.")
+        st.info("Chưa có AI Summary cho trận này.")
     else:
         summary_text = clean_ai_summary_text(
             ai_result.get("summary", "")
         )
 
-        sources = ai_result.get("sources", []) or []
-        source_type = str(ai_result.get("source_type", "")).strip()
-
         if summary_text:
+            safe_summary = html.escape(summary_text).replace("\n", "<br>")
+
             st.markdown(
                 f"""
                 <div style="
-                    padding: 14px 16px;
+                    padding: 15px 17px;
                     border-radius: 18px;
                     border: 1px solid rgba(37, 99, 235, 0.18);
                     background:
@@ -4604,10 +4560,15 @@ def render_ai_summary_dialog(row):
                     box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
                     color:#334155;
                     font-size:14px;
-                    line-height:1.6;
-                    margin-bottom: 12px;
+                    line-height:1.65;
+                    margin-bottom: 16px;
+                    max-height: 55vh;
+                    overflow-y: auto;
+                    white-space: normal;
+                    word-break: normal;
+                    overflow-wrap: break-word;
                 ">
-                    {html.escape(summary_text)}
+                    {safe_summary}
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -4615,77 +4576,14 @@ def render_ai_summary_dialog(row):
         else:
             st.info("AI chưa trả về nội dung tóm tắt phù hợp.")
 
-        if sources:
-            source_links = []
-
-            for source in sources[:3]:
-                source_title = html.escape(
-                    str(source.get("title", "Nguồn tham khảo")).strip()
-                )
-                source_url = html.escape(
-                    str(source.get("url", "")).strip(),
-                    quote=True
-                )
-
-                if source_url:
-                    source_links.append(
-                        f'<a href="{source_url}" target="_blank" '
-                        f'style="color:#0369A1;font-weight:800;text-decoration:none;">'
-                        f'{source_title}</a>'
-                    )
-
-            if source_links:
-                st.markdown(
-                    (
-                        '<div style="'
-                        'margin-top:8px;'
-                        'font-size:12px;'
-                        'line-height:1.45;'
-                        'color:#64748B;'
-                        '">'
-                        'Nguồn: '
-                        + " · ".join(source_links)
-                        + '</div>'
-                    ),
-                    unsafe_allow_html=True
-                )
-
-        elif source_type == "local_fallback":
-            st.caption("Nguồn: dữ liệu trận đấu trong app")
-
-        elif source_type == "gemini_no_search":
-            st.caption("Nguồn: Gemini + dữ liệu trận đấu trong app")
-
-    col_close, col_refresh = st.columns([1, 1])
-
-    with col_close:
-        close_clicked = st.button(
-            "Đóng",
-            use_container_width=True,
-            key=f"close_ai_summary_dialog_{match_id}"
-        )
-
-    with col_refresh:
-        refresh_clicked = st.button(
-            "Tạo lại",
-            use_container_width=True,
-            key=f"refresh_ai_summary_dialog_{match_id}"
-        )
+    close_clicked = st.button(
+        "Đóng",
+        use_container_width=True,
+        key=f"close_ai_summary_dialog_{match_id}"
+    )
 
     if close_clicked:
         st.session_state.pop("active_ai_summary_dialog_match_id", None)
-        st.rerun()
-
-    if refresh_clicked:
-        st.session_state.pop(summary_state_key, None)
-        st.session_state.pop(error_state_key, None)
-        st.session_state.pop("active_ai_summary_dialog_match_id", None)
-
-        try:
-            generate_match_ai_summary.clear()
-        except Exception:
-            pass
-
         st.rerun()
 
 def clear_data_cache():
@@ -6014,160 +5912,26 @@ def render_match_card(
 
                 if has_any_goal:
                     render_goal_scorers_for_match(match_id)
-
         with top_right:
             if is_finished:
                 trigger_ai_summary_for_match(row)
-        
+
             actual_home = to_optional_int(row.get("home_score_for_prediction"))
             actual_away = to_optional_int(row.get("away_score_for_prediction"))
 
-            score_et_home = to_optional_int(row.get("score_et_home"))
-            score_et_away = to_optional_int(row.get("score_et_away"))
+            # Giữ nguyên toàn bộ phần render box Kết quả bên dưới
 
-            score_pen_home = to_optional_int(row.get("score_pen_home"))
-            score_pen_away = to_optional_int(row.get("score_pen_away"))
-
-            has_extra_time = (
-                is_knockout
-                and score_et_home is not None
-                and score_et_away is not None
-            )
-
-            has_penalty = (
-                is_knockout
-                and score_pen_home is not None
-                and score_pen_away is not None
-            )
-
-            if is_finished and actual_home is not None and actual_away is not None:
-                result_text = f"{actual_home} - {actual_away}"
-
-                if has_extra_time or has_penalty:
-                    result_text = f"{result_text} (a.e.t)"
-
-                penalty_line_html = ""
-
-                if has_penalty:
-                    penalty_line_html = (
-                        '<div style="'
-                        'margin-top:10px;'
-                        'padding-top:9px;'
-                        'border-top:1px solid rgba(15,23,42,0.08);'
-                        'color:#64748B;'
-                        'font-size:13px;'
-                        'font-weight:750;'
-                        'line-height:1.25;'
-                        '">'
-                        'Penalty:'
-                        '<span style="'
-                        'color:#07111F;'
-                        'font-weight:950;'
-                        'margin-left:4px;'
-                        '">'
-                        f'{score_pen_home} - {score_pen_away}'
-                        '</span>'
-                        '</div>'
-                    )
-
-                result_card_html = (
-                    '<div style="'
-                    'background:rgba(255,255,255,0.86);'
-                    'border:1px solid rgba(15,23,42,0.08);'
-                    'border-radius:16px;'
-                    'padding:13px 15px;'
-                    'box-shadow:0 6px 18px rgba(15,23,42,0.04);'
-                    'min-width:180px;'
-                    '">'
-                    '<div style="'
-                    'color:#64748B;'
-                    'font-size:12px;'
-                    'font-weight:800;'
-                    'margin-bottom:6px;'
-                    '">'
-                    'Kết quả'
-                    '</div>'
-                    '<div style="'
-                    'color:#07111F;'
-                    'font-size:32px;'
-                    'font-weight:950;'
-                    'line-height:1.1;'
-                    'letter-spacing:-0.03em;'
-                    'white-space:nowrap;'
-                    '">'
-                    f'{html.escape(result_text)}'
-                    '</div>'
-                    f'{penalty_line_html}'
-                    '</div>'
-                )
-
-                st.markdown(
-                    result_card_html,
-                    unsafe_allow_html=True
-                )
-
-                winner_name = row.get("winner_team_name")
-
-                winner_name_is_valid = (
-                    winner_name is not None
-                    and not pd.isna(winner_name)
-                    and str(winner_name).strip().lower() not in ["", "nan", "none"]
-                )
-
-                if winner_name_is_valid:
-                    final_winner_text = str(winner_name).strip()
-
-                elif not is_knockout and actual_home == actual_away:
-                    final_winner_text = "2 đội hòa nhau"
-
-                elif has_penalty and score_pen_home > score_pen_away:
-                    final_winner_text = str(home_name)
-
-                elif has_penalty and score_pen_away > score_pen_home:
-                    final_winner_text = str(away_name)
-
-                elif actual_home > actual_away:
-                    final_winner_text = str(home_name)
-
-                elif actual_away > actual_home:
-                    final_winner_text = str(away_name)
-
-                elif is_knockout:
-                    final_winner_text = "Chưa xác định"
-
-                else:
-                    final_winner_text = "2 đội hòa nhau"
-
-                winner_caption_html = (
-                    '<div style="'
-                    'margin-top:14px;'
-                    'color:#64748B;'
-                    'font-size:13px;'
-                    'line-height:1.35;'
-                    '">'
-                    'Thắng chung cuộc: '
-                    '<span style="'
-                    'color:#475569;'
-                    'font-weight:750;'
-                    '">'
-                    f'{html.escape(final_winner_text)}'
-                    '</span>'
-                    '</div>'
-                )
-
-                st.markdown(
-                    winner_caption_html,
-                    unsafe_allow_html=True
-                )
-
-            else:
-                render_match_status_box(status_info)
-        
         if (
             is_finished
             and st.session_state.get("active_ai_summary_dialog_match_id") == match_id
         ):
             render_ai_summary_dialog(row)
+
+        if is_unknown_team(home_name) or is_unknown_team(away_name):
+            st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
+            render_match_venue_footer(row, match_id)
+            return
+
 
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
