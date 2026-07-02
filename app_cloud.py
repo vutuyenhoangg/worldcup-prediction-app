@@ -4233,15 +4233,30 @@ def generate_match_ai_summary(
 
     client = genai.Client(api_key=api_key)
 
+    match_date_text = ""
+
+    try:
+        for line in str(match_context or "").splitlines():
+            if line.startswith("Thời gian VN:"):
+                match_date_text = line.replace("Thời gian VN:", "").strip()
+                break
+    except Exception:
+        match_date_text = ""
+
+    if not match_date_text:
+        match_date_text = "không rõ ngày"
+
     prompt = (
         "Bạn là một chuyên gia cập nhật tin tức bóng đá và World Cup 2026. "
-        f"Hãy viết summary về trận đấu giữa {pair_label} trong khuôn khổ World Cup 2026. "
+        f"Hãy viết summary về trận đấu ngày {match_date_text} giữa {pair_label} trong khuôn khổ World Cup 2026. "
         "Mục tiêu là giúp người xem hiểu thêm diễn biến trận đấu, thế trận hoặc bước ngoặt, "
         "bổ sung thêm thông tin so với việc chỉ nhìn tỉ số và cầu thủ ghi bàn. "
         "Chỉ trả lời bằng tiếng Việt, không quá 100 chữ. "
         "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
         "Không thêm tiêu đề, không thêm nhãn 'AI Summary', không thêm phần 'Nguồn'. "
         "Có thể viết đầy đủ nhiều câu nếu cần, miễn là rõ ràng và dễ hiểu.\n\n"
+        "Dữ liệu trận trong app để đối chiếu:\n"
+        f"{match_context}"
     )
 
     def call_gemini(enable_search: bool):
@@ -4253,12 +4268,12 @@ def generate_match_ai_summary(
                     )
                 ],
                 temperature=0.25,
-                max_output_tokens=1200
+                max_output_tokens=700
             )
         else:
             config = types.GenerateContentConfig(
                 temperature=0.25,
-                max_output_tokens=1200
+                max_output_tokens=700
             )
 
         return client.models.generate_content(
@@ -4273,9 +4288,14 @@ def generate_match_ai_summary(
 
         except Exception as first_error:
             if use_google_search and is_gemini_quota_error(first_error):
-                response = call_gemini(enable_search=False)
-            else:
-                raise first_error
+                return {
+                    "summary": clean_ai_summary_text(local_fallback_summary),
+                    "sources": [],
+                    "source_type": "local_fallback",
+                    "note": "Google Search Grounding đang hết quota, đã dùng tóm tắt từ dữ liệu trận."
+                }
+
+            raise first_error
 
         summary_text = clean_ai_summary_text(
             getattr(response, "text", "") or ""
@@ -4292,22 +4312,16 @@ def generate_match_ai_summary(
         return {
             "summary": summary_text,
             "sources": [],
-            "source_type": "gemini_no_source_display",
+            "source_type": "gemini_google_search" if use_google_search else "gemini_no_search",
             "note": ""
         }
 
-    except Exception as final_error:
-        note = (
-            "AI đang tạm quá tải hoặc hết quota, đã dùng tóm tắt từ dữ liệu trận."
-            if is_gemini_quota_error(final_error)
-            else "AI chưa phản hồi ổn định, đã dùng tóm tắt từ dữ liệu trận."
-        )
-
+    except Exception:
         return {
             "summary": clean_ai_summary_text(local_fallback_summary),
             "sources": [],
             "source_type": "local_fallback",
-            "note": note
+            "note": "AI chưa phản hồi ổn định, đã dùng tóm tắt từ dữ liệu trận."
         }
 
 
