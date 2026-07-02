@@ -6672,9 +6672,26 @@ def build_leaderboard_df():
     ).fillna(0)
 
     df["star_type"] = df["star_type"].apply(normalize_star_type)
-
-    df["hope_star_used"] = df["star_type"] == STAR_TYPE_HOPE
-    df["super_star_used"] = df["star_type"] == STAR_TYPE_SUPER
+    
+    # Chỉ tính sao là đã dùng thật khi trận đã khóa dự đoán.
+    # Sao đang đặt ở trận chưa diễn ra không bị trừ khỏi kho sao thực tế.
+    df["is_star_locked_for_usage"] = df.apply(
+        lambda row: is_match_locked_for_star(
+            row.get("kickoff_time_utc"),
+            row.get("is_finished")
+        ),
+        axis=1
+    )
+    
+    df["hope_star_used"] = (
+        (df["star_type"] == STAR_TYPE_HOPE)
+        & df["is_star_locked_for_usage"]
+    )
+    
+    df["super_star_used"] = (
+        (df["star_type"] == STAR_TYPE_SUPER)
+        & df["is_star_locked_for_usage"]
+    )
 
     summary = (
         df
