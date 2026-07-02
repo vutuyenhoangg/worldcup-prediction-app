@@ -2600,6 +2600,16 @@ def format_star_short(star_type) -> str:
     star_type = normalize_star_type(star_type)
     return STAR_CONFIG[star_type]["short_label"]
 
+def get_star_left_from_usage(star_type: str, usage: dict) -> int:
+    star_type = normalize_star_type(star_type)
+
+    if star_type == STAR_TYPE_HOPE:
+        return int(usage.get("hope_left", 0))
+
+    if star_type == STAR_TYPE_SUPER:
+        return int(usage.get("super_left", 0))
+
+    return 0
 
 def get_user_star_usage(user_id: int, exclude_match_id: int | None = None) -> dict:
     """
@@ -2660,11 +2670,9 @@ def get_available_star_options(
     usage: dict | None = None
 ) -> list[str]:
     """
-    Luôn hiển thị đủ các loại bổ trợ.
+    Giữ hàm này để tương thích code cũ.
 
-    Lý do:
-    - Dù sao đã dùng hết, người chơi vẫn có thể chuyển sao từ trận khác chưa khóa.
-    - Việc validate quota vẫn được xử lý khi lưu.
+    Logic hiển thị chi tiết sẽ xử lý trong get_star_selection_state_for_card().
     """
     return [
         STAR_TYPE_NONE,
@@ -2676,37 +2684,35 @@ def get_available_star_options(
 def format_star_option_label(
     star_type: str,
     current_star_type: str,
-    usage: dict
+    usage: dict,
+    transfer_sources_by_star_type: dict | None = None
 ) -> str:
     star_type = normalize_star_type(star_type)
     current_star_type = normalize_star_type(current_star_type)
 
+    transfer_sources_by_star_type = transfer_sources_by_star_type or {}
+
     if star_type == STAR_TYPE_NONE:
         return "Không dùng sao"
 
-    if star_type == STAR_TYPE_HOPE:
-        hope_label = STAR_CONFIG[STAR_TYPE_HOPE]["label"]
+    star_label = STAR_CONFIG[star_type]["label"]
 
-        if current_star_type == STAR_TYPE_HOPE:
-            return f"{hope_label} (đang dùng)"
+    if star_type == current_star_type:
+        return f"{star_label} (đang dùng)"
 
-        if usage["hope_left"] > 0:
-            return f"{hope_label} (còn {usage['hope_left']}/{HOPE_STARS_PER_USER})"
+    star_left = get_star_left_from_usage(star_type, usage)
 
-        return f"{hope_label} (đã dùng hết, có thể chuyển từ trận khác)"
+    if star_left > 0:
+        if star_type == STAR_TYPE_HOPE:
+            return f"{star_label} (còn {star_left}/{HOPE_STARS_PER_USER})"
 
-    if star_type == STAR_TYPE_SUPER:
-        super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
+        if star_type == STAR_TYPE_SUPER:
+            return f"{star_label} (còn {star_left}/{SUPER_STARS_PER_USER})"
 
-        if current_star_type == STAR_TYPE_SUPER:
-            return f"{super_label} (đang dùng)"
+    if transfer_sources_by_star_type.get(star_type):
+        return f"{star_label} (đã dùng hết, có thể chuyển từ trận khác)"
 
-        if usage["super_left"] > 0:
-            return f"{super_label} (còn {usage['super_left']}/{SUPER_STARS_PER_USER})"
-
-        return f"{super_label} (đã dùng hết, có thể chuyển từ trận khác)"
-
-    return STAR_CONFIG[star_type]["label"]
+    return f"{star_label} (đã hết)"
 
 def get_prediction_result_info(
     pred_home,
@@ -2789,6 +2795,54 @@ def get_prediction_result_info(
         "border_color": "#FCA5A5"
     }
 
+def render_disabled_star_option(star_type: str):
+    """
+    Hiển thị option sao đã hết thật sự.
+
+    Đây không phải st.radio option thật, nên người dùng không thể chọn.
+    """
+    star_type = normalize_star_type(star_type)
+
+    if star_type == STAR_TYPE_NONE:
+        return
+
+    label = f"{STAR_CONFIG[star_type]['label']} (đã hết)"
+    safe_label = html.escape(label)
+
+    st.markdown(
+        f"""
+        <div style="
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            max-width: 100%;
+            margin: 2px 0 4px 0;
+            padding: 2px 8px 2px 2px;
+            border-radius: 999px;
+            color: #64748B;
+            font-size: 14px;
+            font-weight: 700;
+            opacity: 0.68;
+            cursor: not-allowed;
+            user-select: none;
+        ">
+            <span style="
+                display: inline-flex;
+                width: 16px;
+                height: 16px;
+                min-width: 16px;
+                min-height: 16px;
+                border-radius: 999px;
+                border: 2px solid #94A3B8;
+                background: #E5E7EB;
+                box-sizing: border-box;
+            "></span>
+            <span>{safe_label}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 def render_prediction_result_line(result_info):
     if result_info is None:
@@ -4272,6 +4326,61 @@ def get_transferable_star_predictions_for_ui(
 
     return sources
 
+def get_star_selection_state_for_card(
+    user_id: int,
+    match_id: int,
+    current_star_type: str,
+    usage: dict
+) -> dict:
+    """
+    Phân loại option bổ trợ trong card.
+
+    selectable_options:
+    - Không dùng sao
+    - Sao đang dùng ở trận hiện tại
+    - Sao còn quota
+    - Sao hết quota nhưng có thể chuyển từ trận khác còn mở dự đoán
+
+    disabled_options:
+    - Sao đã hết thật sự
+    - Không còn quota
+    - Không có trận nào còn mở để chuyển sao
+    """
+    current_star_type = normalize_star_type(current_star_type)
+
+    selectable_options = [STAR_TYPE_NONE]
+    disabled_options = []
+    transfer_sources_by_star_type = {}
+
+    for star_type in [STAR_TYPE_HOPE, STAR_TYPE_SUPER]:
+        star_left = get_star_left_from_usage(star_type, usage)
+
+        if current_star_type == star_type:
+            selectable_options.append(star_type)
+            continue
+
+        if star_left > 0:
+            selectable_options.append(star_type)
+            continue
+
+        transfer_sources = get_transferable_star_predictions_for_ui(
+            user_id=user_id,
+            star_type=star_type,
+            exclude_match_id=match_id
+        )
+
+        if transfer_sources:
+            selectable_options.append(star_type)
+            transfer_sources_by_star_type[star_type] = transfer_sources
+        else:
+            disabled_options.append(star_type)
+
+    return {
+        "selectable_options": selectable_options,
+        "disabled_options": disabled_options,
+        "transfer_sources_by_star_type": transfer_sources_by_star_type
+    }
+
 def get_match_by_id(match_id: int):
     return fetch_one(
         """
@@ -5297,13 +5406,17 @@ def render_match_card(
                 exclude_match_id=match_id
             )
 
-            star_options = get_available_star_options(
+            star_selection_state = get_star_selection_state_for_card(
                 user_id=user_id,
                 match_id=match_id,
                 current_star_type=current_star_type,
                 usage=star_usage_for_card
             )
-
+            
+            star_options = star_selection_state["selectable_options"]
+            disabled_star_options = star_selection_state["disabled_options"]
+            transfer_sources_by_star_type = star_selection_state["transfer_sources_by_star_type"]
+            
             star_radio_index = (
                 star_options.index(current_star_type)
                 if current_star_type in star_options
@@ -5323,71 +5436,62 @@ def render_match_card(
                     format_func=lambda star: format_star_option_label(
                         star,
                         current_star_type=current_star_type,
-                        usage=star_usage_for_card
+                        usage=star_usage_for_card,
+                        transfer_sources_by_star_type=transfer_sources_by_star_type
                     ),
                     horizontal=False,
                     key=star_radio_key
                 )
+            
+            for disabled_star_type in disabled_star_options:
+                render_disabled_star_option(disabled_star_type)
             transfer_from_match_id = None
             selected_star_type = normalize_star_type(selected_star_type)
-
-            selected_star_needs_transfer = False
-
-            if (
-                selected_star_type == STAR_TYPE_HOPE
-                and current_star_type != STAR_TYPE_HOPE
-                and star_usage_for_card["hope_left"] <= 0
-            ):
-                selected_star_needs_transfer = True
-
-            if (
-                selected_star_type == STAR_TYPE_SUPER
-                and current_star_type != STAR_TYPE_SUPER
-                and star_usage_for_card["super_left"] <= 0
-            ):
-                selected_star_needs_transfer = True
-
+            
+            selected_star_needs_transfer = (
+                selected_star_type != STAR_TYPE_NONE
+                and current_star_type != selected_star_type
+                and get_star_left_from_usage(selected_star_type, star_usage_for_card) <= 0
+            )
+            
             if selected_star_needs_transfer:
-                transfer_sources = get_transferable_star_predictions_for_ui(
-                    user_id=user_id,
-                    star_type=selected_star_type,
-                    exclude_match_id=match_id
+                transfer_sources = transfer_sources_by_star_type.get(
+                    selected_star_type,
+                    []
                 )
-
+            
                 star_name = format_star_short(selected_star_type)
-
+            
                 if transfer_sources:
                     st.info(
                         f"Bạn đã dùng hết {star_name}. "
                         "Bạn có thể chuyển sao từ một trận khác vẫn còn mở dự đoán sang trận này."
                     )
-
+            
                     transfer_source_labels = [
                         source["label"]
                         for source in transfer_sources
                     ]
-
+            
                     selected_transfer_label = st.selectbox(
                         "Chọn trận muốn chuyển sao từ:",
                         options=transfer_source_labels,
                         key=f"transfer_star_source_{match_id}_{selected_star_type}"
                     )
-
+            
                     transfer_source_by_label = {
                         source["label"]: source["match_id"]
                         for source in transfer_sources
                     }
-
+            
                     transfer_from_match_id = transfer_source_by_label[
                         selected_transfer_label
                     ]
-
+            
                 else:
-                    st.warning(
-                        f"Bạn đã dùng hết {star_name}, nhưng hiện không có trận nào "
-                        "còn mở dự đoán để chuyển sao. Các sao đang dùng có thể đã nằm ở trận đã khóa hoặc đã có kết quả."
+                    raise ValueError(
+                        f"{star_name} đã hết và không còn trận nào có thể chuyển sao."
                     )
-
             submitted = False
             delete_submitted = False
             
