@@ -4207,8 +4207,6 @@ def build_local_match_summary(row) -> str:
         "Tóm tắt này được tạo từ dữ liệu kết quả hiện có trong app."
     )
 
-
-@st.cache_data(ttl=7 * 24 * 60 * 60, show_spinner=False)
 def generate_match_ai_summary(
     match_id: int,
     pair_label: str,
@@ -4258,7 +4256,6 @@ def generate_match_ai_summary(
         "Dữ liệu trận trong app để đối chiếu:\n"
         f"{match_context}"
     )
-
     def call_gemini(enable_search: bool):
         if enable_search:
             config = types.GenerateContentConfig(
@@ -4324,7 +4321,6 @@ def generate_match_ai_summary(
             "note": "AI chưa phản hồi ổn định, đã dùng tóm tắt từ dữ liệu trận."
         }
 
-
 def clean_ai_summary_text(value) -> str:
     """
     Làm sạch nội dung AI trả về:
@@ -4379,12 +4375,27 @@ def clean_ai_summary_text(value) -> str:
 
     return text
 
+def clear_ai_summary_session_state():
+    """
+    Xóa AI Summary đang lưu trong session hiện tại.
+    Dùng khi đổi logic AI, đổi quota, đổi model hoặc bật/tắt Google Search.
+    """
+    for key in list(st.session_state.keys()):
+        key_text = str(key)
+
+        if (
+            key_text.startswith("ai_summary_result_")
+            or key_text.startswith("ai_summary_error_")
+            or key_text.startswith("ai_summary_refresh_")
+            or key_text == "active_ai_summary_dialog_match_id"
+        ):
+            st.session_state.pop(key, None)
 
 def trigger_ai_summary_for_match(row):
     """
     Render nút AI Summary ở góc phải card.
-    - Lần đầu bấm: gọi Gemini rồi mở popup.
-    - Những lần sau: chỉ mở popup xem lại, không generate lại.
+    - Nếu đã có summary Gemini hợp lệ: chỉ mở popup xem lại.
+    - Nếu lần trước bị fallback/quota/lỗi: cho phép gọi lại Gemini.
     """
     match_id = int(row["match_id"])
 
@@ -4457,11 +4468,34 @@ def trigger_ai_summary_for_match(row):
     if not clicked:
         return
 
-    if summary_state_key in st.session_state:
-        st.session_state["active_ai_summary_dialog_match_id"] = match_id
-        st.rerun()
+    existing_ai_result = st.session_state.get(summary_state_key)
 
-    st.session_state.pop(error_state_key, None)
+    if existing_ai_result:
+        existing_source_type = str(
+            existing_ai_result.get("source_type", "")
+        ).strip()
+
+        existing_note = str(
+            existing_ai_result.get("note", "")
+        ).strip()
+
+        is_valid_saved_summary = (
+            existing_source_type in [
+                "gemini_google_search",
+                "gemini_no_search",
+                "gemini_no_source_display"
+            ]
+            and not existing_note
+            and clean_ai_summary_text(existing_ai_result.get("summary", ""))
+        )
+
+        if is_valid_saved_summary:
+            st.session_state["active_ai_summary_dialog_match_id"] = match_id
+            st.rerun()
+
+        # Nếu lần trước chỉ là fallback/lỗi quota thì xóa để gọi lại Gemini.
+        st.session_state.pop(summary_state_key, None)
+        st.session_state.pop(error_state_key, None)
 
     use_google_search = str(
         os.getenv(
@@ -4492,10 +4526,11 @@ def trigger_ai_summary_for_match(row):
 
     if note:
         st.session_state[error_state_key] = note
+    else:
+        st.session_state.pop(error_state_key, None)
 
     st.session_state["active_ai_summary_dialog_match_id"] = match_id
     st.rerun()
-
 @st.dialog("✨ AI Summary")
 def render_ai_summary_dialog(row):
     match_id = int(row["match_id"])
@@ -6559,6 +6594,11 @@ def page_matches():
     render_kpi_tiles(matches)
 
     user_id = st.session_state["user"]["user_id"]
+    AI_SUMMARY_RUNTIME_VERSION = "gemini_search_v2_no_cache"
+    
+    if st.session_state.get("ai_summary_runtime_version") != AI_SUMMARY_RUNTIME_VERSION:
+        clear_ai_summary_session_state()
+        st.session_state["ai_summary_runtime_version"] = AI_SUMMARY_RUNTIME_VERSION
     success_message = st.session_state.pop(
         "star_transfer_success_message",
         None
