@@ -2903,6 +2903,12 @@ def render_disabled_star_options(disabled_star_options: list[str]):
     """
     Render các option sao đã hết thật sự theo dạng disabled.
     Không dùng radio để người chơi không thể chọn nhầm.
+
+    Yêu cầu UI:
+    - Không bọc box/pill bên ngoài.
+    - Chỉ hiển thị như 1 dòng lựa chọn bị khóa.
+    - Text không in đậm.
+    - Căn lề trái đều với các dòng radio bổ trợ khác.
     """
     if not disabled_star_options:
         return
@@ -2922,29 +2928,32 @@ def render_disabled_star_options(disabled_star_options: list[str]):
                 gap:8px;
                 width:fit-content;
                 max-width:100%;
-                margin-top:8px;
-                padding:8px 12px;
-                border-radius:999px;
-                background:#111827;
-                border:1px solid rgba(148,163,184,0.48);
+                margin:4px 0 0 0;
+                padding:2px 8px 2px 2px;
                 color:#94A3B8;
                 font-size:14px;
-                font-weight:800;
+                font-weight:400;
+                line-height:1.35;
                 cursor:not-allowed;
-                opacity:0.88;
-                box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+                opacity:0.95;
+                box-sizing:border-box;
             ">
                 <span style="
                     width:16px;
                     height:16px;
                     min-width:16px;
+                    min-height:16px;
                     border-radius:999px;
-                    border:2px solid #64748B;
-                    background:#020617;
+                    border:2px solid #CBD5E1;
+                    background:#FFFFFF;
+                    opacity:0.55;
                     display:inline-block;
                     box-sizing:border-box;
                 "></span>
-                <span>{star_label}</span>
+                <span style="
+                    color:#94A3B8;
+                    font-weight:400;
+                ">{star_label}</span>
             </div>
             """
         )
@@ -4735,10 +4744,12 @@ def render_star_transfer_dialog():
 
     if len(transfer_sources) == 1:
         selected_source_match_id = int(transfer_sources[0]["match_id"])
-        st.warning(
-            "Sao sẽ được lấy từ trận:\n\n"
-            f"{transfer_sources[0]['label']}"
+
+        st.markdown(
+            "Sao sẽ được lấy từ trận:"
         )
+        st.warning(transfer_sources[0]["label"])
+
     else:
         source_options = {
             source["label"]: int(source["match_id"])
@@ -4761,33 +4772,59 @@ def render_star_transfer_dialog():
     confirm_col, cancel_col = st.columns(2)
 
     with confirm_col:
-        if st.button(
-            "Có, chuyển sao",
-            type="primary",
-            use_container_width=True,
-            key="confirm_star_transfer_button"
+        with stylable_container(
+            key="confirm_star_transfer_button_shell",
+            css_styles="""
+            button {
+                width: 100% !important;
+                background: linear-gradient(135deg, #123C69, #0B1F3A) !important;
+                color: #F8FAFC !important;
+                border: 1px solid #123C69 !important;
+                box-shadow: 0 8px 18px rgba(18, 60, 105, 0.20) !important;
+            }
+
+            button * {
+                color: #F8FAFC !important;
+            }
+
+            button:hover {
+                background: #0B1F3A !important;
+                color: #FFFFFF !important;
+                border-color: #0B1F3A !important;
+                transform: translateY(-1px) !important;
+            }
+
+            button:active {
+                transform: translateY(0) !important;
+            }
+            """
         ):
-            try:
-                save_prediction(
-                    user_id=int(pending["user_id"]),
-                    match_id=int(pending["match_id"]),
-                    predicted_home_score=int(pending["predicted_home_score"]),
-                    predicted_away_score=int(pending["predicted_away_score"]),
-                    predicted_winner_team_id=(
-                        int(pending["predicted_winner_team_id"])
-                        if pending.get("predicted_winner_team_id") is not None
-                        else None
-                    ),
-                    star_type=star_type,
-                    transfer_from_match_id=selected_source_match_id
-                )
+            if st.button(
+                "Xác nhận",
+                use_container_width=True,
+                key="confirm_star_transfer_button"
+            ):
+                try:
+                    save_prediction(
+                        user_id=int(pending["user_id"]),
+                        match_id=int(pending["match_id"]),
+                        predicted_home_score=int(pending["predicted_home_score"]),
+                        predicted_away_score=int(pending["predicted_away_score"]),
+                        predicted_winner_team_id=(
+                            int(pending["predicted_winner_team_id"])
+                            if pending.get("predicted_winner_team_id") is not None
+                            else None
+                        ),
+                        star_type=star_type,
+                        transfer_from_match_id=selected_source_match_id
+                    )
 
-                st.session_state.pop("pending_star_transfer", None)
-                st.success("Đã chuyển sao và lưu dự đoán.")
-                st.rerun()
+                    st.session_state.pop("pending_star_transfer", None)
+                    st.success("Đã chuyển sao và lưu dự đoán.")
+                    st.rerun()
 
-            except ValueError as e:
-                st.error(str(e))
+                except ValueError as e:
+                    st.error(str(e))
 
     with cancel_col:
         if st.button(
@@ -4797,7 +4834,6 @@ def render_star_transfer_dialog():
         ):
             st.session_state.pop("pending_star_transfer", None)
             st.rerun()
-
 
 def delete_prediction(user_id: int, match_id: int):
     """
