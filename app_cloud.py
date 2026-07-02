@@ -22,7 +22,8 @@ import plotly.express as px
 from streamlit_extras.stylable_container import stylable_container
 import secrets
 from streamlit_cookies_controller import CookieController
-
+from google import genai
+from google.genai import types
 
 # ============================================================
 # 1. CONFIG
@@ -1096,30 +1097,44 @@ def get_star_radio_css(
     if disable_hope:
         css += """
         label[data-baseweb="radio"]:nth-of-type(2) {
-            opacity: 0.48 !important;
+            opacity: 0.46 !important;
             pointer-events: none !important;
             color: #94A3B8 !important;
-            background: rgba(148, 163, 184, 0.08) !important;
-            border-color: rgba(148, 163, 184, 0.16) !important;
+            background: transparent !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
         }
 
         label[data-baseweb="radio"]:nth-of-type(2) * {
             color: #94A3B8 !important;
+        }
+
+        label[data-baseweb="radio"]:nth-of-type(2) > div:first-child {
+            border-color: #CBD5E1 !important;
+            background: #F8FAFC !important;
+            box-shadow: none !important;
         }
         """
 
     if disable_super:
         css += """
         label[data-baseweb="radio"]:nth-of-type(3) {
-            opacity: 0.48 !important;
+            opacity: 0.46 !important;
             pointer-events: none !important;
             color: #94A3B8 !important;
-            background: rgba(148, 163, 184, 0.08) !important;
-            border-color: rgba(148, 163, 184, 0.16) !important;
+            background: transparent !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
         }
 
         label[data-baseweb="radio"]:nth-of-type(3) * {
             color: #94A3B8 !important;
+        }
+
+        label[data-baseweb="radio"]:nth-of-type(3) > div:first-child {
+            border-color: #CBD5E1 !important;
+            background: #F8FAFC !important;
+            box-shadow: none !important;
         }
         """
 
@@ -4091,6 +4106,298 @@ def render_goal_scorers_for_match(match_id: int):
         unsafe_allow_html=True
     )
 
+@st.cache_data(ttl=7 * 24 * 60 * 60, show_spinner=False)
+def generate_match_ai_summary(match_id: int, pair_label: str) -> dict:
+    """
+    Tạo AI Summary cho 1 trận đã có kết quả bằng Gemini.
+
+    Cache 7 ngày để:
+    - Không gọi Gemini lặp lại nhiều lần cho cùng 1 trận.
+    - Giảm chi phí.
+    - App phản hồi nhanh hơn sau lần đầu.
+    """
+    api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
+
+    if not api_key:
+        raise ValueError("Chưa cấu hình GEMINI_API_KEY trong Streamlit Secrets.")
+
+    model_name = (
+        os.getenv("GEMINI_SUMMARY_MODEL")
+        or st.secrets.get("GEMINI_SUMMARY_MODEL", "gemini-2.5-flash")
+    )
+
+    client = genai.Client(api_key=api_key)
+
+    prompt = (
+        "Bạn là một chuyên gia cập nhật tin tức World Cup 2026. "
+        f"Hãy cập nhật summary ngắn gọn 1-2 dòng về trận đấu gần nhất giữa {pair_label} "
+        "để cung cấp thêm cho người xem thông tin để họ hiểu hơn về những diễn biến trận đấu, "
+        "bổ sung thêm thông tin so với việc chỉ xem tỉ số và bàn thắng được ghi ở phút bao nhiêu. "
+        "Chỉ trả lời bằng tiếng Việt. Không viết quá 2 dòng. "
+        "Nếu không tìm thấy thông tin đáng tin cậy, hãy nói ngắn gọn rằng hiện chưa có đủ dữ liệu diễn biến chi tiết."
+    )
+
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            tools=[
+                types.Tool(
+                    google_search=types.GoogleSearch()
+                )
+            ],
+            temperature=0.35,
+            max_output_tokens=220
+        )
+    )
+
+    summary_text = str(getattr(response, "text", "") or "").strip()
+
+    sources = []
+
+    try:
+        candidates = getattr(response, "candidates", []) or []
+
+        if candidates:
+            grounding_metadata = getattr(candidates[0], "grounding_metadata", None)
+
+            if grounding_metadata:
+                grounding_chunks = getattr(grounding_metadata, "grounding_chunks", []) or []
+
+                for chunk in grounding_chunks:
+                    web = getattr(chunk, "web", None)
+
+                    if not web:
+                        continue
+
+                    source_url = getattr(web, "uri", "")
+                    source_title = getattr(web, "title", "")
+
+                    if source_url:
+                        sources.append({
+                            "title": source_title or "Nguồn tham khảo",
+                            "url": source_url
+                        })
+
+    except Exception:
+        sources = []
+
+    unique_sources = []
+    seen_urls = set()
+
+    for source in sources:
+        source_url = source.get("url", "")
+
+        if not source_url or source_url in seen_urls:
+            continue
+
+        seen_urls.add(source_url)
+        unique_sources.append(source)
+
+    return {
+        "summary": summary_text,
+        "sources": unique_sources[:3]
+    }
+
+def trigger_ai_summary_for_match(row):
+    """
+    Chỉ render nút AI Summary.
+    Đặt hàm này ở cột phải, phía trên box Kết quả.
+    """
+    match_id = int(row["match_id"])
+
+    home_name = row.get("home_team_name")
+    away_name = row.get("away_team_name")
+
+    if is_unknown_team(home_name) or is_unknown_team(away_name):
+        return
+
+    pair_label = f"{home_name} và {away_name}"
+
+    summary_state_key = f"ai_summary_result_{match_id}"
+    error_state_key = f"ai_summary_error_{match_id}"
+
+    button_label = (
+        "✨ AI Summary"
+        if summary_state_key in st.session_state
+        else "✨ AI Summary"
+    )
+
+    with stylable_container(
+        key=f"ai_summary_top_right_button_shell_{match_id}",
+        css_styles="""
+        {
+            width: 100%;
+            margin: 0 0 10px 0;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        button {
+            width: auto !important;
+            min-height: 36px !important;
+            padding: 7px 14px !important;
+            border-radius: 999px !important;
+            font-size: 13px !important;
+            font-weight: 850 !important;
+            white-space: nowrap !important;
+            background: rgba(255, 255, 255, 0.88) !important;
+            border: 1px solid rgba(245, 197, 66, 0.55) !important;
+            color: #07111F !important;
+            box-shadow: 0 7px 18px rgba(18, 60, 105, 0.08) !important;
+        }
+
+        button:hover {
+            border-color: #F5C542 !important;
+            background: #FFF7ED !important;
+            transform: translateY(-1px) !important;
+        }
+
+        button * {
+            white-space: nowrap !important;
+        }
+
+        @media (max-width: 768px) {
+            {
+                justify-content: flex-start;
+                margin-top: 12px;
+                margin-bottom: 10px;
+            }
+
+            button {
+                min-height: 40px !important;
+                padding: 8px 14px !important;
+                font-size: 13px !important;
+            }
+        }
+        """
+    ):
+        clicked = st.button(
+            button_label,
+            key=f"ai_summary_button_{match_id}",
+            help="Tạo tóm tắt ngắn về diễn biến trận đấu bằng AI."
+        )
+
+    if clicked:
+        st.session_state.pop(error_state_key, None)
+
+        try:
+            with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
+                ai_result = generate_match_ai_summary(
+                    match_id=match_id,
+                    pair_label=pair_label
+                )
+
+            st.session_state[summary_state_key] = ai_result
+
+        except Exception as e:
+            st.session_state[error_state_key] = str(e)
+
+
+def render_ai_summary_result_box(row):
+    """
+    Chỉ render box kết quả AI Summary.
+    Đặt hàm này sau cụm top_left/top_right để box trải ngang card,
+    không làm méo cột Kết quả.
+    """
+    match_id = int(row["match_id"])
+
+    summary_state_key = f"ai_summary_result_{match_id}"
+    error_state_key = f"ai_summary_error_{match_id}"
+
+    if error_state_key in st.session_state:
+        st.error(
+            "Chưa tạo được AI Summary. "
+            f"Chi tiết lỗi: {st.session_state[error_state_key]}"
+        )
+
+    ai_result = st.session_state.get(summary_state_key)
+
+    if not ai_result:
+        return
+
+    summary_text = str(ai_result.get("summary", "")).strip()
+    sources = ai_result.get("sources", []) or []
+
+    if not summary_text:
+        st.warning("AI chưa trả về nội dung tóm tắt phù hợp.")
+        return
+
+    safe_summary = html.escape(summary_text).replace("\n", "<br>")
+
+    source_html = ""
+
+    if sources:
+        source_links = []
+
+        for source in sources:
+            safe_title = html.escape(
+                str(source.get("title", "Nguồn tham khảo")).strip()
+            )
+            safe_url = html.escape(
+                str(source.get("url", "")).strip(),
+                quote=True
+            )
+
+            if safe_url:
+                source_links.append(
+                    f'<a href="{safe_url}" target="_blank" '
+                    f'style="color:#0369A1;font-weight:800;text-decoration:none;">'
+                    f'{safe_title}</a>'
+                )
+
+        if source_links:
+            source_html = (
+                '<div style="'
+                'margin-top:10px;'
+                'padding-top:9px;'
+                'border-top:1px solid rgba(15,23,42,0.08);'
+                'font-size:12px;'
+                'color:#64748B;'
+                'line-height:1.45;'
+                '">'
+                'Nguồn: '
+                + " · ".join(source_links)
+                + '</div>'
+            )
+
+    st.markdown(
+        f"""
+        <div style="
+            margin-top: 14px;
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            background:
+                radial-gradient(circle at top left, rgba(0, 180, 216, 0.10), transparent 32%),
+                linear-gradient(135deg, rgba(239, 246, 255, 0.96), rgba(255, 255, 255, 0.96));
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
+        ">
+            <div style="
+                color:#07111F;
+                font-weight:950;
+                font-size:14px;
+                margin-bottom:6px;
+                letter-spacing:-0.01em;
+            ">
+                ✨ AI Summary
+            </div>
+
+            <div style="
+                color:#334155;
+                font-size:13.5px;
+                line-height:1.55;
+            ">
+                {safe_summary}
+            </div>
+
+            {source_html}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 def clear_data_cache():
     """
     Xóa cache dữ liệu đọc từ Supabase sau khi có thao tác ghi dữ liệu.
@@ -5021,41 +5328,6 @@ def render_auth_page():
 # ============================================================
 # 9. MATCH CARD UI
 # ============================================================
-def render_match_title(home_name, away_name, match_id: int):
-    home_display = "TBD" if home_name is None or pd.isna(home_name) else str(home_name)
-    away_display = "TBD" if away_name is None or pd.isna(away_name) else str(away_name)
-
-    safe_home = html.escape(home_display)
-    safe_away = html.escape(away_display)
-
-    # Desktop: giữ nguyên st.subheader như cũ, chỉ ẩn nó trên mobile
-    with stylable_container(
-        key=f"match_title_desktop_{match_id}",
-        css_styles="""
-        {
-            display: block;
-        }
-
-        @media (max-width: 768px) {
-            {
-                display: none !important;
-            }
-        }
-        """
-    ):
-        st.subheader(f"{home_display} vs {away_display}")
-
-    # Mobile: title riêng, mỗi đội đúng 1 dòng
-    st.markdown(
-        f"""
-        <div class="wc-match-title-mobile" aria-label="{safe_home} vs {safe_away}">
-            <div class="wc-match-team">{safe_home}</div>
-            <div class="wc-match-vs">vs</div>
-            <div class="wc-match-team">{safe_away}</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 def render_match_title(home_name, away_name, match_id: int):
     home_display = "TBD" if home_name is None or pd.isna(home_name) else str(home_name)
@@ -5164,122 +5436,6 @@ def render_match_venue_footer(row, match_id: int):
         """,
         unsafe_allow_html=True
     )
-
-def render_pending_star_transfer_box(user_id: int, match_id: int):
-    pending = st.session_state.get("pending_star_transfer")
-
-    if not pending:
-        return
-
-    if int(pending.get("target_match_id")) != int(match_id):
-        return
-
-    star_type = normalize_star_type(pending.get("star_type"))
-    star_label = format_star_short(star_type)
-    candidates = pending.get("candidates", [])
-
-    if not candidates:
-        st.session_state.pop("pending_star_transfer", None)
-        return
-
-    candidate_options = {
-        candidate["label"]: candidate
-        for candidate in candidates
-    }
-
-    with stylable_container(
-        key=f"star_transfer_confirm_box_{match_id}",
-        css_styles="""
-        {
-            margin-top: 18px;
-            margin-bottom: 18px;
-            padding: 18px 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(245, 158, 11, 0.42);
-            background:
-                radial-gradient(circle at top left, rgba(245, 197, 66, 0.18), transparent 34%),
-                linear-gradient(135deg, rgba(255, 251, 235, 0.98), rgba(255, 255, 255, 0.96));
-            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
-        }
-
-        div[data-testid="stSelectbox"] label {
-            color: #07111F !important;
-            font-weight: 850 !important;
-        }
-        """
-    ):
-        st.markdown(
-            f"""
-            <div style="
-                color:#07111F;
-                font-weight:950;
-                font-size:18px;
-                margin-bottom:6px;
-            ">
-                Xác nhận chuyển bổ trợ
-            </div>
-
-            <div style="
-                color:#475569;
-                font-size:14px;
-                line-height:1.55;
-                margin-bottom:14px;
-            ">
-                Bạn đang muốn dùng <b>{html.escape(star_label)}</b> cho trận
-                <b>{html.escape(str(pending.get("target_label")))}</b>.
-                Tuy nhiên bổ trợ còn lại này đang được đặt ở trận khác chưa diễn ra.
-                Hãy chọn trận muốn gỡ sao để chuyển sang trận hiện tại.
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        selected_source_label = st.selectbox(
-            "Chọn trận muốn chuyển sao từ:",
-            options=list(candidate_options.keys()),
-            key=f"star_transfer_source_{match_id}"
-        )
-
-        confirm_col, cancel_col = st.columns([1, 1])
-
-        with confirm_col:
-            confirm_transfer = st.button(
-                "Xác nhận chuyển sao",
-                key=f"confirm_star_transfer_{match_id}",
-                use_container_width=True
-            )
-
-        with cancel_col:
-            cancel_transfer = st.button(
-                "Hủy",
-                key=f"cancel_star_transfer_{match_id}",
-                use_container_width=True
-            )
-
-        if confirm_transfer:
-            selected_candidate = candidate_options[selected_source_label]
-
-            try:
-                transfer_star_and_save_prediction(
-                    user_id=user_id,
-                    source_match_id=int(selected_candidate["match_id"]),
-                    target_match_id=int(pending["target_match_id"]),
-                    predicted_home_score=int(pending["predicted_home_score"]),
-                    predicted_away_score=int(pending["predicted_away_score"]),
-                    predicted_winner_team_id=pending["predicted_winner_team_id"],
-                    star_type=star_type
-                )
-
-                st.session_state.pop("pending_star_transfer", None)
-                st.success("Đã chuyển bổ trợ và lưu dự đoán.")
-                st.rerun()
-
-            except ValueError as e:
-                st.error(str(e))
-
-        if cancel_transfer:
-            st.session_state.pop("pending_star_transfer", None)
-            st.rerun()
 
 @st.dialog("Xác nhận chuyển bổ trợ")
 def render_star_transfer_dialog(user_id: int):
@@ -5570,6 +5726,9 @@ def render_match_card(
                     render_goal_scorers_for_match(match_id)
 
         with top_right:
+            if is_finished:
+                trigger_ai_summary_for_match(row)
+        
             actual_home = to_optional_int(row.get("home_score_for_prediction"))
             actual_away = to_optional_int(row.get("away_score_for_prediction"))
 
@@ -5713,7 +5872,9 @@ def render_match_card(
 
             else:
                 render_match_status_box(status_info)
-
+        
+        if is_finished:
+            render_ai_summary_result_box(row)
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
             render_match_venue_footer(row, match_id)
