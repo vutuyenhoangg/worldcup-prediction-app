@@ -4116,10 +4116,62 @@ def is_gemini_quota_error(error: Exception) -> bool:
         "quota",
         "rate limit",
         "rate_limit",
-        "exceeded"
+        "exceeded",
+        "too many requests"
     ]
 
     return any(keyword in error_text for keyword in quota_keywords)
+
+
+def get_config_value(name: str, default: str = "") -> str:
+    """
+    Lấy config ưu tiên từ st.secrets trước, rồi mới tới env.
+    Tránh trường hợp app dùng nhầm env var/API key cũ.
+    """
+    try:
+        value = st.secrets.get(name, None)
+    except Exception:
+        value = None
+
+    if value is None:
+        value = os.getenv(name, default)
+
+    return str(value or default).strip()
+
+
+def is_truthy_config(name: str, default: str = "false") -> bool:
+    return get_config_value(name, default).strip().lower() in [
+        "true",
+        "1",
+        "yes",
+        "y",
+        "on"
+    ]
+
+
+def mask_api_key(api_key: str) -> str:
+    api_key = str(api_key or "").strip()
+
+    if len(api_key) <= 12:
+        return "***"
+
+    return f"{api_key[:6]}...{api_key[-4:]}"
+
+
+def extract_gemini_error_text(error: Exception) -> str:
+    """
+    Lấy lỗi Gemini ở dạng text ngắn để debug.
+    Không hiển thị API key.
+    """
+    text = str(error or "").strip()
+
+    if not text:
+        return "Không rõ lỗi."
+
+    text = re.sub(r"AIza[0-9A-Za-z_\-]+", "AIza***", text)
+    text = re.sub(r"\s+", " ", text)
+
+    return text[:1200]
 
 
 def build_match_summary_context(row) -> str:
@@ -4214,19 +4266,20 @@ def generate_match_ai_summary(
     local_fallback_summary: str,
     use_google_search: bool = False
 ) -> dict:
-    api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY", "")
+    api_key = get_config_value("GEMINI_API_KEY", "")
 
     if not api_key:
         return {
             "summary": clean_ai_summary_text(local_fallback_summary),
             "sources": [],
             "source_type": "local_fallback",
-            "note": "AI Summary đang dùng dữ liệu trận đấu trong app."
+            "note": "Chưa cấu hình GEMINI_API_KEY, đã dùng tóm tắt từ dữ liệu trận.",
+            "debug_error": "Missing GEMINI_API_KEY"
         }
 
-    model_name = (
-        os.getenv("GEMINI_SUMMARY_MODEL")
-        or st.secrets.get("GEMINI_SUMMARY_MODEL", "gemini-2.5-flash")
+    model_name = get_config_value(
+        "GEMINI_SUMMARY_MODEL",
+        "gemini-2.5-flash"
     )
 
     client = genai.Client(api_key=api_key)
@@ -4243,19 +4296,20 @@ def generate_match_ai_summary(
 
     if not match_date_text:
         match_date_text = "không rõ ngày"
-
+    
     prompt = (
-        "Bạn là một chuyên gia cập nhật tin tức bóng đá và World Cup 2026. "
-        f"Hãy viết summary về trận đấu ngày {match_date_text} giữa {pair_label} trong khuôn khổ World Cup 2026. "
-        "Mục tiêu là giúp người xem hiểu thêm về diễn biến trận đấu, thế trận, các tình huống đáng chú ý, "
-        "bổ sung thêm thông tin so với việc chỉ nhìn tỉ số và cầu thủ ghi bàn. "
-        "Chỉ trả lời bằng tiếng Việt, không quá 100 chữ. "
-        "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
-        "Không thêm tiêu đề, không thêm nhãn 'AI Summary', không thêm phần 'Nguồn'. "
-        "Có thể viết đầy đủ nhiều câu nếu cần, miễn là rõ ràng và dễ hiểu.\n\n"
-        "Dữ liệu trận trong app để đối chiếu:\n"
-        f"{match_context}"
-    )
+            "Bạn là một chuyên gia cập nhật tin tức bóng đá và World Cup 2026. "
+            f"Hãy viết summary về trận đấu ngày {match_date_text} giữa {pair_label} trong khuôn khổ World Cup 2026. "
+            "Mục tiêu là giúp người xem hiểu thêm về diễn biến trận đấu, thế trận, các tình huống đáng chú ý, "
+            "bổ sung thêm thông tin so với việc chỉ nhìn tỉ số và cầu thủ ghi bàn. "
+            "Chỉ trả lời bằng tiếng Việt, không quá 100 chữ. "
+            "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
+            "Không thêm tiêu đề, không thêm nhãn 'AI Summary', không thêm phần 'Nguồn'. "
+            "Có thể viết đầy đủ nhiều câu nếu cần, miễn là rõ ràng và dễ hiểu.\n\n"
+            "Dữ liệu trận trong app để đối chiếu:\n"
+            f"{match_context}"
+        )
+
     def call_gemini(enable_search: bool):
         if enable_search:
             config = types.GenerateContentConfig(
@@ -4280,19 +4334,7 @@ def generate_match_ai_summary(
         )
 
     try:
-        try:
-            response = call_gemini(enable_search=use_google_search)
-
-        except Exception as first_error:
-            if use_google_search and is_gemini_quota_error(first_error):
-                return {
-                    "summary": clean_ai_summary_text(local_fallback_summary),
-                    "sources": [],
-                    "source_type": "local_fallback",
-                    "note": "Google Search Grounding đang hết quota, đã dùng tóm tắt từ dữ liệu trận."
-                }
-
-            raise first_error
+        response = call_gemini(enable_search=use_google_search)
 
         summary_text = clean_ai_summary_text(
             getattr(response, "text", "") or ""
@@ -4303,24 +4345,63 @@ def generate_match_ai_summary(
                 "summary": clean_ai_summary_text(local_fallback_summary),
                 "sources": [],
                 "source_type": "local_fallback",
-                "note": "AI chưa trả về nội dung phù hợp, đã dùng tóm tắt từ dữ liệu trận."
+                "note": "AI chưa trả về nội dung phù hợp, đã dùng tóm tắt từ dữ liệu trận.",
+                "debug_error": "Empty Gemini response"
             }
 
         return {
             "summary": summary_text,
             "sources": [],
             "source_type": "gemini_google_search" if use_google_search else "gemini_no_search",
-            "note": ""
+            "note": "",
+            "debug_error": ""
         }
 
-    except Exception:
+    except Exception as search_error:
+        search_error_text = extract_gemini_error_text(search_error)
+
+        # Nếu đang bật Google Search mà search lỗi, thử gọi Gemini không search
+        # để app vẫn có summary tốt hơn fallback cứng.
+        if use_google_search:
+            try:
+                response_no_search = call_gemini(enable_search=False)
+
+                summary_text = clean_ai_summary_text(
+                    getattr(response_no_search, "text", "") or ""
+                )
+
+                if summary_text:
+                    return {
+                        "summary": summary_text,
+                        "sources": [],
+                        "source_type": "gemini_no_search_after_search_failed",
+                        "note": "Google Search Grounding chưa khả dụng, đã dùng Gemini không search.",
+                        "debug_error": search_error_text
+                    }
+
+            except Exception as no_search_error:
+                no_search_error_text = extract_gemini_error_text(no_search_error)
+
+                return {
+                    "summary": clean_ai_summary_text(local_fallback_summary),
+                    "sources": [],
+                    "source_type": "local_fallback",
+                    "note": "AI Search chưa khả dụng, đã dùng tóm tắt từ dữ liệu trận.",
+                    "debug_error": (
+                        "Search error: "
+                        + search_error_text
+                        + " | No-search error: "
+                        + no_search_error_text
+                    )
+                }
+
         return {
             "summary": clean_ai_summary_text(local_fallback_summary),
             "sources": [],
             "source_type": "local_fallback",
-            "note": "AI chưa phản hồi ổn định, đã dùng tóm tắt từ dữ liệu trận."
+            "note": "AI chưa phản hồi ổn định, đã dùng tóm tắt từ dữ liệu trận.",
+            "debug_error": search_error_text
         }
-
 def clean_ai_summary_text(value) -> str:
     """
     Làm sạch nội dung AI trả về:
@@ -4394,8 +4475,8 @@ def clear_ai_summary_session_state():
 def trigger_ai_summary_for_match(row):
     """
     Render nút AI Summary ở góc phải card.
-    - Nếu đã có summary Gemini hợp lệ: chỉ mở popup xem lại.
-    - Nếu lần trước bị fallback/quota/lỗi: cho phép gọi lại Gemini.
+    - Nếu đã có summary Google Search hợp lệ: chỉ mở popup xem lại.
+    - Nếu lần trước bị fallback/no-search/quota/lỗi: cho phép gọi lại Gemini Search.
     """
     match_id = int(row["match_id"])
 
@@ -4409,6 +4490,11 @@ def trigger_ai_summary_for_match(row):
 
     summary_state_key = f"ai_summary_result_{match_id}"
     error_state_key = f"ai_summary_error_{match_id}"
+
+    use_google_search = is_truthy_config(
+        "AI_SUMMARY_USE_GOOGLE_SEARCH",
+        "false"
+    )
 
     with stylable_container(
         key=f"ai_summary_top_right_button_shell_{match_id}",
@@ -4479,30 +4565,34 @@ def trigger_ai_summary_for_match(row):
             existing_ai_result.get("note", "")
         ).strip()
 
-        is_valid_saved_summary = (
-            existing_source_type in [
-                "gemini_google_search",
-                "gemini_no_search",
-                "gemini_no_source_display"
-            ]
-            and not existing_note
-            and clean_ai_summary_text(existing_ai_result.get("summary", ""))
+        existing_summary = clean_ai_summary_text(
+            existing_ai_result.get("summary", "")
         )
+
+        if use_google_search:
+            is_valid_saved_summary = (
+                existing_source_type == "gemini_google_search"
+                and not existing_note
+                and existing_summary
+            )
+        else:
+            is_valid_saved_summary = (
+                existing_source_type in [
+                    "gemini_google_search",
+                    "gemini_no_search",
+                    "gemini_no_search_after_search_failed",
+                    "gemini_no_source_display"
+                ]
+                and existing_summary
+            )
 
         if is_valid_saved_summary:
             st.session_state["active_ai_summary_dialog_match_id"] = match_id
             st.rerun()
 
-        # Nếu lần trước chỉ là fallback/lỗi quota thì xóa để gọi lại Gemini.
+        # Nếu lần trước là fallback/no-search/search failed thì xóa để gọi lại.
         st.session_state.pop(summary_state_key, None)
         st.session_state.pop(error_state_key, None)
-
-    use_google_search = str(
-        os.getenv(
-            "AI_SUMMARY_USE_GOOGLE_SEARCH",
-            st.secrets.get("AI_SUMMARY_USE_GOOGLE_SEARCH", "false")
-        )
-    ).strip().lower() in ["true", "1", "yes", "y"]
 
     match_context = build_match_summary_context(row)
     local_fallback_summary = build_local_match_summary(row)
@@ -4531,6 +4621,7 @@ def trigger_ai_summary_for_match(row):
 
     st.session_state["active_ai_summary_dialog_match_id"] = match_id
     st.rerun()
+
 @st.dialog("✨ AI Summary")
 def render_ai_summary_dialog(row):
     match_id = int(row["match_id"])
@@ -4582,6 +4673,21 @@ def render_ai_summary_dialog(row):
         st.info(st.session_state[error_state_key])
 
     ai_result = st.session_state.get(summary_state_key)
+    show_ai_debug = (
+        st.session_state.get("user", {}).get("role") == "admin"
+        and is_truthy_config("AI_SUMMARY_DEBUG", "false")
+    )
+
+    if show_ai_debug and ai_result:
+        with st.expander("Debug AI Summary", expanded=False):
+            st.write({
+                "source_type": ai_result.get("source_type"),
+                "note": ai_result.get("note"),
+                "debug_error": ai_result.get("debug_error"),
+                "model": get_config_value("GEMINI_SUMMARY_MODEL", "gemini-2.5-flash"),
+                "use_google_search": is_truthy_config("AI_SUMMARY_USE_GOOGLE_SEARCH", "false"),
+                "api_key": mask_api_key(get_config_value("GEMINI_API_KEY", ""))
+            })
 
     if not ai_result:
         st.info("Chưa có AI Summary cho trận này.")
@@ -6594,7 +6700,7 @@ def page_matches():
     render_kpi_tiles(matches)
 
     user_id = st.session_state["user"]["user_id"]
-    AI_SUMMARY_RUNTIME_VERSION = "gemini_search_v2_no_cache"
+    AI_SUMMARY_RUNTIME_VERSION = "gemini_search_v3_secret_first_debug"
     
     if st.session_state.get("ai_summary_runtime_version") != AI_SUMMARY_RUNTIME_VERSION:
         clear_ai_summary_session_state()
