@@ -2834,7 +2834,7 @@ def format_star_option_label(
         if current_star_type == STAR_TYPE_HOPE:
             return (
                 f"{hope_label} "
-                f"(đang dùng; Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
+                f"(Đang dùng; Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
                 f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
             )
 
@@ -2856,7 +2856,7 @@ def format_star_option_label(
         if current_star_type == STAR_TYPE_SUPER:
             return (
                 f"{super_label} "
-                f"(đang dùng; Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
+                f"(Đang dùng; Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
                 f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
             )
 
@@ -5971,7 +5971,7 @@ def render_match_card(
                     if current_star_type == STAR_TYPE_HOPE:
                         return (
                             f"{hope_label} "
-                            f"(đang dùng; Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
+                            f"(Đang dùng; Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
                             f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
                         )
             
@@ -5991,7 +5991,7 @@ def render_match_card(
                     if current_star_type == STAR_TYPE_SUPER:
                         return (
                             f"{super_label} "
-                            f"(đang dùng; Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
+                            f"(Đang dùng; Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
                             f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
                         )
             
