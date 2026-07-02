@@ -2832,7 +2832,7 @@ def format_star_option_label(
             return f"{hope_label} (đã hết)"
 
         if usage["hope_free_left"] <= 0:
-            return f"{hope_label} (còn {usage['hope_left']}/{HOPE_STARS_PER_USER}, đang giữ ở trận khác)"
+            return f"{hope_label} (còn {usage['hope_left']}/{HOPE_STARS_PER_USER}, đang đặt ở trận khác)"
 
         return f"{hope_label} (còn {usage['hope_left']}/{HOPE_STARS_PER_USER})"
 
@@ -2846,7 +2846,7 @@ def format_star_option_label(
             return f"{super_label} (đã hết)"
 
         if usage["super_free_left"] <= 0:
-            return f"{super_label} (còn {usage['super_left']}/{SUPER_STARS_PER_USER}, đang giữ ở trận khác)"
+            return f"{super_label} (còn {usage['super_left']}/{SUPER_STARS_PER_USER}, đang đặt ở trận khác)"
 
         return f"{super_label} (còn {usage['super_left']}/{SUPER_STARS_PER_USER})"
 
@@ -5955,7 +5955,7 @@ def render_match_card(
                         return f"{hope_label} (đã hết)"
 
                     if hope_free_left <= 0:
-                        return f"{hope_label} (còn {hope_left}/{HOPE_STARS_PER_USER}, đang giữ ở trận khác)"
+                        return f"{hope_label} (còn {hope_left}/{HOPE_STARS_PER_USER}, đang đặt ở trận khác)"
 
                     return f"{hope_label} (còn {hope_left}/{HOPE_STARS_PER_USER})"
 
@@ -5969,7 +5969,7 @@ def render_match_card(
                         return f"{super_label} (đã hết)"
 
                     if super_free_left <= 0:
-                        return f"{super_label} (còn {super_left}/{SUPER_STARS_PER_USER}, đang giữ ở trận khác)"
+                        return f"{super_label} (còn {super_left}/{SUPER_STARS_PER_USER}, đang đặt ở trận khác)"
 
                     return f"{super_label} (còn {super_left}/{SUPER_STARS_PER_USER})"
 
