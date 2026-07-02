@@ -22,7 +22,8 @@ import plotly.express as px
 from streamlit_extras.stylable_container import stylable_container
 import secrets
 from streamlit_cookies_controller import CookieController
-
+from google import genai
+import re
 
 # ============================================================
 # 1. CONFIG
@@ -44,6 +45,8 @@ COOKIE_NAME = "wc_session_token"
 SESSION_DAYS = 30
 HOPE_STARS_PER_USER = 5
 SUPER_STARS_PER_USER = 1
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
+GEMINI_MODEL_NAME = st.secrets.get("GEMINI_MODEL_NAME", "gemini-2.5-flash")
 
 AVATAR_FOLDER = "data/static/avatars"
 DEFAULT_AVATAR_KEY = "avatar_default_1.png"
@@ -942,6 +945,96 @@ def inject_mobile_goal_scorer_button_css():
 
 
 inject_mobile_goal_scorer_button_css()
+
+def inject_ai_summary_button_css():
+    ai_icon_mask = (
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' "
+        "width='24' height='24' viewBox='0 0 24 24' fill='none' "
+        "stroke='currentColor' stroke-width='1' stroke-linecap='round' "
+        "stroke-linejoin='round'%3E"
+        "%3Cpath stroke='none' d='M0 0h24v24H0z' fill='none'/%3E"
+        "%3Cpath d='M14 3v4a1 1 0 0 0 1 1h4'/%3E"
+        "%3Cpath d='M10 21h-3a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v3.5'/%3E"
+        "%3Cpath d='M9 9h1'/%3E"
+        "%3Cpath d='M9 13h2.5'/%3E"
+        "%3Cpath d='M9 17h1'/%3E"
+        "%3Cpath d='M14 21v-4a2 2 0 1 1 4 0v4'/%3E"
+        "%3Cpath d='M14 19h4'/%3E"
+        "%3Cpath d='M21 15v6'/%3E"
+        "%3C/svg%3E"
+    )
+
+    st.markdown(
+        f"""
+        <style>
+        div[class*="st-key-ai_summary_button_"] {{
+            margin-bottom: 12px !important;
+        }}
+
+        div[class*="st-key-ai_summary_button_"] button {{
+            width: 100% !important;
+            min-height: 42px !important;
+            padding: 9px 13px !important;
+            border-radius: 14px !important;
+            background: rgba(255, 255, 255, 0.88) !important;
+            border: 1px solid rgba(37, 99, 235, 0.24) !important;
+            color: #1E3A8A !important;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08) !important;
+            font-size: 13px !important;
+            font-weight: 850 !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+        }}
+
+        div[class*="st-key-ai_summary_button_"] button::before {{
+            content: "";
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            background: currentColor;
+            -webkit-mask: url("{ai_icon_mask}") center / contain no-repeat;
+            mask: url("{ai_icon_mask}") center / contain no-repeat;
+            flex: 0 0 auto;
+        }}
+
+        div[class*="st-key-ai_summary_button_"] button:hover {{
+            background: rgba(239, 246, 255, 0.96) !important;
+            border-color: rgba(37, 99, 235, 0.48) !important;
+            color: #1D4ED8 !important;
+            transform: translateY(-1px) !important;
+        }}
+
+        div[class*="st-key-ai_summary_button_"] button * {{
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+            overflow-wrap: normal !important;
+            line-height: 1 !important;
+            font-size: inherit !important;
+        }}
+
+        @media (max-width: 768px) {{
+            div[class*="st-key-ai_summary_button_"] {{
+                margin-top: 10px !important;
+                margin-bottom: 14px !important;
+            }}
+
+            div[class*="st-key-ai_summary_button_"] button {{
+                min-height: 40px !important;
+                font-size: 12.5px !important;
+                padding: 8px 11px !important;
+            }}
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+inject_ai_summary_button_css()
 
 def inject_mobile_goal_scorer_panel_css():
     """
@@ -4309,7 +4402,245 @@ def get_match_by_id(match_id: int):
         }
     )
 
+@st.cache_resource(show_spinner=False)
+def get_gemini_client():
+    if not GEMINI_API_KEY:
+        raise ValueError("Chưa cấu hình GEMINI_API_KEY trong Streamlit Secrets.")
 
+    return genai.Client(api_key=GEMINI_API_KEY)
+
+
+def normalize_ai_summary_text(text: str) -> str:
+    """
+    Làm sạch output để đảm bảo hiển thị text thuần:
+    - Không HTML.
+    - Không Markdown/bullet.
+    - Không quá 100 chữ.
+    """
+    text = str(text or "").strip()
+
+    text = re.sub(r"<[^>]+>", "", text)
+    text = text.replace("AI Summary:", "").replace("AI summary:", "")
+    text = text.replace("Nguồn:", "").replace("Sources:", "")
+    text = text.replace("```", "")
+    text = re.sub(r"^\s*[-*•]\s*", "", text, flags=re.MULTILINE)
+    text = " ".join(text.split())
+
+    words = text.split()
+
+    if len(words) > 100:
+        text = " ".join(words[:100]).rstrip(" ,.;:") + "..."
+
+    return text.strip()
+
+
+def build_ai_match_summary_prompt(match_row: dict) -> str:
+    home_name = match_row.get("home_team_name")
+    away_name = match_row.get("away_team_name")
+
+    match_name = f"{home_name} vs {away_name}"
+
+    prompt = (
+        "Bạn là một chuyên gia cập nhật tin tức bóng đá và World Cup 2026. "
+        f"Hãy viết summary về trận đấu giữa {match_name} trong khuôn khổ World Cup 2026. "
+        "Mục tiêu là giúp người xem hiểu thêm diễn biến trận đấu, thế trận hoặc bước ngoặt, "
+        "bổ sung thêm thông tin so với việc chỉ nhìn tỉ số và cầu thủ ghi bàn. "
+        "Chỉ trả lời bằng tiếng Việt, không quá 100 chữ. "
+        "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
+        "Không thêm tiêu đề, không thêm nhãn 'AI Summary', không thêm phần 'Nguồn'. "
+        "Có thể viết đầy đủ nhiều câu nếu cần, miễn là rõ ràng và dễ hiểu.\n\n"
+    )
+
+    return prompt
+
+
+def get_ai_match_summary_from_db(match_id: int):
+    return fetch_one(
+        """
+        SELECT
+            match_id,
+            summary_text,
+            model_name,
+            created_at,
+            updated_at
+        FROM match_ai_summaries
+        WHERE match_id = :match_id
+        """,
+        {
+            "match_id": int(match_id)
+        }
+    )
+
+
+def save_ai_match_summary_to_db(
+    match_id: int,
+    summary_text: str,
+    model_name: str
+):
+    now_text = now_utc_iso()
+
+    execute_sql(
+        """
+        INSERT INTO match_ai_summaries (
+            match_id,
+            summary_text,
+            model_name,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            :match_id,
+            :summary_text,
+            :model_name,
+            :created_at,
+            :updated_at
+        )
+        ON CONFLICT (match_id)
+        DO UPDATE SET
+            summary_text = EXCLUDED.summary_text,
+            model_name = EXCLUDED.model_name,
+            updated_at = EXCLUDED.updated_at
+        """,
+        {
+            "match_id": int(match_id),
+            "summary_text": summary_text,
+            "model_name": model_name,
+            "created_at": now_text,
+            "updated_at": now_text
+        }
+    )
+
+
+def generate_ai_match_summary(match_row: dict) -> str:
+    """
+    Generate summary bằng Gemini.
+    Có Google Search grounding để phù hợp mục tiêu cập nhật tin tức/trận đấu.
+    """
+    client = get_gemini_client()
+    prompt = build_ai_match_summary_prompt(match_row)
+
+    interaction = client.interactions.create(
+        model=GEMINI_MODEL_NAME,
+        input=prompt,
+        tools=[
+            {
+                "type": "google_search"
+            }
+        ]
+    )
+
+    summary_text = normalize_ai_summary_text(
+        getattr(interaction, "output_text", "")
+    )
+
+    if not summary_text:
+        raise ValueError("Gemini không trả về nội dung summary hợp lệ.")
+
+    return summary_text
+
+@st.dialog("AI tổng kết trận đấu")
+def render_ai_match_summary_dialog(match_id: int):
+    match_id = int(match_id)
+
+    match = get_match_by_id(match_id)
+
+    if match is None:
+        st.error("Không tìm thấy trận đấu.")
+        if st.button("Đóng", use_container_width=True, key=f"close_ai_summary_missing_{match_id}"):
+            st.session_state.pop("ai_summary_match_id", None)
+            st.rerun()
+        return
+
+    if not to_bool(match.get("is_finished")):
+        st.warning("Chỉ có thể tạo AI tổng kết cho trận đã có kết quả.")
+        if st.button("Đóng", use_container_width=True, key=f"close_ai_summary_unfinished_{match_id}"):
+            st.session_state.pop("ai_summary_match_id", None)
+            st.rerun()
+        return
+
+    home_name = match.get("home_team_name")
+    away_name = match.get("away_team_name")
+
+    st.markdown(
+        f"""
+        <div style="
+            color:#07111F;
+            font-weight:950;
+            font-size:18px;
+            line-height:1.25;
+            margin-bottom:4px;
+        ">
+            {html.escape(str(home_name))} vs {html.escape(str(away_name))}
+        </div>
+        <div style="
+            color:#64748B;
+            font-size:13px;
+            margin-bottom:14px;
+        ">
+            Tổng kết được lưu theo từng trận. Nếu đã có dữ liệu, app sẽ hiển thị lại và không gọi Gemini mới.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    try:
+        existing_summary = get_ai_match_summary_from_db(match_id)
+    except Exception as e:
+        st.error("Chưa đọc được bảng match_ai_summaries. Hãy kiểm tra lại bảng trong Supabase.")
+        st.exception(e)
+        return
+
+    if existing_summary is not None:
+        summary_text = existing_summary.get("summary_text", "")
+        source_note = "Đã lưu trước đó"
+    else:
+        with st.spinner("AI đang tổng hợp diễn biến trận đấu..."):
+            try:
+                summary_text = generate_ai_match_summary(match)
+                save_ai_match_summary_to_db(
+                    match_id=match_id,
+                    summary_text=summary_text,
+                    model_name=GEMINI_MODEL_NAME
+                )
+                source_note = "Vừa tạo mới"
+            except Exception as e:
+                st.error("Không tạo được AI summary cho trận này.")
+                st.caption(str(e))
+                return
+
+    safe_summary = html.escape(str(summary_text))
+
+    st.markdown(
+        f"""
+        <div style="
+            padding:16px 17px;
+            border-radius:18px;
+            background:
+                radial-gradient(circle at top left, rgba(37,99,235,0.10), transparent 34%),
+                linear-gradient(135deg, rgba(248,250,252,0.98), rgba(255,255,255,0.96));
+            border:1px solid rgba(37,99,235,0.18);
+            color:#0F172A;
+            font-size:15px;
+            line-height:1.65;
+            font-weight:650;
+            margin-bottom:10px;
+        ">
+            {safe_summary}
+        </div>
+        <div style="
+            color:#94A3B8;
+            font-size:12px;
+            margin-bottom:14px;
+        ">
+            {html.escape(source_note)}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if st.button("Đóng", use_container_width=True, key=f"close_ai_summary_{match_id}"):
+        st.session_state.pop("ai_summary_match_id", None)
+        st.rerun()
 # ============================================================
 # 7. PREDICTION SAVE + SCORING
 # ============================================================
@@ -5589,6 +5920,18 @@ def render_match_card(
                 and score_pen_away is not None
             )
 
+            if is_finished:
+                ai_summary_clicked = st.button(
+                    "AI tổng kết trận đấu",
+                    key=f"ai_summary_button_{match_id}",
+                    type="secondary",
+                    use_container_width=True
+                )
+
+                if ai_summary_clicked:
+                    st.session_state["ai_summary_match_id"] = match_id
+                    st.rerun()
+
             if is_finished and actual_home is not None and actual_away is not None:
                 result_text = f"{actual_home} - {actual_away}"
 
@@ -6225,6 +6568,10 @@ def page_matches():
     
     if st.session_state.get("pending_star_transfer"):
         render_star_transfer_dialog(user_id)
+    if st.session_state.get("ai_summary_match_id"):
+        render_ai_match_summary_dialog(
+            int(st.session_state["ai_summary_match_id"])
+        )
     render_star_balance(user_id)
     render_scoring_rules()
 
