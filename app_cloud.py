@@ -1171,6 +1171,9 @@ def inject_sidebar_menu_radio_css():
 
             color: #F8FAFC !important;
             font-weight: 800 !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            cursor: pointer !important;
         }
 
         section[data-testid="stSidebar"] div[class*="st-key-selected_page"] label[data-baseweb="radio"]:has(input:checked) {
@@ -5909,74 +5912,75 @@ def render_match_card(
                 and current_star_type != STAR_TYPE_SUPER
             )
 
+            star_radio_shell_class = f'div[class*="st-key-star_radio_style_shell_{match_id}"]'
             star_radio_css = get_prediction_radio_css()
 
             if disable_hope_option:
-                star_radio_css += """
-                label[data-baseweb="radio"]:nth-of-type(2) {
+                star_radio_css += f"""
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(2) {{
                     opacity: 0.46 !important;
                     pointer-events: none !important;
                     color: #94A3B8 !important;
                     background: transparent !important;
                     border-color: transparent !important;
                     box-shadow: none !important;
-                }
+                }}
 
-                label[data-baseweb="radio"]:nth-of-type(2) * {
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(2) * {{
                     color: #94A3B8 !important;
-                }
+                }}
 
-                label[data-baseweb="radio"]:nth-of-type(2) > div:first-child {
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(2) > div:first-child {{
                     border-color: #CBD5E1 !important;
                     background: #F8FAFC !important;
                     box-shadow: none !important;
-                }
+                }}
 
-                label[data-baseweb="radio"]:nth-of-type(2):hover {
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(2):hover {{
                     background: transparent !important;
                     border-color: transparent !important;
                     box-shadow: none !important;
-                }
+                }}
 
-                label[data-baseweb="radio"]:nth-of-type(2):hover > div:first-child {
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(2):hover > div:first-child {{
                     border-color: #CBD5E1 !important;
                     background: #F8FAFC !important;
                     box-shadow: none !important;
-                }
+                }}
                 """
 
             if disable_super_option:
-                star_radio_css += """
-                label[data-baseweb="radio"]:nth-of-type(3) {
+                star_radio_css += f"""
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(3) {{
                     opacity: 0.46 !important;
                     pointer-events: none !important;
                     color: #94A3B8 !important;
                     background: transparent !important;
                     border-color: transparent !important;
                     box-shadow: none !important;
-                }
+                }}
 
-                label[data-baseweb="radio"]:nth-of-type(3) * {
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(3) * {{
                     color: #94A3B8 !important;
-                }
+                }}
 
-                label[data-baseweb="radio"]:nth-of-type(3) > div:first-child {
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(3) > div:first-child {{
                     border-color: #CBD5E1 !important;
                     background: #F8FAFC !important;
                     box-shadow: none !important;
-                }
+                }}
 
-                label[data-baseweb="radio"]:nth-of-type(3):hover {
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(3):hover {{
                     background: transparent !important;
                     border-color: transparent !important;
                     box-shadow: none !important;
-                }
+                }}
 
-                label[data-baseweb="radio"]:nth-of-type(3):hover > div:first-child {
+                {star_radio_shell_class} label[data-baseweb="radio"]:nth-of-type(3):hover > div:first-child {{
                     border-color: #CBD5E1 !important;
                     background: #F8FAFC !important;
                     box-shadow: none !important;
-                }
+                }}
                 """
 
             def format_star_option_label_for_card(star_type):
