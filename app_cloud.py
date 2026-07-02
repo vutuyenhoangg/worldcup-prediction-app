@@ -5211,7 +5211,7 @@ def render_pending_star_transfer_box(user_id: int, match_id: int):
             ">
                 Bạn đang muốn dùng <b>{html.escape(star_label)}</b> cho trận
                 <b>{html.escape(str(pending.get("target_label")))}</b>.
-                Tuy nhiên bổ trợ này đang được giữ tạm ở trận khác chưa diễn ra.
+                Tuy nhiên bổ trợ còn lại này đang được đặt ở trận khác chưa diễn ra.
                 Hãy chọn trận muốn gỡ sao để chuyển sang trận hiện tại.
             </div>
             """,
@@ -5301,7 +5301,7 @@ def render_star_transfer_dialog(user_id: int):
             line-height:1.5;
             margin-bottom:14px;
         ">
-            <b>{html.escape(star_label)}</b> đang được giữ ở trận khác.
+            <b>{html.escape(star_label)}</b> còn lại đang được đặt ở trận khác.
             Chọn trận muốn gỡ sao để chuyển sang
             <b>{html.escape(target_label)}</b>.
         </div>
