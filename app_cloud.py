@@ -2828,20 +2828,21 @@ def format_star_option_label(
         hope_left = int(usage.get("hope_left", 0))
         hope_reserved_used = int(usage.get("hope_reserved_used", 0))
 
-        if current_star_type == STAR_TYPE_HOPE:
-            return f"{hope_label} (đang dùng)"
-
-        if hope_left <= 0:
+        if hope_left <= 0 and current_star_type != STAR_TYPE_HOPE:
             return f"{hope_label} (đã hết)"
 
-        if hope_reserved_used > 0:
+        if current_star_type == STAR_TYPE_HOPE:
             return (
                 f"{hope_label} "
-                f"(Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
+                f"(đang dùng; Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
                 f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
             )
 
-        return f"{hope_label} (Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
+        return (
+            f"{hope_label} "
+            f"(Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
+            f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
+        )
 
     if star_type == STAR_TYPE_SUPER:
         super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
@@ -2849,20 +2850,21 @@ def format_star_option_label(
         super_left = int(usage.get("super_left", 0))
         super_reserved_used = int(usage.get("super_reserved_used", 0))
 
-        if current_star_type == STAR_TYPE_SUPER:
-            return f"{super_label} (đang dùng)"
-
-        if super_left <= 0:
+        if super_left <= 0 and current_star_type != STAR_TYPE_SUPER:
             return f"{super_label} (đã hết)"
 
-        if super_reserved_used > 0:
+        if current_star_type == STAR_TYPE_SUPER:
             return (
                 f"{super_label} "
-                f"(Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
+                f"(đang dùng; Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
                 f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
             )
 
-        return f"{super_label} (Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
+        return (
+            f"{super_label} "
+            f"(Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
+            f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
+        )
 
     return STAR_CONFIG[star_type]["label"]
 
@@ -5963,39 +5965,41 @@ def render_match_card(
                     hope_label = STAR_CONFIG[STAR_TYPE_HOPE]["label"]
                     hope_reserved_used = int(star_usage_for_card.get("hope_reserved_used", 0))
             
-                    if current_star_type == STAR_TYPE_HOPE:
-                        return f"{hope_label} (đang dùng)"
-            
-                    if hope_left <= 0:
+                    if hope_left <= 0 and current_star_type != STAR_TYPE_HOPE:
                         return f"{hope_label} (đã hết)"
             
-                    if hope_reserved_used > 0:
+                    if current_star_type == STAR_TYPE_HOPE:
                         return (
                             f"{hope_label} "
-                            f"(Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
+                            f"(đang dùng; Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
                             f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
                         )
             
-                    return f"{hope_label} (Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
+                    return (
+                        f"{hope_label} "
+                        f"(Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
+                        f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
+                    )
             
                 if star_type == STAR_TYPE_SUPER:
                     super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
                     super_reserved_used = int(star_usage_for_card.get("super_reserved_used", 0))
             
-                    if current_star_type == STAR_TYPE_SUPER:
-                        return f"{super_label} (đang dùng)"
-            
-                    if super_left <= 0:
+                    if super_left <= 0 and current_star_type != STAR_TYPE_SUPER:
                         return f"{super_label} (đã hết)"
             
-                    if super_reserved_used > 0:
+                    if current_star_type == STAR_TYPE_SUPER:
                         return (
                             f"{super_label} "
-                            f"(Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
+                            f"(đang dùng; Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
                             f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
                         )
             
-                    return f"{super_label} (Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
+                    return (
+                        f"{super_label} "
+                        f"(Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
+                        f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
+                    )
             
                 return STAR_CONFIG[star_type]["label"]
 
