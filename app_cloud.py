@@ -745,52 +745,6 @@ def inject_worldcup_theme():
             color: #64748B !important;
             stroke: #64748B !important;
         }}
-        .wc-match-title-mobile {{
-            display: none;
-        }}
-
-        @media (max-width: 768px) {{
-            .wc-match-title-mobile {{
-                display: block;
-                width: 100%;
-                max-width: 100%;
-                margin: 2px 0 10px 0;
-            }}
-
-            .wc-match-title-mobile .wc-match-team {{
-                display: block;
-                width: 100%;
-                max-width: 100%;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                color: #07111F;
-                font-size: clamp(20px, 5.6vw, 23px);
-                line-height: 1.13;
-                font-weight: 950;
-                letter-spacing: -0.035em;
-            }}
-
-            .wc-match-title-mobile .wc-match-vs {{
-                display: block;
-                width: 100%;
-                color: #07111F;
-                font-size: clamp(18px, 5vw, 21px);
-                line-height: 1.08;
-                font-weight: 950;
-                letter-spacing: -0.025em;
-            }}
-        }}
-
-        @media (max-width: 390px) {{
-            .wc-match-title-mobile .wc-match-team {{
-                font-size: 20px;
-            }}
-
-            .wc-match-title-mobile .wc-match-vs {{
-                font-size: 18px;
-            }}
-        }}
         @media (max-width: 900px) {{
             .wc-hero-grid {{
                 grid-template-columns: 1fr;
@@ -1089,57 +1043,6 @@ def get_prediction_radio_css():
     }
     """
 
-def get_star_radio_css(
-    disable_hope: bool = False,
-    disable_super: bool = False
-) -> str:
-    css = get_prediction_radio_css()
-
-    if disable_hope:
-        css += """
-        label[data-baseweb="radio"]:nth-of-type(2) {
-            opacity: 0.46 !important;
-            pointer-events: none !important;
-            color: #94A3B8 !important;
-            background: transparent !important;
-            border-color: transparent !important;
-            box-shadow: none !important;
-        }
-
-        label[data-baseweb="radio"]:nth-of-type(2) * {
-            color: #94A3B8 !important;
-        }
-
-        label[data-baseweb="radio"]:nth-of-type(2) > div:first-child {
-            border-color: #CBD5E1 !important;
-            background: #F8FAFC !important;
-            box-shadow: none !important;
-        }
-        """
-
-    if disable_super:
-        css += """
-        label[data-baseweb="radio"]:nth-of-type(3) {
-            opacity: 0.46 !important;
-            pointer-events: none !important;
-            color: #94A3B8 !important;
-            background: transparent !important;
-            border-color: transparent !important;
-            box-shadow: none !important;
-        }
-
-        label[data-baseweb="radio"]:nth-of-type(3) * {
-            color: #94A3B8 !important;
-        }
-
-        label[data-baseweb="radio"]:nth-of-type(3) > div:first-child {
-            border-color: #CBD5E1 !important;
-            background: #F8FAFC !important;
-            box-shadow: none !important;
-        }
-        """
-
-    return css
 
 def get_prediction_action_spacing_css():
     return """
@@ -1364,18 +1267,6 @@ def render_page_title(title: str, subtitle: str = ""):
     )
 
 
-def render_status_legend():
-    st.markdown(
-        """
-        <div class="wc-status-legend">
-            <div class="wc-legend-item"><span class="wc-dot" style="background:#2563EB;"></span>Đang mở dự đoán</div>
-            <div class="wc-legend-item"><span class="wc-dot" style="background:#F59E0B;"></span>Đã khóa</div>
-            <div class="wc-legend-item"><span class="wc-dot" style="background:#16A34A;"></span>Đã có kết quả</div>
-            <div class="wc-legend-item"><span class="wc-dot" style="background:#9CA3AF;"></span>Chưa xác định đội</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 
 def render_kpi_tiles(matches: pd.DataFrame):
@@ -2810,79 +2701,8 @@ def validate_star_quota(user_id: int, match_id: int, star_type: str):
         raise ValueError("Bạn đã dùng hết Siêu sao.")
 
 
-def get_available_star_options(
-    user_id: int,
-    match_id: int,
-    current_star_type: str,
-    usage: dict | None = None
-) -> list[str]:
-    """
-    Luôn hiển thị đủ các option bổ trợ.
-    Option hết thật sẽ được xử lý bằng label xám + validate khi lưu.
-    """
-    return [
-        STAR_TYPE_NONE,
-        STAR_TYPE_HOPE,
-        STAR_TYPE_SUPER
-    ]
 
 
-def format_star_option_label(
-    star_type: str,
-    current_star_type: str,
-    usage: dict
-) -> str:
-    star_type = normalize_star_type(star_type)
-    current_star_type = normalize_star_type(current_star_type)
-
-    if star_type == STAR_TYPE_NONE:
-        return "Không dùng sao"
-
-    if star_type == STAR_TYPE_HOPE:
-        hope_label = STAR_CONFIG[STAR_TYPE_HOPE]["label"]
-
-        hope_left = int(usage.get("hope_left", 0))
-        hope_reserved_used = int(usage.get("hope_reserved_used", 0))
-
-        if hope_left <= 0 and current_star_type != STAR_TYPE_HOPE:
-            return f"{hope_label} (đã hết)"
-
-        if current_star_type == STAR_TYPE_HOPE:
-            return (
-                f"{hope_label} "
-                f"(Đang dùng; Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
-                f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
-            )
-
-        return (
-            f"{hope_label} "
-            f"(Đã đặt: {hope_reserved_used}/{HOPE_STARS_PER_USER}; "
-            f"Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER})"
-        )
-
-    if star_type == STAR_TYPE_SUPER:
-        super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
-
-        super_left = int(usage.get("super_left", 0))
-        super_reserved_used = int(usage.get("super_reserved_used", 0))
-
-        if super_left <= 0 and current_star_type != STAR_TYPE_SUPER:
-            return f"{super_label} (đã hết)"
-
-        if current_star_type == STAR_TYPE_SUPER:
-            return (
-                f"{super_label} "
-                f"(Đang dùng; Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
-                f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
-            )
-
-        return (
-            f"{super_label} "
-            f"(Đã đặt: {super_reserved_used}/{SUPER_STARS_PER_USER}; "
-            f"Kho còn lại: {super_left}/{SUPER_STARS_PER_USER})"
-        )
-
-    return STAR_CONFIG[star_type]["label"]
 
 def get_prediction_result_info(
     pred_home,
@@ -2966,36 +2786,6 @@ def get_prediction_result_info(
     }
 
 
-def render_prediction_result_line(result_info):
-    if result_info is None:
-        return
-
-    st.markdown(
-        f"""
-        <div style="
-            margin-top: 8px;
-            margin-bottom: 8px;
-            font-size: 15px;
-            color: #07111F;
-        ">
-            Kết quả dự đoán:
-            <span style="
-                display: inline-block;
-                margin-left: 6px;
-                padding: 5px 11px;
-                border-radius: 999px;
-                background: {result_info["bg_color"]};
-                color: {result_info["text_color"]};
-                border: 1px solid {result_info["border_color"]};
-                font-weight: 850;
-                font-size: 14px;
-            ">
-                {result_info["label"]}
-            </span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 def calculate_display_points_for_prediction(existing, match_row) -> dict | None:
     """
@@ -4107,20 +3897,6 @@ def render_goal_scorers_for_match(match_id: int):
         unsafe_allow_html=True
     )
 
-def is_gemini_quota_error(error: Exception) -> bool:
-    error_text = str(error).lower()
-
-    quota_keywords = [
-        "429",
-        "resource_exhausted",
-        "quota",
-        "rate limit",
-        "rate_limit",
-        "exceeded",
-        "too many requests"
-    ]
-
-    return any(keyword in error_text for keyword in quota_keywords)
 
 
 def get_config_value(name: str, default: str = "") -> str:
@@ -5036,84 +4812,6 @@ def get_star_transfer_candidates(
     return candidates
 
 
-def get_star_save_plan(
-    user_id: int,
-    match_id: int,
-    selected_star_type: str,
-    current_star_type: str
-) -> dict:
-    """
-    Quyết định khi lưu:
-    - save_direct: lưu thẳng.
-    - exhausted: sao đã hết thật.
-    - transfer_required: cần hỏi chuyển sao từ trận khác.
-    """
-    selected_star_type = normalize_star_type(selected_star_type)
-    current_star_type = normalize_star_type(current_star_type)
-
-    if selected_star_type == STAR_TYPE_NONE:
-        return {
-            "status": "save_direct",
-            "candidates": []
-        }
-
-    if selected_star_type == current_star_type:
-        return {
-            "status": "save_direct",
-            "candidates": []
-        }
-
-    usage = get_user_star_usage_from_db(
-        user_id=user_id,
-        exclude_match_id=match_id
-    )
-
-    if selected_star_type == STAR_TYPE_HOPE:
-        left_key = "hope_left"
-        free_key = "hope_free_left"
-        star_name = "Ngôi sao hy vọng"
-
-    elif selected_star_type == STAR_TYPE_SUPER:
-        left_key = "super_left"
-        free_key = "super_free_left"
-        star_name = "Siêu sao"
-
-    else:
-        return {
-            "status": "save_direct",
-            "candidates": []
-        }
-
-    if usage[left_key] <= 0:
-        return {
-            "status": "exhausted",
-            "message": f"Bạn đã dùng hết {star_name}.",
-            "candidates": []
-        }
-
-    if usage[free_key] > 0:
-        return {
-            "status": "save_direct",
-            "candidates": []
-        }
-
-    candidates = get_star_transfer_candidates(
-        user_id=user_id,
-        target_match_id=match_id,
-        star_type=selected_star_type
-    )
-
-    if not candidates:
-        return {
-            "status": "exhausted",
-            "message": f"Hiện không còn {star_name} trống để dùng cho trận này.",
-            "candidates": []
-        }
-
-    return {
-        "status": "transfer_required",
-        "candidates": candidates
-    }
 
 def save_prediction(
     user_id: int,
@@ -5284,74 +4982,6 @@ def save_prediction(
 
     clear_data_cache()
 
-def transfer_star_and_save_prediction(
-    user_id: int,
-    source_match_id: int,
-    target_match_id: int,
-    predicted_home_score: int,
-    predicted_away_score: int,
-    predicted_winner_team_id: int | None,
-    star_type: str
-):
-    """
-    Gỡ sao khỏi trận nguồn rồi lưu sao cho trận đích.
-    Chỉ cho chuyển từ trận còn mở dự đoán.
-    """
-    star_type = normalize_star_type(star_type)
-
-    if star_type == STAR_TYPE_NONE:
-        raise ValueError("Không có bổ trợ nào cần chuyển.")
-
-    source_match = get_match_by_id(source_match_id)
-
-    if source_match is None:
-        raise ValueError("Không tìm thấy trận đang giữ sao.")
-
-    if not can_edit_prediction(source_match["kickoff_time_utc"]):
-        raise ValueError("Trận đang giữ sao đã khóa, không thể chuyển sao nữa.")
-
-    source_prediction = get_user_prediction_from_db(
-        user_id=user_id,
-        match_id=source_match_id
-    )
-
-    if source_prediction is None:
-        raise ValueError("Trận được chọn không còn giữ bổ trợ này.")
-
-    if normalize_star_type(source_prediction.get("star_type")) != star_type:
-        raise ValueError("Trận được chọn không còn giữ đúng loại bổ trợ này.")
-
-    execute_sql(
-        """
-        UPDATE predictions
-        SET
-            star_type = 'none',
-            base_points = NULL,
-            star_bonus_points = NULL,
-            points = NULL,
-            updated_at = :updated_at
-        WHERE user_id = :user_id
-          AND match_id = :source_match_id
-          AND star_type = :star_type
-        """,
-        {
-            "updated_at": now_utc_iso(),
-            "user_id": int(user_id),
-            "source_match_id": int(source_match_id),
-            "star_type": star_type
-        }
-    )
-
-    clear_data_cache()
-
-    save_prediction(
-        user_id=user_id,
-        match_id=target_match_id,
-        predicted_home_score=predicted_home_score,
-        predicted_away_score=predicted_away_score,
-        predicted_winner_team_id=predicted_winner_team_id,
-        star_type=star_type
-    )
 
 def delete_prediction(user_id: int, match_id: int):
     """
