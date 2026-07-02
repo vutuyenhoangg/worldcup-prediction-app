@@ -2600,16 +2600,6 @@ def format_star_short(star_type) -> str:
     star_type = normalize_star_type(star_type)
     return STAR_CONFIG[star_type]["short_label"]
 
-def get_star_left_from_usage(star_type: str, usage: dict) -> int:
-    star_type = normalize_star_type(star_type)
-
-    if star_type == STAR_TYPE_HOPE:
-        return int(usage.get("hope_left", 0))
-
-    if star_type == STAR_TYPE_SUPER:
-        return int(usage.get("super_left", 0))
-
-    return 0
 
 def get_user_star_usage(user_id: int, exclude_match_id: int | None = None) -> dict:
     """
@@ -2648,6 +2638,148 @@ def get_user_star_usage(user_id: int, exclude_match_id: int | None = None) -> di
     }
 
 
+def get_star_limit(star_type: str) -> int:
+    """
+    Trả về quota tối đa của từng loại sao.
+    """
+    star_type = normalize_star_type(star_type)
+
+    if star_type == STAR_TYPE_HOPE:
+        return HOPE_STARS_PER_USER
+
+    if star_type == STAR_TYPE_SUPER:
+        return SUPER_STARS_PER_USER
+
+    return 0
+
+
+def get_star_left_from_usage(usage: dict, star_type: str) -> int:
+    """
+    Lấy số sao còn lại từ dict usage.
+    """
+    star_type = normalize_star_type(star_type)
+
+    if star_type == STAR_TYPE_HOPE:
+        return int(usage.get("hope_left", 0))
+
+    if star_type == STAR_TYPE_SUPER:
+        return int(usage.get("super_left", 0))
+
+    return 0
+
+
+def get_transferable_star_sources_for_card(
+    user_id: int,
+    star_type: str,
+    target_match_id: int,
+    predictions: pd.DataFrame | None = None,
+    matches: pd.DataFrame | None = None
+) -> list[dict]:
+    """
+    Dùng cho UI.
+    Tìm các trận đang giữ cùng loại sao nhưng vẫn chưa khóa dự đoán,
+    nghĩa là user có thể lấy sao từ trận đó để chuyển sang trận hiện tại.
+    """
+    star_type = normalize_star_type(star_type)
+
+    if star_type == STAR_TYPE_NONE:
+        return []
+
+    if predictions is None:
+        predictions = load_predictions()
+
+    if matches is None:
+        matches = load_matches()
+
+    if predictions.empty or matches.empty:
+        return []
+
+    user_predictions = predictions[
+        predictions["user_id"].astype(int) == int(user_id)
+    ].copy()
+
+    if user_predictions.empty:
+        return []
+
+    user_predictions["star_type_normalized"] = user_predictions["star_type"].apply(
+        normalize_star_type
+    )
+
+    star_predictions = user_predictions[
+        (user_predictions["match_id"].astype(int) != int(target_match_id))
+        & (user_predictions["star_type_normalized"] == star_type)
+    ].copy()
+
+    if star_predictions.empty:
+        return []
+
+    match_cols = [
+        "match_id",
+        "home_team_name",
+        "away_team_name",
+        "round_name",
+        "kickoff_time_utc",
+        "kickoff_date_display_vietnam",
+        "kickoff_date_vietnam",
+        "kickoff_time_vietnam",
+        "is_finished"
+    ]
+
+    available_match_cols = [col for col in match_cols if col in matches.columns]
+
+    merged = star_predictions.merge(
+        matches[available_match_cols],
+        on="match_id",
+        how="left"
+    )
+
+    sources = []
+
+    for _, source_row in merged.iterrows():
+        source_match_id = int(source_row["match_id"])
+
+        if source_match_id == int(target_match_id):
+            continue
+
+        if to_bool(source_row.get("is_finished")):
+            continue
+
+        if not can_edit_prediction(source_row.get("kickoff_time_utc")):
+            continue
+
+        home_name = str(source_row.get("home_team_name", "TBD"))
+        away_name = str(source_row.get("away_team_name", "TBD"))
+        round_name = str(source_row.get("round_name", ""))
+        kickoff_date = source_row.get(
+            "kickoff_date_display_vietnam",
+            source_row.get("kickoff_date_vietnam", "")
+        )
+        kickoff_time = source_row.get("kickoff_time_vietnam", "")
+
+        label = (
+            f"#{source_match_id} | {kickoff_date} {kickoff_time} | "
+            f"{home_name} vs {away_name}"
+        )
+
+        if round_name and round_name.lower() != "nan":
+            label = f"{label} | {round_name}"
+
+        sources.append(
+            {
+                "match_id": source_match_id,
+                "prediction_id": int(source_row["prediction_id"]),
+                "label": label,
+                "home_team_name": home_name,
+                "away_team_name": away_name,
+                "round_name": round_name,
+                "kickoff_date": str(kickoff_date),
+                "kickoff_time": str(kickoff_time)
+            }
+        )
+
+    return sources
+
+
 def validate_star_quota(user_id: int, match_id: int, star_type: str):
     star_type = normalize_star_type(star_type)
 
@@ -2667,52 +2799,184 @@ def get_available_star_options(
     user_id: int,
     match_id: int,
     current_star_type: str,
-    usage: dict | None = None
+    usage: dict | None = None,
+    transfer_sources_by_type: dict[str, list[dict]] | None = None
 ) -> list[str]:
     """
-    Giữ hàm này để tương thích code cũ.
+    Trả về các option thực sự cho phép chọn trong radio.
 
-    Logic hiển thị chi tiết sẽ xử lý trong get_star_selection_state_for_card().
+    Lưu ý:
+    - Option hết thật sự sẽ KHÔNG nằm trong radio để tránh người dùng chọn nhầm.
+    - Option hết nhưng còn có thể chuyển từ trận chưa khóa vẫn nằm trong radio.
+    - Option hết thật sự sẽ được render riêng bằng HTML dạng disabled ở dưới.
     """
-    return [
-        STAR_TYPE_NONE,
-        STAR_TYPE_HOPE,
-        STAR_TYPE_SUPER
-    ]
+    current_star_type = normalize_star_type(current_star_type)
+
+    if usage is None:
+        usage = get_user_star_usage(
+            user_id=user_id,
+            exclude_match_id=match_id
+        )
+
+    if transfer_sources_by_type is None:
+        transfer_sources_by_type = {}
+
+    options = [STAR_TYPE_NONE]
+
+    for star_type in [STAR_TYPE_HOPE, STAR_TYPE_SUPER]:
+        star_left = get_star_left_from_usage(usage, star_type)
+        transferable_sources = transfer_sources_by_type.get(star_type, [])
+
+        if (
+            current_star_type == star_type
+            or star_left > 0
+            or len(transferable_sources) > 0
+        ):
+            options.append(star_type)
+
+    return options
+
+
+def get_disabled_star_options(
+    current_star_type: str,
+    usage: dict,
+    transfer_sources_by_type: dict[str, list[dict]] | None = None
+) -> list[str]:
+    """
+    Các sao đã hết thật sự: không còn lượt mới và cũng không có trận chưa khóa để chuyển.
+    Những option này chỉ render để người chơi hiểu trạng thái, không cho chọn.
+    """
+    current_star_type = normalize_star_type(current_star_type)
+
+    if transfer_sources_by_type is None:
+        transfer_sources_by_type = {}
+
+    disabled_options = []
+
+    for star_type in [STAR_TYPE_HOPE, STAR_TYPE_SUPER]:
+        star_left = get_star_left_from_usage(usage, star_type)
+        transferable_sources = transfer_sources_by_type.get(star_type, [])
+
+        if (
+            current_star_type != star_type
+            and star_left <= 0
+            and len(transferable_sources) == 0
+        ):
+            disabled_options.append(star_type)
+
+    return disabled_options
 
 
 def format_star_option_label(
     star_type: str,
     current_star_type: str,
     usage: dict,
-    transfer_sources_by_star_type: dict | None = None
+    transfer_sources_by_type: dict[str, list[dict]] | None = None
 ) -> str:
     star_type = normalize_star_type(star_type)
     current_star_type = normalize_star_type(current_star_type)
 
-    transfer_sources_by_star_type = transfer_sources_by_star_type or {}
+    if transfer_sources_by_type is None:
+        transfer_sources_by_type = {}
 
     if star_type == STAR_TYPE_NONE:
         return "Không dùng sao"
 
     star_label = STAR_CONFIG[star_type]["label"]
+    star_left = get_star_left_from_usage(usage, star_type)
+    star_limit = get_star_limit(star_type)
+    transferable_sources = transfer_sources_by_type.get(star_type, [])
 
-    if star_type == current_star_type:
+    if current_star_type == star_type:
         return f"{star_label} (đang dùng)"
 
-    star_left = get_star_left_from_usage(star_type, usage)
-
     if star_left > 0:
-        if star_type == STAR_TYPE_HOPE:
-            return f"{star_label} (còn {star_left}/{HOPE_STARS_PER_USER})"
+        return f"{star_label} (còn {star_left}/{star_limit})"
 
-        if star_type == STAR_TYPE_SUPER:
-            return f"{star_label} (còn {star_left}/{SUPER_STARS_PER_USER})"
-
-    if transfer_sources_by_star_type.get(star_type):
-        return f"{star_label} (đã dùng hết, có thể chuyển từ trận khác)"
+    if len(transferable_sources) > 0:
+        return f"{star_label} (có thể chuyển)"
 
     return f"{star_label} (đã hết)"
+
+
+def render_disabled_star_options(disabled_star_options: list[str]):
+    """
+    Render các option sao đã hết thật sự theo dạng disabled.
+    Không dùng radio để người chơi không thể chọn nhầm.
+    """
+    if not disabled_star_options:
+        return
+
+    disabled_rows = []
+
+    for star_type in disabled_star_options:
+        star_label = html.escape(
+            f'{STAR_CONFIG[star_type]["label"]} (đã hết)'
+        )
+
+        disabled_rows.append(
+            f"""
+            <div style="
+                display:flex;
+                align-items:center;
+                gap:8px;
+                width:fit-content;
+                max-width:100%;
+                margin-top:8px;
+                padding:8px 12px;
+                border-radius:999px;
+                background:#111827;
+                border:1px solid rgba(148,163,184,0.48);
+                color:#94A3B8;
+                font-size:14px;
+                font-weight:800;
+                cursor:not-allowed;
+                opacity:0.88;
+                box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+            ">
+                <span style="
+                    width:16px;
+                    height:16px;
+                    min-width:16px;
+                    border-radius:999px;
+                    border:2px solid #64748B;
+                    background:#020617;
+                    display:inline-block;
+                    box-sizing:border-box;
+                "></span>
+                <span>{star_label}</span>
+            </div>
+            """
+        )
+
+    st.markdown(
+        "".join(disabled_rows),
+        unsafe_allow_html=True
+    )
+
+
+def build_star_transfer_target_label(match_id: int, home_name, away_name, row=None) -> str:
+    """
+    Tạo nhãn trận đích để hiển thị trong popup xác nhận chuyển sao.
+    """
+    home_display = "TBD" if home_name is None or pd.isna(home_name) else str(home_name)
+    away_display = "TBD" if away_name is None or pd.isna(away_name) else str(away_name)
+
+    date_text = ""
+    time_text = ""
+    round_text = ""
+
+    if row is not None:
+        date_text = str(row.get("kickoff_date_display_vietnam", row.get("kickoff_date_vietnam", "")))
+        time_text = str(row.get("kickoff_time_vietnam", ""))
+        round_text = str(row.get("round_name", ""))
+
+    label = f"#{int(match_id)} | {date_text} {time_text} | {home_display} vs {away_display}"
+
+    if round_text and round_text.lower() != "nan":
+        label = f"{label} | {round_text}"
+
+    return label
 
 def get_prediction_result_info(
     pred_home,
@@ -2795,54 +3059,6 @@ def get_prediction_result_info(
         "border_color": "#FCA5A5"
     }
 
-def render_disabled_star_option(star_type: str):
-    """
-    Hiển thị option sao đã hết thật sự.
-
-    Đây không phải st.radio option thật, nên người dùng không thể chọn.
-    """
-    star_type = normalize_star_type(star_type)
-
-    if star_type == STAR_TYPE_NONE:
-        return
-
-    label = f"{STAR_CONFIG[star_type]['label']} (đã hết)"
-    safe_label = html.escape(label)
-
-    st.markdown(
-        f"""
-        <div style="
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            width: fit-content;
-            max-width: 100%;
-            margin: 2px 0 4px 0;
-            padding: 2px 8px 2px 2px;
-            border-radius: 999px;
-            color: #64748B;
-            font-size: 14px;
-            font-weight: 700;
-            opacity: 0.68;
-            cursor: not-allowed;
-            user-select: none;
-        ">
-            <span style="
-                display: inline-flex;
-                width: 16px;
-                height: 16px;
-                min-width: 16px;
-                min-height: 16px;
-                border-radius: 999px;
-                border: 2px solid #94A3B8;
-                background: #E5E7EB;
-                box-sizing: border-box;
-            "></span>
-            <span>{safe_label}</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
 def render_prediction_result_line(result_info):
     if result_info is None:
@@ -4021,68 +4237,6 @@ def get_user_prediction_from_db(user_id: int, match_id: int):
         }
     )
 
-def get_transferable_star_source_from_db(
-    user_id: int,
-    source_match_id: int,
-    target_match_id: int,
-    star_type: str
-):
-    """
-    Kiểm tra trận nguồn có được phép chuyển sao hay không.
-
-    Chỉ cho chuyển nếu:
-    - Prediction thuộc user hiện tại
-    - Đang dùng đúng loại sao cần chuyển
-    - Không phải trận hiện tại
-    - Trận nguồn vẫn còn mở dự đoán
-    """
-    star_type = normalize_star_type(star_type)
-
-    if star_type == STAR_TYPE_NONE:
-        return None
-
-    source_match_id = int(source_match_id)
-    target_match_id = int(target_match_id)
-
-    if source_match_id == target_match_id:
-        raise ValueError("Không thể chuyển sao từ chính trận hiện tại.")
-
-    source = fetch_one(
-        """
-        SELECT
-            p.prediction_id,
-            p.user_id,
-            p.match_id,
-            p.star_type,
-            m.kickoff_time_utc,
-            m.is_finished,
-            m.home_team_name,
-            m.away_team_name
-        FROM predictions p
-        JOIN matches m
-          ON p.match_id = m.match_id
-        WHERE p.user_id = :user_id
-          AND p.match_id = :source_match_id
-        """,
-        {
-            "user_id": int(user_id),
-            "source_match_id": source_match_id
-        }
-    )
-
-    if source is None:
-        raise ValueError("Không tìm thấy trận nguồn để chuyển sao.")
-
-    if normalize_star_type(source.get("star_type")) != star_type:
-        raise ValueError("Trận nguồn không còn dùng loại sao này.")
-
-    if to_bool(source.get("is_finished")):
-        raise ValueError("Không thể chuyển sao từ trận đã có kết quả.")
-
-    if not can_edit_prediction(source.get("kickoff_time_utc")):
-        raise ValueError("Không thể chuyển sao từ trận đã khóa dự đoán.")
-
-    return source
 
 def get_user_star_usage_from_db(user_id: int, exclude_match_id: int | None = None) -> dict:
     """
@@ -4116,6 +4270,95 @@ def get_user_star_usage_from_db(user_id: int, exclude_match_id: int | None = Non
         "hope_left": max(0, HOPE_STARS_PER_USER - hope_used),
         "super_left": max(0, SUPER_STARS_PER_USER - super_used)
     }
+
+def get_transferable_star_sources_from_db(
+    user_id: int,
+    star_type: str,
+    target_match_id: int
+) -> list[dict]:
+    """
+    Dùng cho thao tác lưu/chuyển sao.
+    Luôn đọc trực tiếp database để tránh cache làm sai logic.
+    """
+    star_type = normalize_star_type(star_type)
+
+    if star_type == STAR_TYPE_NONE:
+        return []
+
+    rows = read_sql(
+        """
+        SELECT
+            p.prediction_id,
+            p.match_id,
+            p.star_type,
+            m.home_team_name,
+            m.away_team_name,
+            m.round_name,
+            m.kickoff_time_utc,
+            m.kickoff_date_display_vietnam,
+            m.kickoff_date_vietnam,
+            m.kickoff_time_vietnam,
+            m.is_finished
+        FROM predictions p
+        JOIN matches m
+          ON p.match_id = m.match_id
+        WHERE p.user_id = :user_id
+          AND p.match_id <> :target_match_id
+          AND p.star_type = :star_type
+        ORDER BY m.kickoff_time_utc
+        """,
+        {
+            "user_id": int(user_id),
+            "target_match_id": int(target_match_id),
+            "star_type": star_type
+        }
+    )
+
+    if rows.empty:
+        return []
+
+    sources = []
+
+    for _, source_row in rows.iterrows():
+        if to_bool(source_row.get("is_finished")):
+            continue
+
+        if not can_edit_prediction(source_row.get("kickoff_time_utc")):
+            continue
+
+        source_match_id = int(source_row["match_id"])
+        home_name = str(source_row.get("home_team_name", "TBD"))
+        away_name = str(source_row.get("away_team_name", "TBD"))
+        round_name = str(source_row.get("round_name", ""))
+        kickoff_date = source_row.get(
+            "kickoff_date_display_vietnam",
+            source_row.get("kickoff_date_vietnam", "")
+        )
+        kickoff_time = source_row.get("kickoff_time_vietnam", "")
+
+        label = (
+            f"#{source_match_id} | {kickoff_date} {kickoff_time} | "
+            f"{home_name} vs {away_name}"
+        )
+
+        if round_name and round_name.lower() != "nan":
+            label = f"{label} | {round_name}"
+
+        sources.append(
+            {
+                "prediction_id": int(source_row["prediction_id"]),
+                "match_id": source_match_id,
+                "label": label,
+                "home_team_name": home_name,
+                "away_team_name": away_name,
+                "round_name": round_name,
+                "kickoff_date": str(kickoff_date),
+                "kickoff_time": str(kickoff_time)
+            }
+        )
+
+    return sources
+
 
 def update_user_avatar(user_id: int, avatar_key: str):
     """
@@ -4195,192 +4438,6 @@ def build_user_prediction_map(predictions: pd.DataFrame, user_id: int) -> dict[i
         for _, row in user_predictions.iterrows()
     }
 
-def load_predictions_for_user_ui(user_id: int) -> pd.DataFrame:
-    """
-    Lấy prediction của user cho UI.
-
-    Ưu tiên dùng load_user_predictions nếu app đã có hàm tối ưu này.
-    Nếu chưa có, fallback về load_predictions rồi filter.
-    """
-    try:
-        return load_user_predictions(int(user_id))
-    except NameError:
-        predictions = load_predictions()
-
-        if predictions.empty:
-            return predictions
-
-        return predictions[
-            predictions["user_id"].astype(int) == int(user_id)
-        ].copy()
-
-
-def get_transferable_star_predictions_for_ui(
-    user_id: int,
-    star_type: str,
-    exclude_match_id: int
-) -> list[dict]:
-    """
-    Tìm các trận đang dùng loại sao này và còn có thể chỉnh sửa.
-
-    Chỉ cho chuyển sao từ:
-    - Prediction của chính user
-    - Đúng loại sao cần chuyển
-    - Không phải trận hiện tại
-    - Trận chưa đá, còn mở dự đoán
-    - Trận chưa có kết quả
-    """
-    star_type = normalize_star_type(star_type)
-
-    if star_type == STAR_TYPE_NONE:
-        return []
-
-    user_predictions = load_predictions_for_user_ui(user_id)
-    matches = load_matches()
-
-    if user_predictions.empty or matches.empty:
-        return []
-
-    user_predictions = user_predictions.copy()
-    user_predictions["star_type_normalized"] = user_predictions["star_type"].apply(
-        normalize_star_type
-    )
-
-    star_predictions = user_predictions[
-        (user_predictions["star_type_normalized"] == star_type)
-        & (user_predictions["match_id"].astype(int) != int(exclude_match_id))
-    ].copy()
-
-    if star_predictions.empty:
-        return []
-
-    df = star_predictions.merge(
-        matches,
-        on="match_id",
-        how="left"
-    )
-
-    if df.empty:
-        return []
-
-    now_utc = pd.Timestamp.now(tz="UTC")
-
-    df = df[
-        (df["kickoff_time_utc_dt"] > now_utc)
-        & (~df["is_finished"].apply(to_bool))
-    ].copy()
-
-    if df.empty:
-        return []
-
-    df = df.sort_values("kickoff_time_utc_dt")
-
-    sources = []
-
-    for _, row in df.iterrows():
-        match_id = int(row["match_id"])
-
-        home_name = str(row.get("home_team_name", "")).strip()
-        away_name = str(row.get("away_team_name", "")).strip()
-
-        pred_home = to_optional_int(row.get("predicted_home_score"))
-        pred_away = to_optional_int(row.get("predicted_away_score"))
-
-        score_text = ""
-
-        if pred_home is not None and pred_away is not None:
-            score_text = f" | dự đoán {pred_home} - {pred_away}"
-
-        date_text = str(
-            row.get(
-                "kickoff_date_display_vietnam",
-                row.get("kickoff_date_vietnam", "")
-            )
-        ).strip()
-
-        time_text = str(row.get("kickoff_time_vietnam", "")).strip()
-
-        kickoff_text = " ".join(
-            value
-            for value in [date_text, time_text]
-            if value
-        )
-
-        label_parts = [
-            f"{home_name} vs {away_name}",
-            kickoff_text
-        ]
-
-        label = " | ".join(
-            part
-            for part in label_parts
-            if part
-        ) + score_text
-
-        sources.append(
-            {
-                "match_id": match_id,
-                "label": label
-            }
-        )
-
-    return sources
-
-def get_star_selection_state_for_card(
-    user_id: int,
-    match_id: int,
-    current_star_type: str,
-    usage: dict
-) -> dict:
-    """
-    Phân loại option bổ trợ trong card.
-
-    selectable_options:
-    - Không dùng sao
-    - Sao đang dùng ở trận hiện tại
-    - Sao còn quota
-    - Sao hết quota nhưng có thể chuyển từ trận khác còn mở dự đoán
-
-    disabled_options:
-    - Sao đã hết thật sự
-    - Không còn quota
-    - Không có trận nào còn mở để chuyển sao
-    """
-    current_star_type = normalize_star_type(current_star_type)
-
-    selectable_options = [STAR_TYPE_NONE]
-    disabled_options = []
-    transfer_sources_by_star_type = {}
-
-    for star_type in [STAR_TYPE_HOPE, STAR_TYPE_SUPER]:
-        star_left = get_star_left_from_usage(star_type, usage)
-
-        if current_star_type == star_type:
-            selectable_options.append(star_type)
-            continue
-
-        if star_left > 0:
-            selectable_options.append(star_type)
-            continue
-
-        transfer_sources = get_transferable_star_predictions_for_ui(
-            user_id=user_id,
-            star_type=star_type,
-            exclude_match_id=match_id
-        )
-
-        if transfer_sources:
-            selectable_options.append(star_type)
-            transfer_sources_by_star_type[star_type] = transfer_sources
-        else:
-            disabled_options.append(star_type)
-
-    return {
-        "selectable_options": selectable_options,
-        "disabled_options": disabled_options,
-        "transfer_sources_by_star_type": transfer_sources_by_star_type
-    }
-
 def get_match_by_id(match_id: int):
     return fetch_one(
         """
@@ -4447,26 +4504,60 @@ def save_prediction(
                 )
 
     existing = get_user_prediction_from_db(user_id, match_id)
+    current_saved_star_type = (
+        normalize_star_type(existing.get("star_type"))
+        if existing is not None
+        else STAR_TYPE_NONE
+    )
+
+    selected_star_is_new_for_this_match = current_saved_star_type != star_type
+    transfer_source_prediction_id = None
+    transfer_source_match_id = None
+
+    if star_type != STAR_TYPE_NONE and selected_star_is_new_for_this_match:
+        usage = get_user_star_usage_from_db(
+            user_id=user_id,
+            exclude_match_id=match_id
+        )
+
+        star_left = get_star_left_from_usage(usage, star_type)
+
+        if star_left <= 0:
+            if transfer_from_match_id is None:
+                raise ValueError(
+                    "Bạn đã dùng hết loại sao này. Hãy chọn trận chưa khóa để chuyển sao sang."
+                )
+
+            transfer_from_match_id = int(transfer_from_match_id)
+
+            if transfer_from_match_id == int(match_id):
+                raise ValueError("Không thể chuyển sao từ chính trận đang cập nhật.")
+
+            transferable_sources = get_transferable_star_sources_from_db(
+                user_id=user_id,
+                star_type=star_type,
+                target_match_id=match_id
+            )
+
+            matched_sources = [
+                source
+                for source in transferable_sources
+                if int(source["match_id"]) == transfer_from_match_id
+            ]
+
+            if not matched_sources:
+                raise ValueError(
+                    "Không thể chuyển sao từ trận đã chọn. Trận đó có thể đã khóa hoặc sao đã được thay đổi."
+                )
+
+            transfer_source_prediction_id = int(matched_sources[0]["prediction_id"])
+            transfer_source_match_id = transfer_from_match_id
+
     now_text = now_utc_iso()
-    transfer_source = None
 
-    if transfer_from_match_id is not None and star_type != STAR_TYPE_NONE:
-        transfer_source = get_transferable_star_source_from_db(
-            user_id=user_id,
-            source_match_id=int(transfer_from_match_id),
-            target_match_id=int(match_id),
-            star_type=star_type
-        )
-
-    if transfer_source is None:
-        validate_star_quota(
-            user_id=user_id,
-            match_id=match_id,
-            star_type=star_type
-        )
     with get_engine().begin() as conn:
-        if transfer_source is not None:
-            conn.execute(
+        if transfer_source_prediction_id is not None:
+            transfer_result = conn.execute(
                 text(
                     """
                     UPDATE predictions
@@ -4478,14 +4569,24 @@ def save_prediction(
                         updated_at = :updated_at
                     WHERE prediction_id = :prediction_id
                       AND user_id = :user_id
+                      AND match_id = :match_id
+                      AND star_type = :star_type
                     """
                 ),
                 {
-                    "prediction_id": int(transfer_source["prediction_id"]),
+                    "updated_at": now_text,
+                    "prediction_id": transfer_source_prediction_id,
                     "user_id": int(user_id),
-                    "updated_at": now_text
+                    "match_id": transfer_source_match_id,
+                    "star_type": star_type
                 }
             )
+
+            if transfer_result.rowcount != 1:
+                raise ValueError(
+                    "Sao này vừa được thay đổi ở nơi khác. Hãy tải lại trang và thử lại."
+                )
+
         if existing is None:
             conn.execute(
                 text(
@@ -4597,6 +4698,106 @@ def save_prediction(
             )
 
     clear_data_cache()
+
+
+@st.dialog("Xác nhận chuyển sao")
+def render_star_transfer_dialog():
+    """
+    Popup xác nhận chuyển sao từ một trận chưa khóa sang trận hiện tại.
+    Nếu có nhiều trận nguồn, người chơi được chọn trận để lấy sao.
+    """
+    pending = st.session_state.get("pending_star_transfer")
+
+    if not pending:
+        st.info("Không có yêu cầu chuyển sao nào đang chờ xử lý.")
+        return
+
+    star_type = normalize_star_type(pending.get("star_type"))
+    star_label = STAR_CONFIG[star_type]["short_label"]
+    transfer_sources = pending.get("transfer_sources", [])
+    target_label = pending.get("target_label", "trận hiện tại")
+
+    st.markdown(
+        f"Bạn đang muốn chuyển **{star_label}** sang trận:"
+    )
+    st.info(target_label)
+
+    if not transfer_sources:
+        st.error("Không còn trận chưa khóa nào có thể chuyển sao.")
+
+        if st.button("Đóng", use_container_width=True):
+            st.session_state.pop("pending_star_transfer", None)
+            st.rerun()
+
+        return
+
+    selected_source_match_id = None
+
+    if len(transfer_sources) == 1:
+        selected_source_match_id = int(transfer_sources[0]["match_id"])
+        st.warning(
+            "Sao sẽ được lấy từ trận:\n\n"
+            f"{transfer_sources[0]['label']}"
+        )
+    else:
+        source_options = {
+            source["label"]: int(source["match_id"])
+            for source in transfer_sources
+        }
+
+        selected_source_label = st.selectbox(
+            "Chọn trận sẽ lấy sao để chuyển sang:",
+            options=list(source_options.keys()),
+            key="star_transfer_source_selectbox"
+        )
+
+        selected_source_match_id = source_options[selected_source_label]
+
+    st.caption(
+        "Sau khi xác nhận, trận nguồn sẽ chuyển về trạng thái không dùng sao. "
+        "Dự đoán và tỉ số ở cả hai trận vẫn được giữ nguyên."
+    )
+
+    confirm_col, cancel_col = st.columns(2)
+
+    with confirm_col:
+        if st.button(
+            "Có, chuyển sao",
+            type="primary",
+            use_container_width=True,
+            key="confirm_star_transfer_button"
+        ):
+            try:
+                save_prediction(
+                    user_id=int(pending["user_id"]),
+                    match_id=int(pending["match_id"]),
+                    predicted_home_score=int(pending["predicted_home_score"]),
+                    predicted_away_score=int(pending["predicted_away_score"]),
+                    predicted_winner_team_id=(
+                        int(pending["predicted_winner_team_id"])
+                        if pending.get("predicted_winner_team_id") is not None
+                        else None
+                    ),
+                    star_type=star_type,
+                    transfer_from_match_id=selected_source_match_id
+                )
+
+                st.session_state.pop("pending_star_transfer", None)
+                st.success("Đã chuyển sao và lưu dự đoán.")
+                st.rerun()
+
+            except ValueError as e:
+                st.error(str(e))
+
+    with cancel_col:
+        if st.button(
+            "Hủy",
+            use_container_width=True,
+            key="cancel_star_transfer_button"
+        ):
+            st.session_state.pop("pending_star_transfer", None)
+            st.rerun()
+
 
 def delete_prediction(user_id: int, match_id: int):
     """
@@ -5406,17 +5607,33 @@ def render_match_card(
                 exclude_match_id=match_id
             )
 
-            star_selection_state = get_star_selection_state_for_card(
+            transfer_sources_by_type = {
+                STAR_TYPE_HOPE: get_transferable_star_sources_for_card(
+                    user_id=user_id,
+                    star_type=STAR_TYPE_HOPE,
+                    target_match_id=match_id
+                ),
+                STAR_TYPE_SUPER: get_transferable_star_sources_for_card(
+                    user_id=user_id,
+                    star_type=STAR_TYPE_SUPER,
+                    target_match_id=match_id
+                )
+            }
+
+            star_options = get_available_star_options(
                 user_id=user_id,
                 match_id=match_id,
                 current_star_type=current_star_type,
-                usage=star_usage_for_card
+                usage=star_usage_for_card,
+                transfer_sources_by_type=transfer_sources_by_type
             )
-            
-            star_options = star_selection_state["selectable_options"]
-            disabled_star_options = star_selection_state["disabled_options"]
-            transfer_sources_by_star_type = star_selection_state["transfer_sources_by_star_type"]
-            
+
+            disabled_star_options = get_disabled_star_options(
+                current_star_type=current_star_type,
+                usage=star_usage_for_card,
+                transfer_sources_by_type=transfer_sources_by_type
+            )
+
             star_radio_index = (
                 star_options.index(current_star_type)
                 if current_star_type in star_options
@@ -5437,61 +5654,14 @@ def render_match_card(
                         star,
                         current_star_type=current_star_type,
                         usage=star_usage_for_card,
-                        transfer_sources_by_star_type=transfer_sources_by_star_type
+                        transfer_sources_by_type=transfer_sources_by_type
                     ),
                     horizontal=False,
                     key=star_radio_key
                 )
-            
-            for disabled_star_type in disabled_star_options:
-                render_disabled_star_option(disabled_star_type)
-            transfer_from_match_id = None
-            selected_star_type = normalize_star_type(selected_star_type)
-            
-            selected_star_needs_transfer = (
-                selected_star_type != STAR_TYPE_NONE
-                and current_star_type != selected_star_type
-                and get_star_left_from_usage(selected_star_type, star_usage_for_card) <= 0
-            )
-            
-            if selected_star_needs_transfer:
-                transfer_sources = transfer_sources_by_star_type.get(
-                    selected_star_type,
-                    []
-                )
-            
-                star_name = format_star_short(selected_star_type)
-            
-                if transfer_sources:
-                    st.info(
-                        f"Bạn đã dùng hết {star_name}. "
-                        "Bạn có thể chuyển sao từ một trận khác vẫn còn mở dự đoán sang trận này."
-                    )
-            
-                    transfer_source_labels = [
-                        source["label"]
-                        for source in transfer_sources
-                    ]
-            
-                    selected_transfer_label = st.selectbox(
-                        "Chọn trận muốn chuyển sao từ:",
-                        options=transfer_source_labels,
-                        key=f"transfer_star_source_{match_id}_{selected_star_type}"
-                    )
-            
-                    transfer_source_by_label = {
-                        source["label"]: source["match_id"]
-                        for source in transfer_sources
-                    }
-            
-                    transfer_from_match_id = transfer_source_by_label[
-                        selected_transfer_label
-                    ]
-            
-                else:
-                    raise ValueError(
-                        f"{star_name} đã hết và không còn trận nào có thể chuyển sao."
-                    )
+
+            render_disabled_star_options(disabled_star_options)
+
             submitted = False
             delete_submitted = False
             
@@ -5555,19 +5725,68 @@ def render_match_card(
             
             if submitted:
                 try:
-                    if selected_star_needs_transfer and transfer_from_match_id is None:
-                        raise ValueError(
-                            "Bạn đã dùng hết loại sao này và không có trận còn mở để chuyển sao."
+                    fresh_star_usage = get_user_star_usage_from_db(
+                        user_id=user_id,
+                        exclude_match_id=match_id
+                    )
+
+                    selected_star_type = normalize_star_type(selected_star_type)
+
+                    selected_star_is_new_for_this_match = (
+                        selected_star_type != normalize_star_type(current_star_type)
+                    )
+
+                    needs_star_transfer = (
+                        selected_star_type in [STAR_TYPE_HOPE, STAR_TYPE_SUPER]
+                        and selected_star_is_new_for_this_match
+                        and get_star_left_from_usage(
+                            fresh_star_usage,
+                            selected_star_type
+                        ) <= 0
+                    )
+
+                    if needs_star_transfer:
+                        transfer_sources = get_transferable_star_sources_from_db(
+                            user_id=user_id,
+                            star_type=selected_star_type,
+                            target_match_id=match_id
                         )
-                    
+
+                        if not transfer_sources:
+                            raise ValueError(
+                                "Loại sao này đã hết và không còn trận chưa khóa nào để chuyển."
+                            )
+
+                        st.session_state["pending_star_transfer"] = {
+                            "user_id": int(user_id),
+                            "match_id": int(match_id),
+                            "predicted_home_score": int(input_home),
+                            "predicted_away_score": int(input_away),
+                            "predicted_winner_team_id": (
+                                int(predicted_winner_team_id)
+                                if predicted_winner_team_id is not None
+                                else None
+                            ),
+                            "star_type": selected_star_type,
+                            "transfer_sources": transfer_sources,
+                            "target_label": build_star_transfer_target_label(
+                                match_id=match_id,
+                                home_name=home_name,
+                                away_name=away_name,
+                                row=row
+                            )
+                        }
+
+                        render_star_transfer_dialog()
+                        st.stop()
+
                     save_prediction(
                         user_id=user_id,
                         match_id=match_id,
                         predicted_home_score=int(input_home),
                         predicted_away_score=int(input_away),
                         predicted_winner_team_id=predicted_winner_team_id,
-                        star_type=selected_star_type,
-                        transfer_from_match_id=transfer_from_match_id
+                        star_type=selected_star_type
                     )
             
                     st.success(
@@ -5617,6 +5836,10 @@ def page_matches():
     render_kpi_tiles(matches)
 
     user_id = st.session_state["user"]["user_id"]
+
+    if st.session_state.get("pending_star_transfer"):
+        render_star_transfer_dialog()
+
     render_star_balance(user_id)
     render_scoring_rules()
 
