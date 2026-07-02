@@ -2816,6 +2816,15 @@ def format_star_option_label(
     current_star_type: str,
     usage: dict
 ) -> str:
+    """
+    Format label cho option bổ trợ.
+
+    Quy ước hiển thị:
+    - Kho còn lại = tổng sao - sao đã khóa/mất.
+      Sao đang giữ tạm ở các trận chưa khóa vẫn nằm trong kho này.
+    - Đang dùng = số sao đang giữ tạm ở các trận chưa khóa.
+    - free_left vẫn chỉ dùng ngầm cho logic chuyển sao, không đưa lên label.
+    """
     star_type = normalize_star_type(star_type)
     current_star_type = normalize_star_type(current_star_type)
 
@@ -2826,7 +2835,6 @@ def format_star_option_label(
         hope_label = STAR_CONFIG[STAR_TYPE_HOPE]["label"]
 
         hope_left = int(usage.get("hope_left", 0))
-        hope_free_left = int(usage.get("hope_free_left", 0))
         hope_using = int(usage.get("hope_reserved_used", 0))
 
         if hope_left <= 0 and current_star_type != STAR_TYPE_HOPE:
@@ -2834,7 +2842,7 @@ def format_star_option_label(
 
         return (
             f"{hope_label} "
-            f"(Kho còn lại: {hope_free_left}/{HOPE_STARS_PER_USER}; "
+            f"(Kho còn lại: {hope_left}/{HOPE_STARS_PER_USER}; "
             f"Đang dùng: {hope_using}/{HOPE_STARS_PER_USER})"
         )
 
@@ -2842,7 +2850,6 @@ def format_star_option_label(
         super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
 
         super_left = int(usage.get("super_left", 0))
-        super_free_left = int(usage.get("super_free_left", 0))
         super_using = int(usage.get("super_reserved_used", 0))
 
         if super_left <= 0 and current_star_type != STAR_TYPE_SUPER:
@@ -2850,7 +2857,7 @@ def format_star_option_label(
 
         return (
             f"{super_label} "
-            f"(Kho còn lại: {super_free_left}/{SUPER_STARS_PER_USER}; "
+            f"(Kho còn lại: {super_left}/{SUPER_STARS_PER_USER}; "
             f"Đang dùng: {super_using}/{SUPER_STARS_PER_USER})"
         )
 
@@ -5839,36 +5846,43 @@ def render_match_card(
                     predicted_winner_team_id = winner_options[selected_winner_name]
                     predicted_winner_team_name = selected_winner_name
 
-                        # Dùng cho hiển thị label:
-            # Không exclude match hiện tại để "Đang dùng" tính đúng cả sao
-            # đang gắn ở chính trận hiện tại nếu trận đó chưa khóa.
+            # Dùng cho HIỂN THỊ label:
+            # Không exclude match hiện tại để "Đang dùng" tính cả sao đang gắn
+            # ở chính trận này nếu trận đó chưa khóa.
             star_usage_for_display = get_user_star_usage(
                 user_id=user_id,
                 exclude_match_id=None
             )
 
-            # Dùng cho logic quota khi lưu:
-            # Vẫn exclude match hiện tại để không tự tính trùng sao đang sửa.
+            # Dùng cho LOGIC quota khi lưu/cập nhật:
+            # Exclude match hiện tại để không tự tính trùng sao đang sửa.
             star_usage_for_quota = get_user_star_usage(
                 user_id=user_id,
                 exclude_match_id=match_id
             )
 
-            hope_left = int(star_usage_for_quota.get("hope_left", 0))
-            super_left = int(star_usage_for_quota.get("super_left", 0))
+            # HIỂN THỊ:
+            # Kho còn lại = tổng sao - sao đã khóa/mất.
+            # Sao đang dùng ở trận chưa khóa vẫn nằm trong kho này.
+            hope_display_left = int(star_usage_for_display.get("hope_left", 0))
+            super_display_left = int(star_usage_for_display.get("super_left", 0))
 
-            hope_display_free_left = int(
-                star_usage_for_display.get("hope_free_left", 0)
-            )
-            super_display_free_left = int(
-                star_usage_for_display.get("super_free_left", 0)
-            )
-
+            # Đang dùng = sao đang giữ tạm ở các trận chưa khóa.
             hope_display_using = int(
                 star_usage_for_display.get("hope_reserved_used", 0)
             )
             super_display_using = int(
                 star_usage_for_display.get("super_reserved_used", 0)
+            )
+
+            # QUOTA:
+            # Dùng để disable option khi đã hết thật.
+            # Vẫn dựa trên dữ liệu đã exclude match hiện tại.
+            hope_left_for_quota = int(
+                star_usage_for_quota.get("hope_left", 0)
+            )
+            super_left_for_quota = int(
+                star_usage_for_quota.get("super_left", 0)
             )
 
             star_options = [
@@ -5886,12 +5900,12 @@ def render_match_card(
             star_radio_key = f"star_type_{match_id}_{current_star_type}"
 
             disable_hope_option = (
-                hope_left <= 0
+                hope_left_for_quota <= 0
                 and current_star_type != STAR_TYPE_HOPE
             )
 
             disable_super_option = (
-                super_left <= 0
+                super_left_for_quota <= 0
                 and current_star_type != STAR_TYPE_SUPER
             )
 
@@ -5907,23 +5921,23 @@ def render_match_card(
                     border-color: transparent !important;
                     box-shadow: none !important;
                 }
-            
+
                 label[data-baseweb="radio"]:nth-of-type(2) * {
                     color: #94A3B8 !important;
                 }
-            
+
                 label[data-baseweb="radio"]:nth-of-type(2) > div:first-child {
                     border-color: #CBD5E1 !important;
                     background: #F8FAFC !important;
                     box-shadow: none !important;
                 }
-            
+
                 label[data-baseweb="radio"]:nth-of-type(2):hover {
                     background: transparent !important;
                     border-color: transparent !important;
                     box-shadow: none !important;
                 }
-            
+
                 label[data-baseweb="radio"]:nth-of-type(2):hover > div:first-child {
                     border-color: #CBD5E1 !important;
                     background: #F8FAFC !important;
@@ -5941,29 +5955,30 @@ def render_match_card(
                     border-color: transparent !important;
                     box-shadow: none !important;
                 }
-            
+
                 label[data-baseweb="radio"]:nth-of-type(3) * {
                     color: #94A3B8 !important;
                 }
-            
+
                 label[data-baseweb="radio"]:nth-of-type(3) > div:first-child {
                     border-color: #CBD5E1 !important;
                     background: #F8FAFC !important;
                     box-shadow: none !important;
                 }
-            
+
                 label[data-baseweb="radio"]:nth-of-type(3):hover {
                     background: transparent !important;
                     border-color: transparent !important;
                     box-shadow: none !important;
                 }
-            
+
                 label[data-baseweb="radio"]:nth-of-type(3):hover > div:first-child {
                     border-color: #CBD5E1 !important;
                     background: #F8FAFC !important;
                     box-shadow: none !important;
                 }
                 """
+
             def format_star_option_label_for_card(star_type):
                 star_type = normalize_star_type(star_type)
 
@@ -5973,24 +5988,30 @@ def render_match_card(
                 if star_type == STAR_TYPE_HOPE:
                     hope_label = STAR_CONFIG[STAR_TYPE_HOPE]["label"]
 
-                    if hope_left <= 0 and current_star_type != STAR_TYPE_HOPE:
+                    if (
+                        hope_left_for_quota <= 0
+                        and current_star_type != STAR_TYPE_HOPE
+                    ):
                         return f"{hope_label} (đã hết)"
 
                     return (
                         f"{hope_label} "
-                        f"(Kho còn lại: {hope_display_free_left}/{HOPE_STARS_PER_USER}; "
+                        f"(Kho còn lại: {hope_display_left}/{HOPE_STARS_PER_USER}; "
                         f"Đang dùng: {hope_display_using}/{HOPE_STARS_PER_USER})"
                     )
 
                 if star_type == STAR_TYPE_SUPER:
                     super_label = STAR_CONFIG[STAR_TYPE_SUPER]["label"]
 
-                    if super_left <= 0 and current_star_type != STAR_TYPE_SUPER:
+                    if (
+                        super_left_for_quota <= 0
+                        and current_star_type != STAR_TYPE_SUPER
+                    ):
                         return f"{super_label} (đã hết)"
 
                     return (
                         f"{super_label} "
-                        f"(Kho còn lại: {super_display_free_left}/{SUPER_STARS_PER_USER}; "
+                        f"(Kho còn lại: {super_display_left}/{SUPER_STARS_PER_USER}; "
                         f"Đang dùng: {super_display_using}/{SUPER_STARS_PER_USER})"
                     )
 
