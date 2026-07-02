@@ -4235,17 +4235,13 @@ def generate_match_ai_summary(
 
     prompt = (
         "Bạn là một chuyên gia cập nhật tin tức bóng đá và World Cup 2026. "
-        f"Hãy viết summary ngắn gọn về trận đấu gần nhất giữa {pair_label}. "
+        f"Hãy viết summary về trận đấu gần nhất giữa {pair_label}. "
         "Mục tiêu là giúp người xem hiểu thêm diễn biến trận đấu, thế trận hoặc bước ngoặt, "
         "bổ sung thêm thông tin so với việc chỉ nhìn tỉ số và cầu thủ ghi bàn. "
-        "Chỉ trả lời bằng tiếng Việt. "
+        "Chỉ trả lời bằng tiếng Việt, không quá 100 chữ. "
         "Chỉ trả lời bằng văn bản thuần, không dùng HTML, CSS, Markdown, bảng, bullet point, code block hoặc thẻ div. "
         "Không thêm tiêu đề, không thêm nhãn 'AI Summary', không thêm phần 'Nguồn'. "
-        "Không bịa thông tin. Nếu dữ liệu không đủ để mô tả thế trận hoặc bước ngoặt, "
-        "hãy tóm tắt dựa trên dữ liệu trận được cung cấp. "
-        "Có thể viết đầy đủ 2-4 câu nếu cần, miễn là rõ ràng và dễ hiểu.\n\n"
-        "Dữ liệu trận trong app:\n"
-        f"{match_context}"
+        "Có thể viết đầy đủ nhiều câu nếu cần, miễn là rõ ràng và dễ hiểu.\n\n"
     )
 
     def call_gemini(enable_search: bool):
@@ -4257,12 +4253,12 @@ def generate_match_ai_summary(
                     )
                 ],
                 temperature=0.25,
-                max_output_tokens=700
+                max_output_tokens=1200
             )
         else:
             config = types.GenerateContentConfig(
                 temperature=0.25,
-                max_output_tokens=700
+                max_output_tokens=1200
             )
 
         return client.models.generate_content(
@@ -4374,7 +4370,7 @@ def trigger_ai_summary_for_match(row):
     """
     Render nút AI Summary ở góc phải card.
     - Lần đầu bấm: gọi Gemini rồi mở popup.
-    - Những lần sau: chỉ mở lại popup, không generate lại.
+    - Những lần sau: chỉ mở popup xem lại, không generate lại.
     """
     match_id = int(row["match_id"])
 
@@ -4441,7 +4437,7 @@ def trigger_ai_summary_for_match(row):
         clicked = st.button(
             "✨ AI Summary",
             key=f"ai_summary_button_{match_id}",
-            help="Xem tóm tắt ngắn về diễn biến trận đấu."
+            help="Xem tóm tắt diễn biến trận đấu."
         )
 
     if not clicked:
@@ -4540,6 +4536,7 @@ def render_ai_summary_dialog(row):
 
     if not ai_result:
         st.info("Chưa có AI Summary cho trận này.")
+
     else:
         summary_text = clean_ai_summary_text(
             ai_result.get("summary", "")
@@ -4562,8 +4559,6 @@ def render_ai_summary_dialog(row):
                     font-size:14px;
                     line-height:1.65;
                     margin-bottom: 16px;
-                    max-height: 55vh;
-                    overflow-y: auto;
                     white-space: normal;
                     word-break: normal;
                     overflow-wrap: break-word;
@@ -4573,6 +4568,7 @@ def render_ai_summary_dialog(row):
                 """,
                 unsafe_allow_html=True
             )
+
         else:
             st.info("AI chưa trả về nội dung tóm tắt phù hợp.")
 
@@ -5919,19 +5915,152 @@ def render_match_card(
             actual_home = to_optional_int(row.get("home_score_for_prediction"))
             actual_away = to_optional_int(row.get("away_score_for_prediction"))
 
-            # Giữ nguyên toàn bộ phần render box Kết quả bên dưới
+            score_et_home = to_optional_int(row.get("score_et_home"))
+            score_et_away = to_optional_int(row.get("score_et_away"))
+
+            score_pen_home = to_optional_int(row.get("score_pen_home"))
+            score_pen_away = to_optional_int(row.get("score_pen_away"))
+
+            has_extra_time = (
+                is_knockout
+                and score_et_home is not None
+                and score_et_away is not None
+            )
+
+            has_penalty = (
+                is_knockout
+                and score_pen_home is not None
+                and score_pen_away is not None
+            )
+
+            if is_finished and actual_home is not None and actual_away is not None:
+                result_text = f"{actual_home} - {actual_away}"
+
+                if has_extra_time or has_penalty:
+                    result_text = f"{result_text} (a.e.t)"
+
+                penalty_line_html = ""
+
+                if has_penalty:
+                    penalty_line_html = (
+                        '<div style="'
+                        'margin-top:10px;'
+                        'padding-top:9px;'
+                        'border-top:1px solid rgba(15,23,42,0.08);'
+                        'color:#64748B;'
+                        'font-size:13px;'
+                        'font-weight:750;'
+                        'line-height:1.25;'
+                        '">'
+                        'Penalty:'
+                        '<span style="'
+                        'color:#07111F;'
+                        'font-weight:950;'
+                        'margin-left:4px;'
+                        '">'
+                        f'{score_pen_home} - {score_pen_away}'
+                        '</span>'
+                        '</div>'
+                    )
+
+                result_card_html = (
+                    '<div style="'
+                    'background:rgba(255,255,255,0.86);'
+                    'border:1px solid rgba(15,23,42,0.08);'
+                    'border-radius:16px;'
+                    'padding:13px 15px;'
+                    'box-shadow:0 6px 18px rgba(15,23,42,0.04);'
+                    'min-width:180px;'
+                    '">'
+                    '<div style="'
+                    'color:#64748B;'
+                    'font-size:12px;'
+                    'font-weight:800;'
+                    'margin-bottom:6px;'
+                    '">'
+                    'Kết quả'
+                    '</div>'
+                    '<div style="'
+                    'color:#07111F;'
+                    'font-size:32px;'
+                    'font-weight:950;'
+                    'line-height:1.1;'
+                    'letter-spacing:-0.03em;'
+                    'white-space:nowrap;'
+                    '">'
+                    f'{html.escape(result_text)}'
+                    '</div>'
+                    f'{penalty_line_html}'
+                    '</div>'
+                )
+
+                st.markdown(
+                    result_card_html,
+                    unsafe_allow_html=True
+                )
+
+                winner_name = row.get("winner_team_name")
+
+                winner_name_is_valid = (
+                    winner_name is not None
+                    and not pd.isna(winner_name)
+                    and str(winner_name).strip().lower() not in ["", "nan", "none"]
+                )
+
+                if winner_name_is_valid:
+                    final_winner_text = str(winner_name).strip()
+
+                elif not is_knockout and actual_home == actual_away:
+                    final_winner_text = "2 đội hòa nhau"
+
+                elif has_penalty and score_pen_home > score_pen_away:
+                    final_winner_text = str(home_name)
+
+                elif has_penalty and score_pen_away > score_pen_home:
+                    final_winner_text = str(away_name)
+
+                elif actual_home > actual_away:
+                    final_winner_text = str(home_name)
+
+                elif actual_away > actual_home:
+                    final_winner_text = str(away_name)
+
+                elif is_knockout:
+                    final_winner_text = "Chưa xác định"
+
+                else:
+                    final_winner_text = "2 đội hòa nhau"
+
+                winner_caption_html = (
+                    '<div style="'
+                    'margin-top:14px;'
+                    'color:#64748B;'
+                    'font-size:13px;'
+                    'line-height:1.35;'
+                    '">'
+                    'Thắng chung cuộc: '
+                    '<span style="'
+                    'color:#475569;'
+                    'font-weight:750;'
+                    '">'
+                    f'{html.escape(final_winner_text)}'
+                    '</span>'
+                    '</div>'
+                )
+
+                st.markdown(
+                    winner_caption_html,
+                    unsafe_allow_html=True
+                )
+
+            else:
+                render_match_status_box(status_info)
 
         if (
             is_finished
             and st.session_state.get("active_ai_summary_dialog_match_id") == match_id
         ):
             render_ai_summary_dialog(row)
-
-        if is_unknown_team(home_name) or is_unknown_team(away_name):
-            st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
-            render_match_venue_footer(row, match_id)
-            return
-
 
         if is_unknown_team(home_name) or is_unknown_team(away_name):
             st.info("Chưa xác định đủ đội, tạm thời chưa mở dự đoán.")
